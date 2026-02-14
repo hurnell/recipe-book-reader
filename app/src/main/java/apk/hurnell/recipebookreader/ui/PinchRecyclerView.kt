@@ -14,11 +14,10 @@ class PinchRecyclerView @JvmOverloads constructor(
 ) : RecyclerView(context, attrs) {
 
     private var scaleFactor = 1f
+    private var lastFocusX = 0f
+    private var lastFocusY = 0f
     private var translationX = 0f
     private var translationY = 0f
-    private var lastTouchX = 0f
-    private var lastTouchY = 0f
-    private var activePointerId = MotionEvent.INVALID_POINTER_ID
 
     private val scaleDetector = ScaleGestureDetector(context, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
         override fun onScale(detector: ScaleGestureDetector): Boolean {
@@ -38,6 +37,31 @@ class PinchRecyclerView @JvmOverloads constructor(
         }
     })
 
+    override fun onTouchEvent(ev: MotionEvent): Boolean {
+        scaleDetector.onTouchEvent(ev)
+
+        when (ev.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                lastFocusX = ev.x
+                lastFocusY = ev.y
+            }
+
+            MotionEvent.ACTION_MOVE -> {
+                if (!scaleDetector.isInProgress) {
+                    val dx = ev.x - lastFocusX
+                    val dy = ev.y - lastFocusY
+                    translationX += dx
+                    translationY += dy
+                    fixTranslation()
+                    invalidate()
+                    lastFocusX = ev.x
+                    lastFocusY = ev.y
+                }
+            }
+        }
+        return super.onTouchEvent(ev) || true
+    }
+
     private fun fixTranslation() {
         val maxTransX = 0f
         val maxTransY = 0f
@@ -46,55 +70,6 @@ class PinchRecyclerView @JvmOverloads constructor(
 
         translationX = translationX.coerceIn(minTransX, maxTransX)
         translationY = translationY.coerceIn(minTransY, maxTransY)
-    }
-
-    override fun onTouchEvent(ev: MotionEvent): Boolean {
-        scaleDetector.onTouchEvent(ev)
-
-        when (ev.actionMasked) {
-            MotionEvent.ACTION_DOWN -> {
-                activePointerId = ev.getPointerId(0)
-                lastTouchX = ev.x
-                lastTouchY = ev.y
-            }
-
-            MotionEvent.ACTION_MOVE -> {
-                val pointerIndex = ev.findPointerIndex(activePointerId)
-                if (pointerIndex != -1 && scaleFactor > 1f && !scaleDetector.isInProgress) {
-                    val x = ev.getX(pointerIndex)
-                    val y = ev.getY(pointerIndex)
-                    val dx = x - lastTouchX
-                    val dy = y - lastTouchY
-
-                    translationX += dx
-                    translationY += dy
-                    fixTranslation()
-
-                    lastTouchX = x
-                    lastTouchY = y
-                    invalidate()
-                    return true // consume for panning
-                }
-            }
-
-            MotionEvent.ACTION_POINTER_UP -> {
-                val pointerId = ev.getPointerId(ev.actionIndex)
-                if (pointerId == activePointerId) {
-                    val newIndex = if (ev.actionIndex == 0) 1 else 0
-                    activePointerId = ev.getPointerId(newIndex)
-                    lastTouchX = ev.getX(newIndex)
-                    lastTouchY = ev.getY(newIndex)
-                }
-            }
-
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                activePointerId = MotionEvent.INVALID_POINTER_ID
-                performClick()
-            }
-        }
-
-        // If not zoomed, let RecyclerView scroll normally
-        return scaleFactor > 1f || super.onTouchEvent(ev)
     }
 
     override fun dispatchDraw(canvas: Canvas) {
