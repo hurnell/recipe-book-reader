@@ -15,6 +15,7 @@
         android:clipToPadding="false"
         android:clipChildren="false"
         android:scrollbars="vertical"
+        android:background="@android:color/white"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"

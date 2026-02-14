@@ -6,8 +6,7 @@ import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import androidx.recyclerview.widget.RecyclerView
-import androidx.core.graphics.withTranslation
-import androidx.core.graphics.withSave
+import kotlin.math.min
 
 class PinchRecyclerView @JvmOverloads constructor(
     context: Context,
@@ -15,120 +14,73 @@ class PinchRecyclerView @JvmOverloads constructor(
 ) : RecyclerView(context, attrs) {
 
     private var scaleFactor = 1f
-    private var posX = 0f
-    private var posY = 0f
-    private var lastTouchX = 0f
-    private var lastTouchY = 0f
-    private var maxWidth = 0f
-    private var maxHeight = 0f
-    private var widthPx = 0f
-    private var heightPx = 0f
-    private var activePointerId = INVALID_POINTER_ID
-    private val scaleDetector = ScaleGestureDetector(context, ScaleListener())
+    private var lastFocusX = 0f
+    private var lastFocusY = 0f
+    private var translationX = 0f
+    private var translationY = 0f
 
-    companion object {
-        private const val INVALID_POINTER_ID = -1
-    }
-
-    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        widthPx = MeasureSpec.getSize(widthMeasureSpec).toFloat()
-        heightPx = MeasureSpec.getSize(heightMeasureSpec).toFloat()
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
-    }
-
-    override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
-        return try {
-            super.onInterceptTouchEvent(ev)
-        } catch (ex: IllegalArgumentException) {
-            ex.printStackTrace()
-            false
-        }
-    }
-
-    override fun onTouchEvent(ev: MotionEvent): Boolean {
-        super.onTouchEvent(ev)
-        scaleDetector.onTouchEvent(ev)
-
-        val action = ev.actionMasked
-
-        when (action) {
-            MotionEvent.ACTION_DOWN -> {
-                lastTouchX = ev.x
-                lastTouchY = ev.y
-                activePointerId = ev.getPointerId(0)
-            }
-
-            MotionEvent.ACTION_MOVE -> {
-                val pointerIndex = ev.findPointerIndex(activePointerId)
-                val x = ev.getX(pointerIndex)
-                val y = ev.getY(pointerIndex)
-                val dx = x - lastTouchX
-                val dy = y - lastTouchY
-
-                posX += dx
-                posY += dy
-
-                posX = posX.coerceIn(maxWidth, 0f)
-                posY = posY.coerceIn(maxHeight, 0f)
-
-                lastTouchX = x
-                lastTouchY = y
-                invalidate()
-            }
-
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                activePointerId = INVALID_POINTER_ID
-                performClick() // accessibility
-            }
-
-            MotionEvent.ACTION_POINTER_UP -> {
-                val pointerIndex = ev.actionIndex
-                val pointerId = ev.getPointerId(pointerIndex)
-                if (pointerId == activePointerId) {
-                    val newPointerIndex = if (pointerIndex == 0) 1 else 0
-                    lastTouchX = ev.getX(newPointerIndex)
-                    lastTouchY = ev.getY(newPointerIndex)
-                    activePointerId = ev.getPointerId(newPointerIndex)
-                }
-            }
-        }
-        return true
-    }
-
-    override fun performClick(): Boolean {
-        super.performClick()
-        return true
-    }
-
-    override fun onDraw(canvas: Canvas) {
-        canvas.withTranslation(posX, posY) {
-            scale(scaleFactor, scaleFactor)
-            super.onDraw(this)
-        }
-    }
-
-    override fun dispatchDraw(canvas: Canvas) {
-        canvas.withSave {
-            if (scaleFactor == 1f) {
-                posX = 0f
-                posY = 0f
-            }
-            translate(posX, posY)
-            scale(scaleFactor, scaleFactor)
-            super.dispatchDraw(this)
-        }
-    }
-
-    private inner class ScaleListener : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+    private val scaleDetector = ScaleGestureDetector(context, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
         override fun onScale(detector: ScaleGestureDetector): Boolean {
-            scaleFactor *= detector.scaleFactor
+            val scale = detector.scaleFactor
+            scaleFactor *= scale
             scaleFactor = scaleFactor.coerceIn(1f, 3f)
 
-            maxWidth = widthPx - widthPx * scaleFactor
-            maxHeight = heightPx - heightPx * scaleFactor
+            // Adjust translation so zoom centers on gesture
+            val focusX = detector.focusX
+            val focusY = detector.focusY
+            translationX += (translationX - focusX) * (scale - 1)
+            translationY += (translationY - focusY) * (scale - 1)
 
+            fixTranslation()
             invalidate()
             return true
         }
+    })
+
+    override fun onTouchEvent(ev: MotionEvent): Boolean {
+        scaleDetector.onTouchEvent(ev)
+
+        when (ev.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                lastFocusX = ev.x
+                lastFocusY = ev.y
+            }
+
+            MotionEvent.ACTION_MOVE -> {
+                if (!scaleDetector.isInProgress) {
+                    val dx = ev.x - lastFocusX
+                    val dy = ev.y - lastFocusY
+                    translationX += dx
+                    translationY += dy
+                    fixTranslation()
+                    invalidate()
+                    lastFocusX = ev.x
+                    lastFocusY = ev.y
+                }
+            }
+        }
+        return super.onTouchEvent(ev) || true
+    }
+
+    private fun fixTranslation() {
+        val maxTransX = 0f
+        val maxTransY = 0f
+        val minTransX = min(width - width * scaleFactor, 0f)
+        val minTransY = min(height - height * scaleFactor, 0f)
+
+        translationX = translationX.coerceIn(minTransX, maxTransX)
+        translationY = translationY.coerceIn(minTransY, maxTransY)
+    }
+
+    override fun dispatchDraw(canvas: Canvas) {
+        canvas.save()
+        canvas.translate(translationX, translationY)
+        canvas.scale(scaleFactor, scaleFactor)
+        super.dispatchDraw(canvas)
+        canvas.restore()
+    }
+
+    override fun performClick(): Boolean {
+        return super.performClick()
     }
 }

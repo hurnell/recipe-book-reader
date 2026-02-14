@@ -13,6 +13,7 @@ import helpers.ContentInputStream
 import java.io.File
 import java.io.FileOutputStream
 import androidx.core.graphics.createBitmap
+import helpers.ZoomableImageView
 
 class BookAdapter(
     private val contentResolver: ContentResolver,
@@ -45,11 +46,12 @@ class BookAdapter(
     class PageViewHolder(val imageView: ImageView) : RecyclerView.ViewHolder(imageView)
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PageViewHolder {
-        val imageView = ImageView(parent.context).apply {
+        val imageView = ZoomableImageView(parent.context).apply {
             layoutParams = RecyclerView.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
             )
+            adjustViewBounds = true
             scaleType = ImageView.ScaleType.FIT_CENTER
         }
         return PageViewHolder(imageView)
