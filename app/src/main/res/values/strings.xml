@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Recipe Book Reader</string>
+    <string name="toggle_orientation">Toggle orientation</string>
 </resources>

@@ -9,7 +9,9 @@ android {
             minorApiLevel = 1
         }
     }
-
+    buildFeatures {
+        viewBinding = true
+    }
     defaultConfig {
         applicationId = "apk.hurnell.recipebookreader"
         minSdk = 34
