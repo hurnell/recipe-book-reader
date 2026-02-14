@@ -1,0 +1,64 @@
+# === IDE / Project files ===
+*.iml
+.idea/
+.idea/caches/
+.idea/libraries/
+.idea/modules.xml
+.idea/workspace.xml
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
+
+# Ignore local configuration file (contains local paths, SDK info)
+local.properties
+
+# Android Studio Captures
+captures/
+
+# Gradle files
+.gradle/
+build/
+.externalNativeBuild/
+.cxx/
+
+# Kotlin/Java compiler outputs
+out/
+*.class
+*.jar
+*.war
+*.ear
+
+# === OS-specific files ===
+.DS_Store
+Thumbs.db
+
+# === Logs ===
+*.log
+
+# === Temporary files ===
+*.tmp
+*.temp
+*.swp
+
+# === ProGuard / R8 / generated mapping files ===
+mapping.txt
+mapping-*.txt
+seeds.txt
+*.bak
+
+# === NDK / CMake build files ===
+obj/
+*.so
+*.o
+
+# === Kotlin multiplatform / Jetpack Compose / caching ===
+.idea/gradle.xml
+.idea/dictionaries/
+.idea/misc.xml
+.idea/modules.xml
+.idea/vcs.xml
+.idea/compiler.xml
+.idea/workspace.xml
+.idea/gradle.xml
+
+# JetBrains Kotlin / IntelliJ plugin cache
+*.kotlin_module
