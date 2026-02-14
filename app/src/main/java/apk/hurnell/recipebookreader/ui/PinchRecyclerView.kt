@@ -21,36 +21,39 @@ class PinchRecyclerView @JvmOverloads constructor(
     private var translationX = 0f
     private var mActivePointerId = MotionEvent.INVALID_POINTER_ID
 
-    private val scaleDetector = ScaleGestureDetector(context, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
-        override fun onScale(detector: ScaleGestureDetector): Boolean {
-            val prevScale = scaleFactor
-            scaleFactor *= detector.scaleFactor
-            scaleFactor = scaleFactor.coerceIn(1f, 3f)
+    private val scaleDetector =
+        ScaleGestureDetector(context, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+            override fun onScale(detector: ScaleGestureDetector): Boolean {
+                val prevScale = scaleFactor
+                scaleFactor *= detector.scaleFactor
+                scaleFactor = scaleFactor.coerceIn(1f, 3f)
 
-            if (prevScale != scaleFactor) {
-                val scaleRatio = scaleFactor / prevScale
-                translationX = detector.focusX + (translationX - detector.focusX) * scaleRatio
-                
-                val focusY = detector.focusY
-                scrollBy(0, ((focusY) * (scaleRatio - 1) / scaleFactor).toInt())
-            }
+                if (prevScale != scaleFactor) {
+                    val scaleRatio = scaleFactor / prevScale
+                    translationX = detector.focusX + (translationX - detector.focusX) * scaleRatio
 
-            fixTranslation()
-            invalidate()
-            return true
-        }
-    })
+                    val focusY = detector.focusY
+                    scrollBy(0, ((focusY) * (scaleRatio - 1) / scaleFactor).toInt())
+                }
 
-    private val gestureDetector = GestureDetectorCompat(context, object : GestureDetector.SimpleOnGestureListener() {
-        override fun onFling(e1: MotionEvent?, e2: MotionEvent, vX: Float, vY: Float): Boolean {
-            if (scaleFactor > 1f) {
-                this@PinchRecyclerView.fling(0, -(vY / scaleFactor).toInt())
+                fixTranslation()
+                invalidate()
                 return true
             }
-            return false
-        }
-        override fun onSingleTapUp(e: MotionEvent): Boolean = performClick()
-    })
+        })
+
+    private val gestureDetector =
+        GestureDetectorCompat(context, object : GestureDetector.SimpleOnGestureListener() {
+            override fun onFling(e1: MotionEvent?, e2: MotionEvent, vX: Float, vY: Float): Boolean {
+                if (scaleFactor > 1f) {
+                    this@PinchRecyclerView.fling(0, -(vY / scaleFactor).toInt())
+                    return true
+                }
+                return false
+            }
+
+            override fun onSingleTapUp(e: MotionEvent): Boolean = performClick()
+        })
 
     override fun onTouchEvent(ev: MotionEvent): Boolean {
         scaleDetector.onTouchEvent(ev)
