@@ -1,4 +1,6 @@
 <resources>
     <string name="app_name">Recipe Book Reader</string>
     <string name="toggle_orientation">Toggle orientation</string>
+    <string name="switch_between_portrait_and_landscape">switch between portrait and landscape</string>
+    <string name="show_table_of_contents">show table of contents</string>
 </resources>
