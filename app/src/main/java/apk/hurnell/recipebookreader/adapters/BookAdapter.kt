@@ -1,24 +1,22 @@
 package apk.hurnell.recipebookreader.adapters
 
 import android.content.ContentResolver
-import android.graphics.Bitmap
 import android.graphics.Matrix
+import android.graphics.drawable.GradientDrawable
 import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.os.ParcelFileDescriptor
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import android.widget.ImageView
-import helpers.ContentInputStream
 import java.io.File
 import java.io.FileOutputStream
 import androidx.core.graphics.createBitmap
-import helpers.ZoomableImageView
 
 class BookAdapter(
-    private val contentResolver: ContentResolver,
-    private val pdfUri: Uri,
-    private val cacheDir: File
+    contentResolver: ContentResolver,
+    pdfUri: Uri,
+    cacheDir: File
 ) : RecyclerView.Adapter<BookAdapter.PageViewHolder>() {
 
     private var pdfRenderer: PdfRenderer? = null
@@ -26,7 +24,6 @@ class BookAdapter(
     private val cachedFile: File
 
     init {
-        // Copy the PDF to a temp cache file
         val fileName = pdfUri.lastPathSegment ?: "temp.pdf"
         cachedFile = File(cacheDir, fileName)
         if (!cachedFile.exists()) {
@@ -37,7 +34,6 @@ class BookAdapter(
             }
         }
 
-        // Open PdfRenderer
         val pfd = ParcelFileDescriptor.open(cachedFile, ParcelFileDescriptor.MODE_READ_ONLY)
         pdfRenderer = PdfRenderer(pfd)
         pageCount = pdfRenderer?.pageCount ?: 0
@@ -46,13 +42,18 @@ class BookAdapter(
     class PageViewHolder(val imageView: ImageView) : RecyclerView.ViewHolder(imageView)
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PageViewHolder {
-        val imageView = ZoomableImageView(parent.context).apply {
+        val drawable = GradientDrawable().apply {
+            setColor(0xFFFFFFFF.toInt())
+            setStroke(1, 0xFFE0E0E0.toInt())
+        }
+
+        val imageView = ImageView(parent.context).apply {
             layoutParams = RecyclerView.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
             )
             adjustViewBounds = true
-            scaleType = ImageView.ScaleType.FIT_CENTER
+            background = drawable
         }
         return PageViewHolder(imageView)
     }
@@ -61,11 +62,11 @@ class BookAdapter(
         pdfRenderer?.let { renderer ->
             val page = renderer.openPage(position)
 
-            val containerWidth = holder.imageView.width.takeIf { it > 0 } ?: holder.imageView.resources.displayMetrics.widthPixels
+            val containerWidth = holder.imageView.width.takeIf { it > 0 }
+                ?: holder.imageView.resources.displayMetrics.widthPixels
             val pageWidth = page.width.toFloat()
             val pageHeight = page.height.toFloat()
 
-            // scale page to fit container width
             val scale = containerWidth / pageWidth
             val bitmapWidth = (pageWidth * scale).toInt()
             val bitmapHeight = (pageHeight * scale).toInt()
