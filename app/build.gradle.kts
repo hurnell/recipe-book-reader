@@ -55,5 +55,6 @@ dependencies {
     testImplementation(libs.junit)
     implementation(libs.fitz)
     androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(libs.androidx.espresso.core)// Realm Kotlin
+    implementation(libs.realm)
 }
