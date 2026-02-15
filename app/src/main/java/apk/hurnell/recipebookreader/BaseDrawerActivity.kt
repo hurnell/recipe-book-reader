@@ -32,23 +32,14 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         drawerLayout = findViewById(R.id.drawer_layout)
         setSupportActionBar(toolbar)
 
+        // Ensure the content doesn't hide behind the status bar
+        window.statusBarColor = getColor(R.color.pastel_blue)
+
         toggle = ActionBarDrawerToggle(
             this, drawerLayout, toolbar,
             R.string.navigation_drawer_open, R.string.navigation_drawer_close
         )
-
         drawerLayout.addDrawerListener(toggle)
-
-        // Listen for drawer state changes to enable/disable the back callback
-        drawerLayout.addDrawerListener(object : DrawerLayout.SimpleDrawerListener() {
-            override fun onDrawerOpened(drawerView: android.view.View) {
-                drawerBackCallback.isEnabled = true
-            }
-            override fun onDrawerClosed(drawerView: android.view.View) {
-                drawerBackCallback.isEnabled = false
-            }
-        })
-
         toggle.syncState()
     }
 }
