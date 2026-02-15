@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.Settings
+import android.util.Log
 import android.util.TypedValue
 import android.widget.SeekBar
 import androidx.activity.enableEdgeToEdge
@@ -40,7 +41,7 @@ class RecipeBookActivity : AppCompatActivity() {
 
         requestStoragePermission()
         setupWindowInsets()
-
+        binding.drawerLayout.isFocusableInTouchMode = false
         val pdfFile = File("/storage/emulated/0/Documents/moon/moon/british/nigella_bites_a.pdf")
         if (pdfFile.exists()) {
             val stream = PdfStreamer(contentResolver, pdfFile.toUri())
@@ -92,6 +93,9 @@ class RecipeBookActivity : AppCompatActivity() {
         }
 
         binding.tocToolbar.setNavigationOnClickListener {
+            val imm = getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+            currentFocus?.let { imm.hideSoftInputFromWindow(it.windowToken, 0) }
+
             binding.drawerLayout.closeDrawer(GravityCompat.START)
         }
 
@@ -104,6 +108,37 @@ class RecipeBookActivity : AppCompatActivity() {
                 .replace(R.id.tocFragmentContainer, tocFragment)
                 .commit()
         }
+        val backCallback = object : androidx.activity.OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                val imm = getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+
+                if (binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {
+                    // Check if keyboard is actually visible
+                    val isKeyboardVisible = ViewCompat.getRootWindowInsets(binding.root)
+                        ?.isVisible(WindowInsetsCompat.Type.ime()) == true
+
+                    if (isKeyboardVisible || currentFocus != null) {
+                        // 1. Hide Keyboard
+                        imm.hideSoftInputFromWindow(binding.drawerLayout.windowToken, 0)
+                        // 2. Clear focus from the search field
+                        currentFocus?.clearFocus()
+
+                        Log.i("NIGEL_HURNELL", "Back caught: Hiding keyboard, drawer remains open")
+                        return // Stop here. Do NOT close the drawer.
+                    }
+
+                    // 3. If no keyboard/focus, close the drawer
+                    binding.drawerLayout.closeDrawer(GravityCompat.START)
+                    return
+                }
+
+                // 4. Standard activity back behavior
+                isEnabled = false
+                onBackPressedDispatcher.onBackPressed()
+                isEnabled = true
+            }
+        }
+        onBackPressedDispatcher.addCallback(this, backCallback)
     }
 
     private fun setupWindowInsets() {
@@ -149,12 +184,10 @@ class RecipeBookActivity : AppCompatActivity() {
     }
 
     private fun requestStoragePermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            if (!Environment.isExternalStorageManager()) {
-                val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
-                intent.data = "package:$packageName".toUri()
-                startActivity(intent)
-            }
+        if (!Environment.isExternalStorageManager()) {
+            val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+            intent.data = "package:$packageName".toUri()
+            startActivity(intent)
         }
     }
 

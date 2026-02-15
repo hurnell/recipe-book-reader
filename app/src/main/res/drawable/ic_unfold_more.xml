@@ -4,32 +4,34 @@
     android:autoMirrored="true"
     android:viewportWidth="960"
     android:viewportHeight="960">
-    <path
-        android:fillColor="@android:color/black"
-        android:pathData="M100,440 L860,440 L860,520 L100,520 Z"/>
     <group
         android:pivotX="440"
         android:pivotY="480"
         android:rotation="90"
-        android:translateX="40"
-        android:translateY="320"
-        android:scaleY="-1">
+        android:translateX="48"
+        android:translateY="288">
         <path
-            android:fillColor="@android:color/black"
-            android:pathData="M440,680 L440,280 L240,480 L440,680 Z" />
-    </group>
+            android:pathData="M440,680 L440,280 L240,480 L440,680 Z"
+            android:fillColor="@android:color/transparent"
+            android:strokeColor="#000000"
+            android:strokeWidth="72"
+            android:strokeLineJoin="round"
+            android:strokeLineCap="round"/></group>
 
 
     <group
         android:pivotX="440"
         android:pivotY="480"
         android:rotation="270"
-        android:translateX="40"
-        android:translateY="-320"
-        android:scaleY="-1">
+        android:translateX="48"
+        android:translateY="-288">
         <path
-            android:fillColor="@android:color/black"
-            android:pathData="M440,680 L440,280 L240,480 L440,680 Z" />
+            android:pathData="M440,680 L440,280 L240,480 L440,680 Z"
+            android:fillColor="@android:color/transparent"
+            android:strokeColor="#000000"
+            android:strokeWidth="72"
+            android:strokeLineJoin="round"
+            android:strokeLineCap="round"/>
     </group>
 
 </vector>

@@ -3,6 +3,7 @@ package apk.hurnell.recipebookreader.ui
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -11,6 +12,7 @@ import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.LinearLayout
+import androidx.activity.OnBackPressedCallback
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
@@ -32,6 +34,8 @@ data class TocItem(
 
 class TocFragment : Fragment() {
 
+    //private lateinit var backCallback: OnBackPressedCallback
+
     private var onPageSelected: ((Int) -> Unit)? = null
     private var tocData: List<TocItem> = emptyList()
     private var adapter: TocAdapter? = null
@@ -47,8 +51,19 @@ class TocFragment : Fragment() {
         val root = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
+
+            // Ensure this view can take focus so the searchField can give it up
+            isFocusableInTouchMode = true
+            descendantFocusability = ViewGroup.FOCUS_BEFORE_DESCENDANTS
         }
         root.fitsSystemWindows = false
+        root.descendantFocusability = ViewGroup.FOCUS_BEFORE_DESCENDANTS
+        root.isFocusableInTouchMode = true
+        val btnClear = ImageButton(context).apply {
+            setImageResource(android.R.drawable.ic_menu_close_clear_cancel) // Standard Android "X"
+            background = null
+            visibility = View.GONE // Hidden initially
+        }
         val recyclerView = RecyclerView(context).apply {
             layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, 0, 1f)
             layoutManager = LinearLayoutManager(context)
@@ -69,19 +84,20 @@ class TocFragment : Fragment() {
         }
 
         val btnToggle = ImageButton(context).apply {
-            setImageResource(R.drawable.ic_unfold_less)
+            setImageResource(R.drawable.ic_chevron_right)
             background = null
             setOnClickListener {
                 allExpanded = !allExpanded
                 toggleAll(tocData, allExpanded)
                 adapter?.updateVisibleItems()
-                setImageResource(if (allExpanded) R.drawable.ic_unfold_less else R.drawable.ic_expand_more)
+                setImageResource(if (allExpanded) R.drawable.ic_expand_more else R.drawable.ic_chevron_right)
             }
         }
 
         val searchField = EditText(context).apply {
+            tag = "search_field"
             layoutParams = LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f)
-            hint = "Search recipes..."
+            hint = "Search toc..."
             background = null
             maxLines = 1
             addTextChangedListener(object : TextWatcher {
@@ -96,14 +112,27 @@ class TocFragment : Fragment() {
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                     adapter?.filter(s.toString())
                     recyclerView.scrollToPosition(0)
+
+                    // Show clear button only if text is not empty
+                    btnClear.visibility = if (s.isNullOrEmpty()) View.GONE else View.VISIBLE
                 }
 
                 override fun afterTextChanged(s: Editable?) {}
             })
         }
-
+        btnClear.setOnClickListener {
+            searchField.text.clear()
+            hideKeyboard()      // Calls your existing hideKeyboard function
+            searchField.clearFocus()
+        }
+        searchField.setOnEditorActionListener { v, _, _ ->
+            hideKeyboard()
+            v.clearFocus()
+            true
+        }
         controlBar.addView(btnToggle)
         controlBar.addView(searchField)
+        controlBar.addView(btnClear)
 
         root.addView(recyclerView)
         root.addView(controlBar)
@@ -119,6 +148,18 @@ class TocFragment : Fragment() {
         }
 
         return root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        // 1. Initialize the callback as DISABLED
+
+
+        // 2. Link the callback state to the Search Field focus
+        // We find the searchField we created in onCreateView
+        // Add .tag = "search_field" in onCreateView
+
     }
 
     private fun toggleAll(items: List<TocItem>, expand: Boolean) {
@@ -153,6 +194,11 @@ class TocFragment : Fragment() {
     private fun hideKeyboard() {
         val imm = requireContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE)
                 as android.view.inputmethod.InputMethodManager
+
+        // Crucial: clear focus so the OnFocusChangeListener triggers
+        val focusedView = view?.findFocus()
+        focusedView?.clearFocus()
+
         imm.hideSoftInputFromWindow(view?.windowToken, 0)
     }
 
