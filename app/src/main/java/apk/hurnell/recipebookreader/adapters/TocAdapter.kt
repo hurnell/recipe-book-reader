@@ -30,7 +30,6 @@ class TocAdapter(
     fun updateVisibleItems() {
         visibleItems.clear()
         if (currentQuery.isEmpty()) {
-            // Standard Hierarchical View
             fun collect(items: List<TocItem>) {
                 for (item in items) {
                     visibleItems.add(item)
@@ -41,7 +40,6 @@ class TocAdapter(
             }
             collect(fullList)
         } else {
-            // Flat Search Results View
             fun collectFiltered(items: List<TocItem>) {
                 for (item in items) {
                     if (item.title.contains(currentQuery, ignoreCase = true)) {
@@ -58,7 +56,7 @@ class TocAdapter(
     class TocViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvTitle: TextView = view.findViewById(R.id.tvTitle)
         val ivArrow: ImageView = view.findViewById(R.id.ivArrow)
-        val root: View = view // Usually the root of the XML
+        val root: View = view
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TocViewHolder {
@@ -71,14 +69,12 @@ class TocAdapter(
         val item = visibleItems[position]
         holder.tvTitle.text = item.title
 
-        // Indentation logic
         val density = holder.itemView.resources.displayMetrics.density
-        // If searching, remove indentation to maximize space
+
         val level = if (currentQuery.isEmpty()) item.level else 0
         val indent = (level * 24 * density).toInt()
         holder.itemView.setPadding(indent + (16 * density).toInt(), 0, 0, 0)
 
-        // Hide arrows during search results
         if (item.children.isEmpty() || currentQuery.isNotEmpty()) {
             holder.ivArrow.visibility = View.INVISIBLE
         } else {

@@ -41,27 +41,22 @@ class RecipeBookActivity : AppCompatActivity() {
         requestStoragePermission()
         setupWindowInsets()
 
-        // 1. Initialize MuPDF Document
         val pdfFile = File("/storage/emulated/0/Documents/moon/moon/british/nigella_bites_a.pdf")
         if (pdfFile.exists()) {
             val stream = PdfStreamer(contentResolver, pdfFile.toUri())
             document = Document.openDocument(stream, "application/pdf")
         }
 
-        // 2. Setup RecyclerView & Adapter
         val adapter = document?.let { BookAdapter(it) }
         binding.recyclerView.layoutManager = LinearLayoutManager(this)
         binding.recyclerView.adapter = adapter
 
-        // 3. Setup UI State
         val totalPages = adapter?.itemCount ?: 0
         updatePageText(0, totalPages)
 
-        // 4. Toolbar Setup
         binding.toolbar.title = "Recipe Book"
         binding.toolbar.setNavigationOnClickListener { finish() }
 
-        // 5. SeekBar Logic
         binding.pageSeekBar.max = if (totalPages > 0) totalPages - 1 else 0
         binding.pageSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
@@ -72,7 +67,6 @@ class RecipeBookActivity : AppCompatActivity() {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
-        // 6. Scroll & Tap Listeners
         binding.recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 val layoutManager = recyclerView.layoutManager as LinearLayoutManager
@@ -87,7 +81,6 @@ class RecipeBookActivity : AppCompatActivity() {
             toggleBars(!barsVisible)
         }
 
-        // 7. Buttons (Rotate & TOC)
         binding.btnRotate.setOnClickListener {
             isPortrait = !isPortrait
             requestedOrientation = if (isPortrait) ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
@@ -102,7 +95,6 @@ class RecipeBookActivity : AppCompatActivity() {
             binding.drawerLayout.closeDrawer(GravityCompat.START)
         }
 
-        // 8. Load TOC Fragment (Passing the document)
         if (savedInstanceState == null && document != null) {
             val tocFragment = TocFragment.newInstance(document!!) { page ->
                 binding.recyclerView.scrollToPosition(page)
@@ -117,6 +109,7 @@ class RecipeBookActivity : AppCompatActivity() {
     private fun setupWindowInsets() {
         ViewCompat.setOnApplyWindowInsetsListener(binding.main) { _, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
 
             val actionBarHeight = TypedValue.applyDimension(
                 TypedValue.COMPLEX_UNIT_DIP, 56f, resources.displayMetrics
@@ -125,13 +118,17 @@ class RecipeBookActivity : AppCompatActivity() {
             binding.toolbar.layoutParams.height = actionBarHeight + systemBars.top
             binding.toolbar.setPadding(0, systemBars.top, 0, 0)
 
+            val bottomInset = systemBars.bottom.coerceAtLeast(ime.bottom)
+
             binding.bottomBar.setPadding(
                 binding.bottomBar.paddingLeft,
                 binding.bottomBar.paddingTop,
                 binding.bottomBar.paddingRight,
-                systemBars.bottom
+                bottomInset
             )
-            binding.tocFragmentContainer.setPadding(0, 0, 0, systemBars.bottom)
+
+            binding.tocFragmentContainer.setPadding(0, 0, 0, bottomInset)
+
             insets
         }
     }

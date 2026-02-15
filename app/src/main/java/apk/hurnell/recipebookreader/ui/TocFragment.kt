@@ -44,22 +44,22 @@ class TocFragment : Fragment() {
     ): View {
         val context = requireContext()
 
-        // Root Layout
         val root = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
         }
-
-        // 1. The RecyclerView
+        root.fitsSystemWindows = false
         val recyclerView = RecyclerView(context).apply {
             layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, 0, 1f)
             layoutManager = LinearLayoutManager(context)
             clipToPadding = false
         }
-        adapter = TocAdapter(tocData) { page -> onPageSelected?.invoke(page) }
+        adapter = TocAdapter(tocData) { page ->
+            hideKeyboard()
+            onPageSelected?.invoke(page)
+        }
         recyclerView.adapter = adapter
 
-        // 2. The Bottom Control Bar
         val controlBar = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT)
@@ -68,9 +68,8 @@ class TocFragment : Fragment() {
             setBackgroundColor("#F5F5F5".toColorInt())
         }
 
-        // 3. Toggle Expand/Collapse Button
         val btnToggle = ImageButton(context).apply {
-            setImageResource(R.drawable.ic_unfold_less) // You'll need an icon for this
+            setImageResource(R.drawable.ic_unfold_less)
             background = null
             setOnClickListener {
                 allExpanded = !allExpanded
@@ -80,11 +79,10 @@ class TocFragment : Fragment() {
             }
         }
 
-        // 4. Search EditText
         val searchField = EditText(context).apply {
             layoutParams = LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f)
             hint = "Search recipes..."
-            background = null // Minimalist look
+            background = null
             maxLines = 1
             addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(
@@ -97,6 +95,7 @@ class TocFragment : Fragment() {
 
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                     adapter?.filter(s.toString())
+                    recyclerView.scrollToPosition(0)
                 }
 
                 override fun afterTextChanged(s: Editable?) {}
@@ -109,10 +108,13 @@ class TocFragment : Fragment() {
         root.addView(recyclerView)
         root.addView(controlBar)
 
-        // Handle Window Insets for the bottom bar
-        ViewCompat.setOnApplyWindowInsetsListener(controlBar) { v, insets ->
+        ViewCompat.setOnApplyWindowInsetsListener(root) { _, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(16, 16, 16, systemBars.bottom + 16)
+            val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
+
+            val bottomInset = systemBars.bottom.coerceAtLeast(imeInsets.bottom)
+            root.setPadding(0, 0, 0, bottomInset)
+
             insets
         }
 
@@ -146,6 +148,12 @@ class TocFragment : Fragment() {
             null
         }
         return walk(outlineArray, 0)
+    }
+
+    private fun hideKeyboard() {
+        val imm = requireContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE)
+                as android.view.inputmethod.InputMethodManager
+        imm.hideSoftInputFromWindow(view?.windowToken, 0)
     }
 
     companion object {
