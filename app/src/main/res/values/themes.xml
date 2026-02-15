@@ -3,7 +3,11 @@
     <style name="Base.Theme.RecipeBookReader" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Customize your light theme here. -->
         <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
-    </style>
 
+    </style>
+    <style name="ToolbarTitleText">
+        <item name="android:textSize">20sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">#FFFFFF</item> </style>
     <style name="Theme.RecipeBookReader" parent="Base.Theme.RecipeBookReader" />
 </resources>
