@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Step 1: Create the Orange Circular Background -->
+    <item
+        android:top="10dp"
+        android:bottom="10dp"
+        android:left="10dp"
+        android:right="10dp">
+        <shape android:shape="oval">
+            <solid android:color="#FF8C00" /> <!-- Dark Orange Hex Code -->
+            <size
+                android:width="80dp"
+                android:height="80dp" />
+        </shape>
+    </item>
+
+    <!-- Step 2: Add the Folder Icon in the Center -->
+    <item
+        android:top="25dp"
+        android:bottom="25dp"
+        android:left="25dp"
+        android:right="25dp">
+        <vector
+            android:width="24dp"
+            android:height="24dp"
+            android:viewportWidth="24"
+            android:viewportHeight="24">
+            <path
+                android:fillColor="#FFFFFF"
+                android:pathData="M10,4H4C2.9,4 2,4.9 2,6L2,18C2,19.1 2.9,20 4,20H20C21.1,20 22,19.1 22,18V8C22,6.9 21.1,6 20,6H12L10,4Z" />
+        </vector>
+    </item>
+</layer-list>

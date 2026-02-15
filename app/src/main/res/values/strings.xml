@@ -4,4 +4,17 @@
     <string name="switch_between_portrait_and_landscape">switch between portrait and landscape</string>
     <string name="show_table_of_contents">show table of contents</string>
     <string name="expand">Expand Toc Level</string>
+    <string name="file_icon">File Icon</string>
+    <string name="file_name">File name</string>
+    <string name="file_browser">File Browser</string>
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+    <string name="controls">Controls</string>
+    <string name="recent_books">Recent Books</string>
+    <string name="recently_viewed_books">Recently Viewed Books</string>
+    <string name="book_shelf">Book Shelf</string>
+    <string name="book_shelf_description">Book Shelf</string>
+    <string name="browse_files">Browse Files</string>
+    <string name="open_file_browser">Open File Browser</string>
+    <string name="recipe_reader">Recipe Reader</string>
 </resources>
