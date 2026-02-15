@@ -16,24 +16,42 @@ class TocAdapter(
 ) : RecyclerView.Adapter<TocAdapter.TocViewHolder>() {
 
     private val visibleItems = mutableListOf<TocItem>()
+    private var currentQuery = ""
 
     init {
         updateVisibleItems()
     }
 
-    private fun updateVisibleItems() {
-        visibleItems.clear()
+    fun filter(query: String) {
+        currentQuery = query
+        updateVisibleItems()
+    }
 
-        fun collect(items: List<TocItem>) {
-            for (item in items) {
-                visibleItems.add(item)
-                if (item.isExpanded && item.children.isNotEmpty()) {
-                    collect(item.children)
+    fun updateVisibleItems() {
+        visibleItems.clear()
+        if (currentQuery.isEmpty()) {
+            // Standard Hierarchical View
+            fun collect(items: List<TocItem>) {
+                for (item in items) {
+                    visibleItems.add(item)
+                    if (item.isExpanded && item.children.isNotEmpty()) {
+                        collect(item.children)
+                    }
                 }
             }
+            collect(fullList)
+        } else {
+            // Flat Search Results View
+            fun collectFiltered(items: List<TocItem>) {
+                for (item in items) {
+                    if (item.title.contains(currentQuery, ignoreCase = true)) {
+                        visibleItems.add(item)
+                    }
+                    collectFiltered(item.children)
+                }
+            }
+            collectFiltered(fullList)
         }
-
-        collect(fullList)
         notifyDataSetChanged()
     }
 
@@ -51,30 +69,28 @@ class TocAdapter(
 
     override fun onBindViewHolder(holder: TocViewHolder, position: Int) {
         val item = visibleItems[position]
-
         holder.tvTitle.text = item.title
 
-        // Dynamic Indentation: 48dp per level
+        // Indentation logic
         val density = holder.itemView.resources.displayMetrics.density
-        val indent = (item.level * 24 * density).toInt()
+        // If searching, remove indentation to maximize space
+        val level = if (currentQuery.isEmpty()) item.level else 0
+        val indent = (level * 24 * density).toInt()
         holder.itemView.setPadding(indent + (16 * density).toInt(), 0, 0, 0)
 
-        if (item.children.isEmpty()) {
+        // Hide arrows during search results
+        if (item.children.isEmpty() || currentQuery.isNotEmpty()) {
             holder.ivArrow.visibility = View.INVISIBLE
         } else {
             holder.ivArrow.visibility = View.VISIBLE
             holder.ivArrow.setImageResource(
                 if (item.isExpanded) R.drawable.ic_expand_more else R.drawable.ic_chevron_right
             )
-
-            // Clicking the arrow toggles expansion
             holder.ivArrow.setOnClickListener {
                 item.isExpanded = !item.isExpanded
                 updateVisibleItems()
             }
         }
-
-        // Clicking the title (or the row) navigates
         holder.tvTitle.setOnClickListener { onClick(item.page) }
     }
 
