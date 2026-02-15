@@ -16,6 +16,7 @@ import androidx.core.net.toUri
 import androidx.core.view.GravityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.adapters.BookAdapter
@@ -43,19 +44,23 @@ class RecipeBookActivity : AppCompatActivity() {
         setupWindowInsets()
         binding.drawerLayout.isFocusableInTouchMode = false
         val pdfFile = File("/storage/emulated/0/Documents/moon/moon/british/nigella_bites_a.pdf")
+        var title = "Recipe Book"
         if (pdfFile.exists()) {
             val stream = PdfStreamer(contentResolver, pdfFile.toUri())
             document = Document.openDocument(stream, "application/pdf")
+            title = document?.getMetaData(Document.META_INFO_TITLE) ?: title
         }
 
         val adapter = document?.let { BookAdapter(it) }
         binding.recyclerView.layoutManager = LinearLayoutManager(this)
+        val divider = DividerItemDecoration(this, LinearLayoutManager.VERTICAL)
+        binding.recyclerView.addItemDecoration(divider)
         binding.recyclerView.adapter = adapter
 
         val totalPages = adapter?.itemCount ?: 0
         updatePageText(0, totalPages)
 
-        binding.toolbar.title = "Recipe Book"
+        binding.toolbar.title = title
         binding.toolbar.setNavigationOnClickListener { finish() }
 
         binding.pageSeekBar.max = if (totalPages > 0) totalPages - 1 else 0
