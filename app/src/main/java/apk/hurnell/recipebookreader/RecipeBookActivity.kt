@@ -69,6 +69,7 @@ class RecipeBookActivity : AppCompatActivity() {
                 updatePageText(progress, totalPages)
                 if (fromUser) binding.recyclerView.scrollToPosition(progress)
             }
+
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
@@ -98,7 +99,8 @@ class RecipeBookActivity : AppCompatActivity() {
         }
 
         binding.tocToolbar.setNavigationOnClickListener {
-            val imm = getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+            val imm =
+                getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
             currentFocus?.let { imm.hideSoftInputFromWindow(it.windowToken, 0) }
 
             binding.drawerLayout.closeDrawer(GravityCompat.START)
@@ -115,29 +117,26 @@ class RecipeBookActivity : AppCompatActivity() {
         }
         val backCallback = object : androidx.activity.OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                val imm = getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                val imm =
+                    getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
 
                 if (binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {
-                    // Check if keyboard is actually visible
                     val isKeyboardVisible = ViewCompat.getRootWindowInsets(binding.root)
                         ?.isVisible(WindowInsetsCompat.Type.ime()) == true
 
                     if (isKeyboardVisible || currentFocus != null) {
-                        // 1. Hide Keyboard
                         imm.hideSoftInputFromWindow(binding.drawerLayout.windowToken, 0)
-                        // 2. Clear focus from the search field
+
                         currentFocus?.clearFocus()
 
                         Log.i("NIGEL_HURNELL", "Back caught: Hiding keyboard, drawer remains open")
-                        return // Stop here. Do NOT close the drawer.
+                        return
                     }
 
-                    // 3. If no keyboard/focus, close the drawer
                     binding.drawerLayout.closeDrawer(GravityCompat.START)
                     return
                 }
 
-                // 4. Standard activity back behavior
                 isEnabled = false
                 onBackPressedDispatcher.onBackPressed()
                 isEnabled = true
