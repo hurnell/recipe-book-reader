@@ -131,6 +131,7 @@ class RecipeBookActivity : AppCompatActivity() {
                 binding.bottomBar.paddingRight,
                 systemBars.bottom
             )
+            binding.tocFragmentContainer.setPadding(0, 0, 0, systemBars.bottom)
             insets
         }
     }
