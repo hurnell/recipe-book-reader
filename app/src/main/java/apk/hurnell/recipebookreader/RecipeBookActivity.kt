@@ -10,6 +10,7 @@ import android.provider.Settings
 import android.util.Log
 import android.util.TypedValue
 import android.widget.SeekBar
+import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.net.toUri
@@ -36,7 +37,12 @@ class RecipeBookActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        enableEdgeToEdge()
+        enableEdgeToEdge(
+            navigationBarStyle = SystemBarStyle.light(
+                getColor(R.color.pastel_blue),
+                getColor(R.color.pastel_blue)
+            )
+        )
         binding = ActivityRecipeBookBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
