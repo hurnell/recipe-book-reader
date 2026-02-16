@@ -14,7 +14,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.RecipeBookReader">
         <activity
-            android:name=".RecentFilesActivity"
+            android:name=".RecipeBookActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -22,7 +22,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".RecipeBookActivity"
+            android:name=".RecentFilesActivity"
             android:enableOnBackInvokedCallback="false"
             android:windowSoftInputMode="adjustResize"
             android:exported="true">
