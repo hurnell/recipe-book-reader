@@ -4,21 +4,26 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
-import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.R
 import apk.hurnell.recipebookreader.ui.TocItem
 
 class TocAdapter(
-    private val fullList: List<TocItem>,
-    private val onClick: (Int) -> Unit
+    private var fullList: List<TocItem>, // now var
+    private val onClick: (TocItem) -> Unit
 ) : RecyclerView.Adapter<TocAdapter.TocViewHolder>() {
 
     private val visibleItems = mutableListOf<TocItem>()
     private var currentQuery = ""
 
     init {
+        updateVisibleItems()
+    }
+
+    // New method to update TOC data dynamically
+    fun updateData(newList: List<TocItem>) {
+        fullList = newList
         updateVisibleItems()
     }
 
@@ -56,7 +61,6 @@ class TocAdapter(
     class TocViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvTitle: TextView = view.findViewById(R.id.tvTitle)
         val ivArrow: ImageView = view.findViewById(R.id.ivArrow)
-        val root: View = view
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TocViewHolder {
@@ -70,7 +74,6 @@ class TocAdapter(
         holder.tvTitle.text = item.title
 
         val density = holder.itemView.resources.displayMetrics.density
-
         val level = if (currentQuery.isEmpty()) item.level else 0
         val indent = (level * 24 * density).toInt()
         holder.itemView.setPadding(indent + (16 * density).toInt(), 0, 0, 0)
@@ -87,7 +90,8 @@ class TocAdapter(
                 updateVisibleItems()
             }
         }
-        holder.tvTitle.setOnClickListener { onClick(item.page) }
+
+        holder.tvTitle.setOnClickListener { onClick(item) }
     }
 
     override fun getItemCount() = visibleItems.size
