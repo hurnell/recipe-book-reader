@@ -1,4 +1,4 @@
-package helpers
+package apk.hurnell.recipebookreader.helpers
 
 import android.content.ContentResolver
 import android.net.Uri
