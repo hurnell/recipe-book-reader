@@ -10,6 +10,7 @@ material = "1.13.0"
 activity = "1.12.4"
 constraintlayout = "2.2.1"
 realm = "3.2.9"
+kotlinx-coroutines = "1.7.3"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -22,6 +23,7 @@ material = { group = "com.google.android.material", name = "material", version.r
 androidx-activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 realm = { module = "com.infomaniak.realm.kotlin:library-base", version.ref = "realm" }
+kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinx-coroutines" }
 
 
 [plugins]
