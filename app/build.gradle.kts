@@ -59,4 +59,5 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)// Realm Kotlin
     implementation(libs.realm)
+    implementation(libs.kotlinx.coroutines.android)
 }
