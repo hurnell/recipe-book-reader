@@ -143,12 +143,12 @@ class DatabaseHelper(private val context: Context) {
         }
     }
 
-    fun generateTOC(document: Document?, bookId: Long) {
+    fun generateTOC(document: Document?, bookId: Long): Boolean {
         if (document == null) {
             Log.e(LOG_TAG, "Cannot generate TOC: Document is null")
-            return
+            return false
         }
-
+        var success = false
         val outline = try {
             document.loadOutline()
         } catch (e: Exception) {
@@ -167,19 +167,34 @@ class DatabaseHelper(private val context: Context) {
             val rowsUpdated = db.update("books", values, "id = ?", arrayOf(bookId.toString()))
 
             if (rowsUpdated > 0) {
+                success = true
                 Log.i(LOG_TAG, "Successfully updated toc_created flag for book $bookId")
             } else {
+                success = false
                 Log.e(LOG_TAG, "Failed to update toc_created flag for book $bookId")
             }
         } else {
+            val db = openDatabase()
+            val values = ContentValues().apply {
+                put("toc_unavailable", 1)
+            }
+            val rowsUpdated = db.update("books", values, "id = ?", arrayOf(bookId.toString()))
+            if (rowsUpdated > 0) {
+                success = false
+                Log.i(LOG_TAG, "Successfully updated toc_unavailable flag for book $bookId")
+            } else {
+                success = false
+                Log.e(LOG_TAG, "Failed to update toc_unavailable flag for book $bookId")
+            }
             Log.e(
                 LOG_TAG,
                 "loadOutline returned null. Page count: ${document.countPages()}"
             )
         }
+        return success
     }
 
-    fun hasRecipes(bookId: Long): Boolean {
+    fun hasTableOfContents(bookId: Long): Boolean {
         val db = openDatabase()
         return db.query(
             "books",
