@@ -1,11 +1,16 @@
 package apk.hurnell.recipebookreader.model
 
-import io.realm.kotlin.types.RealmObject
-import io.realm.kotlin.types.annotations.PrimaryKey
 
-class Book : RealmObject {
-    @PrimaryKey
-    var id: Long = 0L
-    var title: String? = null
-    var content: String? = null
-}
+data class Book(
+    val id: Long,
+    val sha: String?,
+    val name: String?,
+    val location: String?,
+    val author: String?,
+    val lastOpened: Long?,
+    val tocCreated: Long?,
+    val tocUnavailable: Int?,
+    val category: String?,
+    val subCategory: String?,
+    val alternateCover: String?
+)
