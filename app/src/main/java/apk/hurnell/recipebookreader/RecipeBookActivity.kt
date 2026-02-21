@@ -26,6 +26,7 @@ import apk.hurnell.recipebookreader.ui.PinchRecyclerView
 import androidx.activity.OnBackPressedCallback
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import apk.hurnell.recipebookreader.helpers.PdfRepository
 import apk.hurnell.recipebookreader.ui.TocFragment
 import com.artifex.mupdf.fitz.Document
 import com.artifex.mupdf.fitz.Link
@@ -41,6 +42,8 @@ class RecipeBookActivity : AppCompatActivity() {
     private var isPortrait = true
     private var barsVisible = true
     private var document: Document? = null
+    private lateinit var repository: PdfRepository
+
     companion object {
         private const val LOG_TAG = "NIGEL_HURNELL"
     }
@@ -69,28 +72,45 @@ class RecipeBookActivity : AppCompatActivity() {
         }
         val pdfFile = File(pdfFilePath)
         binding.btnTOC.visibility = View.GONE
-        lifecycleScope.launch(Dispatchers.IO) {
-            if (pdfFile.exists()) {
-                try {
-                    val stream = PdfStreamer(contentResolver, pdfFile.toUri())
-                    val loadedDoc = Document.openDocument(stream, "application/pdf")
-                    document = loadedDoc
+        repository = PdfRepository(contentResolver, this)
+        val pdfUri = pdfFile.toUri()
 
-                    val dbHelper = DatabaseHelper(this@RecipeBookActivity)
-                    val bookId = dbHelper.checkAddBookToDatabase(pdfFile, pdfFilePath, loadedDoc)
-                    if (!dbHelper.hasRecipes(bookId)) {
-                        Log.d(LOG_TAG, "TOC missing. Generating now...")
-                        dbHelper.generateTOC(loadedDoc, bookId)
+        lifecycleScope.launch {
+            try {
+                // 1️⃣ open document (for UI)
+                val loadedDoc = repository.openDocument(pdfUri)
+                document = loadedDoc
+
+                // show immediately
+                onDocumentReady(loadedDoc)
+
+                // 2️⃣ register book
+                val bookId = repository.checkOrCreateBook(
+                    pdfFile,
+                    pdfFilePath,
+                    loadedDoc
+                )
+
+                // 3️⃣ check TOC
+                if (repository.hasToc(bookId)) {
+                    initializeTocFragment(bookId)
+                    binding.btnTOC.visibility = View.VISIBLE
+                } else {
+                    Log.d(LOG_TAG, "Generating TOC in background...")
+
+                    lifecycleScope.launch {
+                        val success = repository.generateTocAsync(pdfUri, bookId)
+
+                        if (success) {
+                            initializeTocFragment(bookId)
+                            binding.btnTOC.visibility = View.VISIBLE
+                        }
                     }
-                    withContext(Dispatchers.Main) {
-                        onDocumentReady(loadedDoc)
-                        initializeTocFragment(bookId)
-                        binding.btnTOC.visibility = View.VISIBLE
-                    }
-                } catch (e: Exception) {
-                    Log.e(LOG_TAG, "Error processing PDF", e)
-                    withContext(Dispatchers.Main) { finish() }
                 }
+
+            } catch (e: Exception) {
+                Log.e(LOG_TAG, "Error loading PDF", e)
+                finish()
             }
         }
     }
