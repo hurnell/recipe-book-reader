@@ -1,13 +1,18 @@
 package apk.hurnell.recipebookreader
 
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Typeface
 import android.os.Bundle
 import android.os.Environment
 import android.provider.Settings
 import android.util.Log
 import android.view.View
+import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.HorizontalScrollView
+import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -29,6 +34,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import apk.hurnell.recipebookreader.helpers.DatabaseHelper
+import androidx.core.graphics.createBitmap
+import apk.hurnell.recipebookreader.ui.EditableTextView
+import com.artifex.mupdf.fitz.Matrix
+import com.artifex.mupdf.fitz.android.AndroidDrawDevice
 
 class FileBrowserActivity : BaseDrawerActivity() {
     private lateinit var loadingOverlay: LinearLayout
@@ -38,9 +47,13 @@ class FileBrowserActivity : BaseDrawerActivity() {
     private lateinit var breadcrumbLayout: LinearLayout
     private lateinit var breadcrumbScroll: HorizontalScrollView
     private lateinit var overlayContainer: FrameLayout
-    private lateinit var fileInfoOverlay: ScrollView
-    private lateinit var fileInfoTitle: TextView
-    private lateinit var fileInfoContent: TextView
+    private lateinit var bookInfoOverlay: ScrollView
+    private lateinit var bookTitle: EditableTextView
+    private lateinit var bookAuthor: EditableTextView
+    private lateinit var bookCategory: EditableTextView
+    private lateinit var bookSubCategory: EditableTextView
+    private lateinit var bookInfoContent: TextView
+    private lateinit var bookPreviewImage: ImageView
     private val rootDir = Environment.getExternalStorageDirectory()
     private var currentDir: File = File(rootDir, "Documents/moon/moon/asian")
 
@@ -56,16 +69,20 @@ class FileBrowserActivity : BaseDrawerActivity() {
         breadcrumbScroll = findViewById(R.id.breadcrumbScroll)
         recyclerView = findViewById(R.id.fileRecyclerView)
         overlayContainer = findViewById(R.id.overlayContainer)
-        fileInfoOverlay = findViewById(R.id.fileInfoOverlay)
-        fileInfoTitle = findViewById(R.id.fileInfoTitle)
+        bookInfoOverlay = findViewById(R.id.bookInfoOverlay)
+        bookInfoContent = findViewById(R.id.bookInfoContent)
+        bookPreviewImage = findViewById(R.id.bookPreviewImage)
+        bookTitle = findViewById(R.id.bookTitle)
+        bookAuthor = findViewById(R.id.bookAuthor)
+        bookCategory = findViewById(R.id.bookCategory)
+        bookSubCategory = findViewById(R.id.bookSubCategory)
         overlayContainer.setOnClickListener {
-            hideFileInfoOverlay()
+            hideBookInfoOverlay()
         }
-        fileInfoContent = findViewById(R.id.fileInfoContent)
         recyclerView.layoutManager = LinearLayoutManager(this)
         adapter = FileAdapter(
             onClick = { file -> onFileClick(file) },
-            onLongClick = { file -> showFileInfoOverlay(file) }
+            onLongClick = { file -> showBookInfoOverlay(file) }
         )
         recyclerView.adapter = adapter
 
@@ -83,40 +100,88 @@ class FileBrowserActivity : BaseDrawerActivity() {
 
         requestStoragePermission()
     }
-    private fun showFileInfoOverlay(file: File) {
-        fileInfoTitle.text = file.name
-        fileInfoContent.text = buildString {
-            append("Path: ${file.absolutePath}\n")
-            append("Size: ${if (file.isFile) "${file.length()} bytes" else "Folder"}\n")
-            append("Readable: ${file.canRead()}\n")
-            append("Writable: ${file.canWrite()}\n")
-            append("Last modified: ${java.util.Date(file.lastModified())}\n")
+
+    private fun showBookInfoOverlay(pdfFile: File) {
+        if (pdfFile.isDirectory) {
+            showFiles(pdfFile)
+            return
         }
 
-        overlayContainer.visibility = View.VISIBLE
-        fileInfoOverlay.scaleX = 0.8f
-        fileInfoOverlay.scaleY = 0.8f
-        fileInfoOverlay.alpha = 0f
-        fileInfoOverlay.visibility = View.VISIBLE
-        fileInfoOverlay.animate()
-            .alpha(1f)
-            .scaleX(1f)
-            .scaleY(1f)
-            .setDuration(250)
-            .start()
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val stream = PdfStreamer(contentResolver, pdfFile.toUri())
+                val document = Document.openDocument(stream, "application/pdf")
+
+                val book = dbHelper.getOrInsertBook(pdfFile, pdfFile.absolutePath, document)
+                val firstPageBitmap: Bitmap? = try {
+                    val page = document.loadPage(0)
+                    val width = 600  // adjust for desired preview width
+
+                    val pageWidth = page.bounds.x1 - page.bounds.x0
+                    val pageHeight = page.bounds.y1 - page.bounds.y0
+                    val scale = width / pageWidth
+                    val height = (width.toFloat() / pageWidth * pageHeight).toInt()
+                    val bitmap = createBitmap(width, height)
+                    val device = AndroidDrawDevice(bitmap, 0, 0)
+                    page.run(device, Matrix(scale, scale), null)
+                    bitmap
+                } catch (e: Exception) {
+                    Log.e("NIGEL_HURNELL", "Failed to render first page: ${e.message}", e)
+                    null
+                }
+                withContext(Dispatchers.Main) {
+                    if (book != null) {
+                        bookTitle.setParams(book.name ?: pdfFile.name, "Title", Typeface.BOLD)
+                        bookTitle.onAccept { newText ->
+                            dbHelper.updateBookStringParam(book.id, "name", newText)
+                        }
+                        bookAuthor.setParams(book.author?.ifBlank { "Unknown" } ?: "Unknown", "Author")
+                        bookAuthor.onAccept { newText ->
+                            dbHelper.updateBookStringParam(book.id, "author", newText)
+                        }
+                        bookCategory.setParams(book.category ?: "Unknown", "Category")
+                        bookCategory.onAccept { newText ->
+                            dbHelper.updateBookStringParam(book.id, "category", newText)
+                        }
+                        bookSubCategory.setParams(book.subCategory ?: "Unknown", "Sub Category")
+                        bookSubCategory.onAccept { newText ->
+                            dbHelper.updateBookStringParam(book.id, "sub_category", newText)
+                        }
+                        bookPreviewImage.setImageBitmap(firstPageBitmap)
+
+
+                        overlayContainer.visibility = View.VISIBLE
+                        bookInfoOverlay.scaleX = 0.8f
+                        bookInfoOverlay.scaleY = 0.8f
+                        bookInfoOverlay.alpha = 0f
+                        bookInfoOverlay.visibility = View.VISIBLE
+                        bookInfoOverlay.animate()
+                            .alpha(1f)
+                            .scaleX(1f)
+                            .scaleY(1f)
+                            .setDuration(250)
+                            .start()
+                    }
+                    document.destroy()
+                }
+            } catch (e: Exception) {
+                Log.e("NIGEL_HURNELL", "Error opening PDF: ${e.message}", e)
+            }
+        }
     }
 
-    private fun hideFileInfoOverlay() {
-        fileInfoOverlay.animate()
+    private fun hideBookInfoOverlay() {
+        bookInfoOverlay.animate()
             .alpha(0f)
             .scaleX(0.8f)
             .scaleY(0.8f)
             .setDuration(200)
             .withEndAction {
-                fileInfoOverlay.visibility = View.GONE
+                bookInfoOverlay.visibility = View.GONE
                 overlayContainer.visibility = View.GONE
             }.start()
     }
+
     override fun onResume() {
         super.onResume()
         if (findViewById<DrawerLayout>(R.id.drawer_layout) != null) {
