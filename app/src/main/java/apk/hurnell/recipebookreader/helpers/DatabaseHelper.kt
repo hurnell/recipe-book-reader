@@ -4,6 +4,8 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.util.Log
+import androidx.core.database.getIntOrNull
+import androidx.core.database.getLongOrNull
 import com.artifex.mupdf.fitz.Document
 import com.artifex.mupdf.fitz.Outline
 import java.io.File
@@ -12,6 +14,7 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.security.MessageDigest
 import androidx.core.database.sqlite.transaction
+import apk.hurnell.recipebookreader.model.Book
 
 
 class DatabaseHelper(private val context: Context) {
@@ -46,6 +49,40 @@ class DatabaseHelper(private val context: Context) {
         }
     }
 
+    fun getOrInsertBook(file: File, path: String, document: Document): Book? {
+        val bookId = checkAddBookToDatabase(file, path, document)
+        val db = openDatabase()
+
+        return db.query(
+            "books",
+            arrayOf(
+                "id", "sha", "name", "location", "author",
+                "last_opened", "toc_created", "toc_unavailable",
+                "category", "sub_category", "alternate_cover"
+            ),
+            "id = ?",
+            arrayOf(bookId.toString()),
+            null,
+            null,
+            null
+        ).use { cursor ->
+            if (cursor.moveToFirst()) {
+                Book(
+                    id = cursor.getLong(cursor.getColumnIndexOrThrow("id")),
+                    sha = cursor.getString(cursor.getColumnIndexOrThrow("sha")),
+                    name = cursor.getString(cursor.getColumnIndexOrThrow("name")),
+                    location = cursor.getString(cursor.getColumnIndexOrThrow("location")),
+                    author = cursor.getString(cursor.getColumnIndexOrThrow("author")),
+                    lastOpened = cursor.getLongOrNull(cursor.getColumnIndexOrThrow("last_opened")),
+                    tocCreated = cursor.getLongOrNull(cursor.getColumnIndexOrThrow("toc_created")),
+                    tocUnavailable = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("toc_unavailable")),
+                    category = cursor.getString(cursor.getColumnIndexOrThrow("category")),
+                    subCategory = cursor.getString(cursor.getColumnIndexOrThrow("sub_category")),
+                    alternateCover = cursor.getString(cursor.getColumnIndexOrThrow("alternate_cover"))
+                )
+            } else null
+        }
+    }
 
     fun openDatabase(): SQLiteDatabase {
         val dbFile = context.getDatabasePath(DB_NAME)
@@ -192,6 +229,15 @@ class DatabaseHelper(private val context: Context) {
             )
         }
         return success
+    }
+
+    fun updateBookStringParam(bookId: Long, column: String, value: String): Boolean {
+        val db = openDatabase()
+        val values = ContentValues().apply {
+            put(column, value)
+        }
+        val rowsUpdated = db.update("books", values, "id = ?", arrayOf(bookId.toString()))
+        return rowsUpdated == 1
     }
 
     fun hasTableOfContents(bookId: Long): Boolean {
