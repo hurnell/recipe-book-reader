@@ -24,4 +24,12 @@
     <string name="default_indicator_text">1 / 100</string>
     <string name="processing_recipe_book">Processing Recipe Book…</string>
     <string name="page_indicator">%1$d / %2$d</string>
+    <string name="pdf_preview">PDF preview</string>
+    <string name="loading">Loading…</string>
+    <string name="author" />
+    <string name="edit_save_title">Edit or Save Title</string>
+    <string name="general_title">Title</string>
+    <string name="generic_editable_text_view_edit_button">Generic Editable Text View Edit Button</string>
+    <string name="generic_editable_text_view_cancel_button">Generic Editable Text View Cancel Button</string>
+    <string name="label_for_editable_widget">Label For Editable Widger</string>
 </resources>
