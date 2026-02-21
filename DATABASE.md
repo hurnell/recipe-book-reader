@@ -8,9 +8,17 @@
         author TEXT,
         last_opened INTEGER,
         toc_created INTEGER,
-        category TEXT,
-        sub_category TEXT
+        category TEXT DEFAULT NULL,
+        sub_category TEXT DEFAULT NULL
     );
+```
+
+### count toc per book
+```sqldelight
+SELECT b.name, COUNT(t.id) 
+FROM toc AS t 
+LEFT JOIN books AS b
+ON t.book_id_fk = b.id;
 ```
 ```sqldelight
     DROP TABLE IF EXISTS toc;
@@ -37,4 +45,10 @@
         scale REAL,
         translate REAL
     );
+```
+
+```shell
+adb shell "run-as apk.hurnell.recipebookreader cp /data/data/apk.hurnell.recipebookreader/databases/recipe-reader.db /sdcard/recipe-reader.db"
+adb pull /storage/emulated/0/Android/data/apk.hurnell.recipebookreader/files/recipe-reader.db
+open recipe-reader.db
 ```
