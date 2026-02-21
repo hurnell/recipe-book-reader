@@ -14,8 +14,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.RecipeBookReader">
         <activity
-            android:name=".RecipeBookActivity"
-            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:name=".FileBrowserActivity"
+            android:enableOnBackInvokedCallback="false"
+            android:windowSoftInputMode="adjustResize"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -35,11 +36,10 @@
             android:exported="true">
         </activity>
         <activity
-            android:name=".FileBrowserActivity"
-            android:enableOnBackInvokedCallback="false"
-            android:windowSoftInputMode="adjustResize"
-            android:exported="true">
+            android:name=".RecipeBookActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:exported="true" >
         </activity>
-    </application>
 
+    </application>
 </manifest>
