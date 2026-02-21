@@ -1,14 +1,11 @@
 package apk.hurnell.recipebookreader
 
-import android.content.Intent
 import android.content.pm.ActivityInfo
-import android.net.Uri
-import android.os.Build
 import android.os.Bundle
-import android.os.Environment
-import android.provider.Settings
 import android.util.Log
 import android.util.TypedValue
+import android.view.MotionEvent
+import android.view.View
 import android.widget.SeekBar
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
@@ -17,15 +14,26 @@ import androidx.core.net.toUri
 import androidx.core.view.GravityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.recyclerview.widget.DividerItemDecoration
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.adapters.BookAdapter
 import apk.hurnell.recipebookreader.databinding.ActivityRecipeBookBinding
+import apk.hurnell.recipebookreader.helpers.DatabaseHelper
+import apk.hurnell.recipebookreader.helpers.FunctionalStructuredTextWalker
 import apk.hurnell.recipebookreader.helpers.PdfStreamer
+import apk.hurnell.recipebookreader.ui.PinchRecyclerView
+import androidx.activity.OnBackPressedCallback
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import apk.hurnell.recipebookreader.ui.TocFragment
 import com.artifex.mupdf.fitz.Document
+import com.artifex.mupdf.fitz.Link
 import java.io.File
+import kotlin.math.abs
+import kotlinx.coroutines.*
+import kotlin.math.floor
+
 
 class RecipeBookActivity : AppCompatActivity() {
 
@@ -46,34 +54,170 @@ class RecipeBookActivity : AppCompatActivity() {
         binding = ActivityRecipeBookBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        requestStoragePermission()
         setupWindowInsets()
-        binding.drawerLayout.isFocusableInTouchMode = false
-        val pdfFile = File("/storage/emulated/0/Documents/moon/moon/british/nigella_bites_a.pdf")
-        var title = "Recipe Book"
-        if (pdfFile.exists()) {
-            val stream = PdfStreamer(contentResolver, pdfFile.toUri())
-            document = Document.openDocument(stream, "application/pdf")
-            title = document?.getMetaData(Document.META_INFO_TITLE) ?: title
-        }
+        setupSystemBars()
 
-        val adapter = document?.let { BookAdapter(it) }
+        setupStaticListeners()
+
+        val pdfFilePath = intent.getStringExtra("PDF_PATH")
+        if (pdfFilePath == null) {
+            Log.e("NIGEL_HURNELL", "No PDF path provided")
+            finish()
+            return
+        }
+        val pdfFile = File(pdfFilePath)
+        binding.btnTOC.visibility = View.GONE
+        lifecycleScope.launch(Dispatchers.IO) {
+            if (pdfFile.exists()) {
+                try {
+                    val stream = PdfStreamer(contentResolver, pdfFile.toUri())
+                    val loadedDoc = Document.openDocument(stream, "application/pdf")
+                    document = loadedDoc
+
+                    val dbHelper = DatabaseHelper(this@RecipeBookActivity)
+                    val bookId = dbHelper.checkAddBookToDatabase(pdfFile, pdfFilePath, loadedDoc)
+                    if (!dbHelper.hasRecipes(bookId)) {
+                        Log.d("NIGEL_HURNELL", "TOC missing. Generating now...")
+                        dbHelper.generateTOC(loadedDoc, bookId)
+                    }
+                    withContext(Dispatchers.Main) {
+                        onDocumentReady(loadedDoc)
+                        initializeTocFragment(bookId)
+                        binding.btnTOC.visibility = View.VISIBLE
+                    }
+                } catch (e: Exception) {
+                    Log.e("NIGEL_HURNELL", "Error processing PDF", e)
+                    withContext(Dispatchers.Main) { finish() }
+                }
+            }
+        }
+    }
+
+    private fun initializeTocFragment(id: Long) {
+        val tocFragment = TocFragment.newInstance(id.toInt()) { item ->
+            binding.recyclerView.scrollToPosition(item.page)
+            binding.recyclerView.setScaleFactor(
+                item.scale.coerceAtMost(3.0f),
+                item.page,
+                item.translate
+            )
+            binding.drawerLayout.closeDrawer(GravityCompat.START)
+            toggleBars(false)
+        }
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.tocFragmentContainer, tocFragment)
+            .commit()
+    }
+
+    private fun onDocumentReady(doc: Document) {
+        val adapter = BookAdapter(doc)
         binding.recyclerView.layoutManager = LinearLayoutManager(this)
-        val divider = DividerItemDecoration(this, LinearLayoutManager.VERTICAL)
-        binding.recyclerView.addItemDecoration(divider)
         binding.recyclerView.adapter = adapter
 
-        val totalPages = adapter?.itemCount ?: 0
+        val totalPages = doc.countPages()
+        binding.pageSeekBar.max = if (totalPages > 0) totalPages - 1 else 0
         updatePageText(0, totalPages)
 
-        binding.toolbar.title = title
+        setupRecyclerViewTouchListener()
+    }
+
+    private fun setupRecyclerViewTouchListener() {
+        binding.recyclerView.addOnItemTouchListener(object : RecyclerView.OnItemTouchListener {
+            override fun onInterceptTouchEvent(rv: RecyclerView, e: MotionEvent): Boolean {
+
+                val currentDoc = document ?: return false
+
+                val pinchRv = rv as? PinchRecyclerView ?: return false
+                val child: View? = rv.findChildViewUnder(e.x, e.y)
+
+                if (child != null && e.action == MotionEvent.ACTION_DOWN) {
+                    val touchContext = pinchRv.touchMetadata[e.eventTime]
+                    val holder = rv.getChildViewHolder(child) as? BookAdapter.PageViewHolder
+
+                    val pageScale = holder?.pageScale ?: 1f
+                    val pageHeight = holder?.pageHeight ?: 100
+                    val pageWidth = holder?.pageWidth ?: 100.0f
+
+                    var px = 0f
+                    var py = 0f
+                    var pagePosition = 0
+
+                    if (touchContext != null) {
+                        px = touchContext.pageX / pageScale
+                        py = touchContext.pageY / pageScale
+                        pagePosition = floor((py * 100) / pageHeight).toInt()
+                        py = ((py * 100) % pageHeight) / 100
+                    }
+
+                    toggleBars(false)
+
+                    lifecycleScope.launch {
+                        val initialOffset = touchContext?.offset ?: 0
+                        val initialTransX = touchContext?.translationX ?: 0f
+                        val initialScale = touchContext?.scaleFactor ?: 1f
+
+                        delay(200L)
+
+                        val hasMoved =
+                            abs(pinchRv.computeVerticalScrollOffset() - initialOffset) > 5 ||
+                                    abs(pinchRv.translationX - initialTransX) > 5 ||
+                                    abs(pinchRv.getScaleFactor() - initialScale) > 0.01f
+
+                        if (!hasMoved) {
+                            if (!checkIfTopOfPageClicked(
+                                    currentDoc,
+                                    pinchRv,
+                                    px,
+                                    py,
+                                    pageWidth,
+                                    pagePosition
+                                )
+                            ) {
+                                checkFollowLinks(
+                                    pinchRv,
+                                    px,
+                                    py,
+                                    pageWidth,
+                                    currentDoc,
+                                    pagePosition
+                                )
+                            }
+                        }
+                    }
+                }
+                return false
+            }
+
+            override fun onTouchEvent(rv: RecyclerView, e: MotionEvent) {}
+            override fun onRequestDisallowInterceptTouchEvent(disallowIntercept: Boolean) {}
+        })
+    }
+
+    private fun setupStaticListeners() {
         binding.toolbar.setNavigationOnClickListener { finish() }
 
-        binding.pageSeekBar.max = if (totalPages > 0) totalPages - 1 else 0
+        binding.btnRotate.setOnClickListener {
+            isPortrait = !isPortrait
+            requestedOrientation = if (isPortrait)
+                ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            else
+                ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        }
+
+        binding.btnTOC.setOnClickListener {
+            binding.drawerLayout.openDrawer(GravityCompat.START)
+        }
+
+        binding.zoomIt.setOnClickListener {
+            toggleBars(!barsVisible)
+        }
+
         binding.pageSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                updatePageText(progress, totalPages)
-                if (fromUser) binding.recyclerView.scrollToPosition(progress)
+                if (fromUser) {
+                    binding.recyclerView.scrollToPosition(progress)
+                    updatePageText(progress, document?.countPages() ?: 0)
+                }
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
@@ -85,70 +229,119 @@ class RecipeBookActivity : AppCompatActivity() {
                 val layoutManager = recyclerView.layoutManager as LinearLayoutManager
                 val currentPosition = layoutManager.findFirstVisibleItemPosition()
                 binding.pageSeekBar.progress = currentPosition
-
-                if (barsVisible && Math.abs(dy) > 10) toggleBars(false)
+                if (barsVisible && abs(dy) > 10) toggleBars(false)
             }
         })
 
-        binding.recyclerView.setOnClickListener {
-            toggleBars(!barsVisible)
-        }
-
-        binding.btnRotate.setOnClickListener {
-            isPortrait = !isPortrait
-            requestedOrientation = if (isPortrait) ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-            else ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-        }
-
-        binding.btnTOC.setOnClickListener {
-            binding.drawerLayout.openDrawer(GravityCompat.START)
-        }
-
-        binding.tocToolbar.setNavigationOnClickListener {
-            val imm =
-                getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
-            currentFocus?.let { imm.hideSoftInputFromWindow(it.windowToken, 0) }
-
-            binding.drawerLayout.closeDrawer(GravityCompat.START)
-        }
-
-        if (savedInstanceState == null && document != null) {
-            val tocFragment = TocFragment.newInstance(document!!) { page ->
-                binding.recyclerView.scrollToPosition(page)
-                binding.drawerLayout.closeDrawer(GravityCompat.START)
-            }
-            supportFragmentManager.beginTransaction()
-                .replace(R.id.tocFragmentContainer, tocFragment)
-                .commit()
-        }
-        val backCallback = object : androidx.activity.OnBackPressedCallback(true) {
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                val imm =
-                    getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
-
                 if (binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {
-                    val isKeyboardVisible = ViewCompat.getRootWindowInsets(binding.root)
-                        ?.isVisible(WindowInsetsCompat.Type.ime()) == true
-
-                    if (isKeyboardVisible || currentFocus != null) {
-                        imm.hideSoftInputFromWindow(binding.drawerLayout.windowToken, 0)
-
-                        currentFocus?.clearFocus()
-
-                        Log.i("NIGEL_HURNELL", "Back caught: Hiding keyboard, drawer remains open")
-                        return
-                    }
-
                     binding.drawerLayout.closeDrawer(GravityCompat.START)
-                    return
+                } else if (!barsVisible) {
+                    toggleBars(true)
+                } else {
+                    finish()
                 }
+            }
+        })
+    }
 
-                isEnabled = false
-                onBackPressedDispatcher.onBackPressed()
-                isEnabled = true
+    private fun setupSystemBars() {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
+        val controller = WindowInsetsControllerCompat(window, window.decorView)
+        controller.hide(WindowInsetsCompat.Type.statusBars())
+        controller.systemBarsBehavior =
+            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+    }
+
+    private fun handleExternalLink(uri: String?) {
+
+    }
+
+    private fun handleInternalLink(rv: PinchRecyclerView, link: Link, w: Float) {
+        val uri = link.uri
+        val fragment = uri.substring(1)
+        val params = fragment.split("&".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+        var page = 0
+        for (param in params) {
+            if (param.startsWith("page=")) {
+                page = param.substring(5).toInt()
+            }
+
+            if (param.startsWith("zoom=")) {
+                val zoomParts =
+                    param.substring(5).split(",".toRegex()).dropLastWhile { it.isEmpty() }
+                        .toTypedArray()
+
+                if (zoomParts.size >= 3) {
+                    val xOffset = zoomParts[1].toFloat()
+                    val zoom = (w / (w - 2 * xOffset) * 0.95f)
+                    rv.setScaleFactor(zoom, page - 1, 0.5f)
+                    toggleBars(false)
+                }
             }
         }
-        onBackPressedDispatcher.addCallback(this, backCallback)
+    }
+
+    private fun checkFollowLinks(
+        rv: PinchRecyclerView,
+        x: Float,
+        y: Float,
+        w: Float,
+        document: Document?,
+        pageNumber: Int
+    ) {
+
+        if (document == null) return
+        val page = document.loadPage(pageNumber)
+        val links = page.links
+        if (links == null) {
+            page.destroy()
+            return
+        }
+        for (link in links) {
+            val rect = link.bounds
+            if (x >= rect.x0 && x <= rect.x1 && y >= rect.y0 && y <= rect.y1) {
+
+                if (link.isExternal) {
+                    val uri = link.uri
+                    handleExternalLink(uri)
+                } else {
+                    page.destroy()
+                    handleInternalLink(rv, link, w)
+                }
+                break
+            }
+        }
+    }
+
+    private fun checkIfTopOfPageClicked(
+        document: Document?,
+        rv: PinchRecyclerView,
+        x: Float,
+        y: Float,
+        width: Float,
+        currentPage: Int
+    ): Boolean {
+        if (document == null) {
+            return false
+        }
+        val margin = 30f
+        val offset = width / 2 - x
+        val hitX = abs(offset) < margin
+        val hitY = y < margin * 2
+        if (!hitY || !hitX) {
+            return false
+        }
+        val pageCoordinates =
+            FunctionalStructuredTextWalker().getPageCoordinates(document, currentPage)
+        if (pageCoordinates.found) {
+            val finalScale = pageCoordinates.targetScale.coerceAtMost(3.0f)
+            rv.setScaleFactor(finalScale, currentPage, pageCoordinates.translatingPercentage)
+            toggleBars(false)
+        }
+        return pageCoordinates.found
     }
 
     private fun setupWindowInsets() {
@@ -179,7 +372,7 @@ class RecipeBookActivity : AppCompatActivity() {
     }
 
     private fun updatePageText(current: Int, total: Int) {
-        binding.pageIndicator.text = "${current + 1} / $total"
+        binding.pageIndicator.text = getString(R.string.page_indicator, current + 1, total)
     }
 
     private fun toggleBars(show: Boolean) {
@@ -191,14 +384,6 @@ class RecipeBookActivity : AppCompatActivity() {
         binding.toolbar.animate().translationY(translationTop).setDuration(300).start()
         binding.bottomBar.animate().translationY(translationBottom).setDuration(300).start()
         binding.btnRotate.animate().translationY(translationBottom).setDuration(300).start()
-    }
-
-    private fun requestStoragePermission() {
-        if (!Environment.isExternalStorageManager()) {
-            val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
-            intent.data = "package:$packageName".toUri()
-            startActivity(intent)
-        }
     }
 
     override fun onDestroy() {

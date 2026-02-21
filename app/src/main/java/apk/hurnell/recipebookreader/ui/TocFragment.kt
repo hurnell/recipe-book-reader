@@ -36,7 +36,7 @@ data class TocItem(
 
 class TocFragment : Fragment() {
 
-    private var bookId: Long = -1
+    private var bookId: Int = -1
     private var onPageSelected: ((TocItem) -> Unit)? = null
     private var tocData: List<TocItem> = emptyList()
     private var adapter: TocAdapter? = null
@@ -45,7 +45,7 @@ class TocFragment : Fragment() {
     companion object {
         private const val ARG_BOOK_ID = "book_id"
 
-        fun newInstance(bookId: Long, listener: (TocItem) -> Unit): TocFragment {
+        fun newInstance(bookId: Int, listener: (TocItem) -> Unit): TocFragment {
             return TocFragment().apply {
                 this.bookId = bookId
                 this.onPageSelected = listener
@@ -144,7 +144,6 @@ class TocFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Init adapter with empty list
         adapter = TocAdapter(tocData) { item ->
             onPageSelected?.invoke(item)
             hideKeyboard()
@@ -153,7 +152,6 @@ class TocFragment : Fragment() {
         val recyclerView = view.findViewById<RecyclerView>(R.id.recyclerView)
         recyclerView.adapter = adapter
 
-        // Load TOC from DB asynchronously
         loadTocAsync()
     }
 
@@ -167,7 +165,7 @@ class TocFragment : Fragment() {
         }
     }
 
-    private fun loadTocFromDatabase(context: Context, bookId: Long): List<TocItem> {
+    private fun loadTocFromDatabase(context: Context, bookId: Int): List<TocItem> {
         val db = context.openOrCreateDatabase("recipe-reader.db", 0, null)
         val cursor = db.rawQuery(
             """
@@ -204,11 +202,8 @@ class TocFragment : Fragment() {
                 )
             )
         }
-
         cursor.close()
         db.close()
-
-        // Build tree
         val childrenMap = rows.groupBy { it.parentId }
         fun build(parentId: Long?): List<TocItem> {
             return childrenMap[parentId]?.map { row ->

@@ -3,12 +3,14 @@ package apk.hurnell.recipebookreader.ui
 import android.content.Context
 import android.graphics.Canvas
 import android.util.AttributeSet
+import android.util.Log
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import androidx.core.view.GestureDetectorCompat
 import androidx.recyclerview.widget.RecyclerView
 import kotlin.math.min
+import androidx.recyclerview.widget.LinearLayoutManager
 
 class PinchRecyclerView @JvmOverloads constructor(
     context: Context,
@@ -54,6 +56,26 @@ class PinchRecyclerView @JvmOverloads constructor(
 
             override fun onSingleTapUp(e: MotionEvent): Boolean = performClick()
         })
+
+    fun getScaleFactor(): Float = scaleFactor
+    fun setScaleFactor(sf: Float, pageNumber: Int, translatingPercentage: Float) {
+        Log.i("CLICK_NIGEL", "before width = $translationX")
+        scaleFactor = sf
+        invalidate()
+        translationX = (width * (1 - sf)) * translatingPercentage
+        (layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(pageNumber, 0)
+        invalidate()
+    }
+
+    data class TouchContext(
+        val pageX: Float,
+        val pageY: Float,
+        val offset: Int,
+        val scaleFactor: Float,
+        val translationX: Float
+    )
+
+    override fun getTranslationX(): Float = translationX
 
     override fun onTouchEvent(ev: MotionEvent): Boolean {
         scaleDetector.onTouchEvent(ev)
@@ -118,6 +140,36 @@ class PinchRecyclerView @JvmOverloads constructor(
         canvas.scale(scaleFactor, scaleFactor)
         super.dispatchDraw(canvas)
         canvas.restore()
+    }
+
+    val touchMetadata = HashMap<Long, TouchContext>()
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        val child = findChildViewUnder(ev.x, ev.y)
+
+        val location = IntArray(2)
+        child?.getLocationInWindow(location)
+
+        val offset = computeVerticalScrollOffset()
+        val relativeX = ev.rawX - (location[0])
+        val pageX = (relativeX - translationX) / scaleFactor
+        val pageY = ev.y / scaleFactor + offset
+
+        val context = TouchContext(
+            pageX = pageX,
+            pageY = pageY,
+            offset = offset,
+            scaleFactor = scaleFactor,
+            translationX = translationX
+        )
+        touchMetadata[ev.eventTime] = context
+
+        val handled = super.dispatchTouchEvent(ev)
+
+        if (ev.action == MotionEvent.ACTION_UP || ev.action == MotionEvent.ACTION_CANCEL) {
+            child?.postDelayed({ touchMetadata.remove(ev.eventTime) }, 100)
+        }
+
+        return handled
     }
 
     override fun performClick(): Boolean {

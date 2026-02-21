@@ -44,7 +44,7 @@ class FunctionalStructuredTextWalker {
         pageCoordinates.width = bounds.x1 - bounds.x0
         pageCoordinates.height = bounds.y1 - bounds.y0
         val st = page.toStructuredText("preserve-images,preserve-whitespace")
-        st.walk(object : com.artifex.mupdf.fitz.StructuredTextWalker {
+        st.walk(object : StructuredTextWalker {
             override fun onImageBlock(bbox: Rect, matrix: Matrix?, image: Image?) {
                 pageCoordinates.minX = min(pageCoordinates.minX, bbox.x0)
                 pageCoordinates.maxX = max(pageCoordinates.maxX, bbox.x1)
@@ -68,7 +68,6 @@ class FunctionalStructuredTextWalker {
                 flags: Int
             ) {
             }
-
             override fun beginLine(bbox: Rect?, wmode: Int, dir: Point?) {}
             override fun endLine() {}
             override fun beginStruct(standard: String?, raw: String?, index: Int) {}

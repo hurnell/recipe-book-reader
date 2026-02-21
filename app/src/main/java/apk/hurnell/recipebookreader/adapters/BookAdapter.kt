@@ -1,9 +1,9 @@
 package apk.hurnell.recipebookreader.adapters
 
-import android.annotation.SuppressLint
+import android.graphics.Canvas
 import android.graphics.Color
-import android.view.GestureDetector
-import android.view.MotionEvent
+import android.graphics.Paint
+import android.view.View
 import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
@@ -13,17 +13,21 @@ import com.artifex.mupdf.fitz.Document
 import com.artifex.mupdf.fitz.Matrix
 import com.artifex.mupdf.fitz.android.AndroidDrawDevice
 import androidx.core.graphics.createBitmap
-import apk.hurnell.recipebookreader.ui.PinchRecyclerView
 
 class BookAdapter(
-    private val document: Document,
-    private val onPageClicked: (pageNumber: Int, pageX: Float, pageY: Float) -> Unit,
-    private val onPageLongClicked: (pageNumber: Int, pageX: Float, pageY: Float, pageWidth: Float, pageHeight: Float) -> Unit
+    private val document: Document
 ) :
     RecyclerView.Adapter<BookAdapter.PageViewHolder>() {
 
-    class PageViewHolder(container: android.view.View, val imageView: ImageView) :
+    class PageViewHolder(
+        container: View,
+        val imageView: ImageView,
+        var pageScale: Float = 1.0f,
+        var pageHeight: Int = 1,
+        var pageWidth: Float = 1.0f
+    ) :
         RecyclerView.ViewHolder(container)
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PageViewHolder {
         val context = parent.context
 
@@ -33,16 +37,18 @@ class BookAdapter(
             setBackgroundColor(Color.WHITE)
         }
 
-        val iv = ImageView(context).apply {
+        val iv = ImageView(container.context).apply {
             layoutParams = android.widget.LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT)
             adjustViewBounds = true
-            id = android.view.View.generateViewId()
+            isClickable = true
+            isLongClickable = true
         }
 
-        val divider = android.view.View(context).apply {
+        val divider = View(context).apply {
             val thickness = android.util.TypedValue.applyDimension(
                 android.util.TypedValue.COMPLEX_UNIT_DIP, 1f, resources.displayMetrics
             ).toInt()
+
             layoutParams = android.widget.LinearLayout.LayoutParams(MATCH_PARENT, thickness)
             setBackgroundColor(Color.LTGRAY)
         }
@@ -64,58 +70,35 @@ class BookAdapter(
 
         val bitmap = createBitmap(screenWidth, (pageHeight * scale).toInt())
         val device = AndroidDrawDevice(bitmap, 0, 0)
-
+        holder.pageScale = ((pageHeight * scale + 3).toInt()) / pageHeight
+        holder.pageHeight = (pageHeight * 100).toInt()
+        holder.pageWidth = pageWidth
         page.run(device, Matrix(scale, scale), null)
+
+        val canvas = Canvas(bitmap)
+        val paint = Paint().apply {
+            color = 0xFFEEEEEE.toInt()
+            style = Paint.Style.STROKE
+            strokeWidth = 2f
+        }
+
+        val boxWidth = 60f
+        val boxHeight = 60f
+        val left = (screenWidth - boxWidth) / 2f
+        val top = 0f
+        val right = left + boxWidth
+        val bottom = top + boxHeight
+
+        canvas.drawRect(left, top, right, bottom, paint)
+
+        canvas.save()
+        canvas.restore()
 
         device.close()
         device.destroy()
         page.destroy()
 
         holder.imageView.setImageBitmap(bitmap)
-        val gestureDetector = GestureDetector(
-            holder.imageView.context,
-            object : GestureDetector.SimpleOnGestureListener() {
-
-                override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
-                    val parent = holder.imageView.parent as? PinchRecyclerView
-                    val rvScale = parent?.getScaleFactor() ?: 1f
-                    val rvTransX = parent?.getTranslationX() ?: 0f
-
-                    val adjustedX = (e.x - rvTransX) / rvScale
-                    val adjustedY = e.y / rvScale
-
-                    val pageX = adjustedX / scale
-                    val pageY = adjustedY / scale
-
-                    val pageNumber = holder.bindingAdapterPosition
-                    onPageClicked(pageNumber, pageX, pageY)
-                    return true
-                }
-
-                override fun onLongPress(e: MotionEvent) {
-                    val parent = holder.imageView.parent as? PinchRecyclerView
-                    val rvScale = parent?.getScaleFactor() ?: 1f
-                    val rvTransX = parent?.getTranslationX() ?: 0f
-
-                    val canvasX = e.x - rvTransX
-                    val canvasY = e.y
-
-                    val viewX = canvasX / rvScale
-                    val viewY = canvasY / rvScale
-
-                    val pageX = viewX / scale
-                    val pageY = viewY / scale
-
-                    onPageLongClicked(holder.bindingAdapterPosition, pageX, pageY, pageWidth, pageHeight)
-                }
-            }
-        )
-        @SuppressLint("ClickableViewAccessibility")
-        holder.imageView.setOnTouchListener { _, event ->
-            gestureDetector.onTouchEvent(event)
-            //val handled = gestureDetector.onTouchEvent(event)
-            false
-        }
 
     }
 
