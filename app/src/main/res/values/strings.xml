@@ -17,4 +17,10 @@
     <string name="browse_files">Browse Files</string>
     <string name="open_file_browser">Open File Browser</string>
     <string name="recipe_reader">Recipe Reader</string>
+    <string name="scroll_up">Scroll Up</string>
+    <string name="scroll_down">Scroll Down</string>
+    <string name="scroll_bit">Scroll Bit</string>
+    <string name="zoom_button">Zoom Button</string>
+    <string name="default_indicator_text">1 / 100</string>
+    <string name="processing_recipe_book">Processing Recipe Book…</string>
 </resources>
