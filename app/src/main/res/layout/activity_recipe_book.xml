@@ -2,9 +2,9 @@
 <androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/drawerLayout"
-    android:fitsSystemWindows="true"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/main"
@@ -24,8 +24,8 @@
             app:layout_constraintTop_toTopOf="parent"
             app:navigationIcon="?attr/homeAsUpIndicator"
             app:navigationIconTint="@android:color/white"
-            app:titleCentered="true"
             app:title="Recipe Book"
+            app:titleCentered="true"
             app:titleTextAppearance="@style/ToolbarTitleStyle" />
 
         <androidx.constraintlayout.widget.ConstraintLayout
@@ -40,7 +40,11 @@
                 android:id="@+id/pageSeekBar"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:progressBackgroundTint="@color/black"
+                android:progressTint="@color/black"
+                android:thumbTint="@color/black"
                 app:layout_constraintEnd_toStartOf="@+id/pageIndicator"
+                app:layout_constraintHorizontal_bias="0.0"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -49,8 +53,9 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:paddingStart="8dp"
-                android:text="1 / 100"
-                android:textColor="@android:color/white"
+                android:paddingEnd="32dp"
+                android:text="@string/default_indicator_text"
+                android:textColor="@android:color/black"
                 app:layout_constraintBottom_toBottomOf="@+id/pageSeekBar"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="@+id/pageSeekBar" />
@@ -83,6 +88,19 @@
                     app:tint="@android:color/black" />
             </LinearLayout>
         </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/zoomIt"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="2dp"
+            android:contentDescription="@string/zoom_button"
+            app:fabCustomSize="32dp"
+            app:fabSize="mini"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:maxImageSize="18dp"
+            app:srcCompat="@drawable/ic_zoom" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <com.google.android.material.navigation.NavigationView
@@ -110,5 +128,4 @@
                 android:layout_height="match_parent" />
         </LinearLayout>
     </com.google.android.material.navigation.NavigationView>
-
 </androidx.drawerlayout.widget.DrawerLayout>
