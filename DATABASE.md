@@ -8,6 +8,7 @@
         author TEXT,
         last_opened INTEGER,
         toc_created INTEGER,
+        toc_unavailable INTEGER DEFAULT 0,
         category TEXT DEFAULT NULL,
         sub_category TEXT DEFAULT NULL
     );
