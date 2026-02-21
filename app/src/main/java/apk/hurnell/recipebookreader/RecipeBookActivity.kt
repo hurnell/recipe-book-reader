@@ -41,7 +41,9 @@ class RecipeBookActivity : AppCompatActivity() {
     private var isPortrait = true
     private var barsVisible = true
     private var document: Document? = null
-
+    companion object {
+        private const val LOG_TAG = "NIGEL_HURNELL"
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -61,7 +63,7 @@ class RecipeBookActivity : AppCompatActivity() {
 
         val pdfFilePath = intent.getStringExtra("PDF_PATH")
         if (pdfFilePath == null) {
-            Log.e("NIGEL_HURNELL", "No PDF path provided")
+            Log.e(LOG_TAG, "No PDF path provided")
             finish()
             return
         }
@@ -77,7 +79,7 @@ class RecipeBookActivity : AppCompatActivity() {
                     val dbHelper = DatabaseHelper(this@RecipeBookActivity)
                     val bookId = dbHelper.checkAddBookToDatabase(pdfFile, pdfFilePath, loadedDoc)
                     if (!dbHelper.hasRecipes(bookId)) {
-                        Log.d("NIGEL_HURNELL", "TOC missing. Generating now...")
+                        Log.d(LOG_TAG, "TOC missing. Generating now...")
                         dbHelper.generateTOC(loadedDoc, bookId)
                     }
                     withContext(Dispatchers.Main) {
@@ -86,7 +88,7 @@ class RecipeBookActivity : AppCompatActivity() {
                         binding.btnTOC.visibility = View.VISIBLE
                     }
                 } catch (e: Exception) {
-                    Log.e("NIGEL_HURNELL", "Error processing PDF", e)
+                    Log.e(LOG_TAG, "Error processing PDF", e)
                     withContext(Dispatchers.Main) { finish() }
                 }
             }
