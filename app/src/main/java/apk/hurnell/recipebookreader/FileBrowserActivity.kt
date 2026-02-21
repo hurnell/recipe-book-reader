@@ -6,8 +6,10 @@ import android.os.Environment
 import android.provider.Settings
 import android.util.Log
 import android.view.View
+import android.widget.FrameLayout
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
@@ -35,7 +37,10 @@ class FileBrowserActivity : BaseDrawerActivity() {
     private lateinit var adapter: FileAdapter
     private lateinit var breadcrumbLayout: LinearLayout
     private lateinit var breadcrumbScroll: HorizontalScrollView
-
+    private lateinit var overlayContainer: FrameLayout
+    private lateinit var fileInfoOverlay: ScrollView
+    private lateinit var fileInfoTitle: TextView
+    private lateinit var fileInfoContent: TextView
     private val rootDir = Environment.getExternalStorageDirectory()
     private var currentDir: File = File(rootDir, "Documents/moon/moon/asian")
 
@@ -50,8 +55,18 @@ class FileBrowserActivity : BaseDrawerActivity() {
         breadcrumbLayout = findViewById(R.id.breadcrumbLayout)
         breadcrumbScroll = findViewById(R.id.breadcrumbScroll)
         recyclerView = findViewById(R.id.fileRecyclerView)
+        overlayContainer = findViewById(R.id.overlayContainer)
+        fileInfoOverlay = findViewById(R.id.fileInfoOverlay)
+        fileInfoTitle = findViewById(R.id.fileInfoTitle)
+        overlayContainer.setOnClickListener {
+            hideFileInfoOverlay()
+        }
+        fileInfoContent = findViewById(R.id.fileInfoContent)
         recyclerView.layoutManager = LinearLayoutManager(this)
-        adapter = FileAdapter { file -> onFileClick(file) }
+        adapter = FileAdapter(
+            onClick = { file -> onFileClick(file) },
+            onLongClick = { file -> showFileInfoOverlay(file) }
+        )
         recyclerView.adapter = adapter
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
@@ -68,7 +83,40 @@ class FileBrowserActivity : BaseDrawerActivity() {
 
         requestStoragePermission()
     }
+    private fun showFileInfoOverlay(file: File) {
+        fileInfoTitle.text = file.name
+        fileInfoContent.text = buildString {
+            append("Path: ${file.absolutePath}\n")
+            append("Size: ${if (file.isFile) "${file.length()} bytes" else "Folder"}\n")
+            append("Readable: ${file.canRead()}\n")
+            append("Writable: ${file.canWrite()}\n")
+            append("Last modified: ${java.util.Date(file.lastModified())}\n")
+        }
 
+        overlayContainer.visibility = View.VISIBLE
+        fileInfoOverlay.scaleX = 0.8f
+        fileInfoOverlay.scaleY = 0.8f
+        fileInfoOverlay.alpha = 0f
+        fileInfoOverlay.visibility = View.VISIBLE
+        fileInfoOverlay.animate()
+            .alpha(1f)
+            .scaleX(1f)
+            .scaleY(1f)
+            .setDuration(250)
+            .start()
+    }
+
+    private fun hideFileInfoOverlay() {
+        fileInfoOverlay.animate()
+            .alpha(0f)
+            .scaleX(0.8f)
+            .scaleY(0.8f)
+            .setDuration(200)
+            .withEndAction {
+                fileInfoOverlay.visibility = View.GONE
+                overlayContainer.visibility = View.GONE
+            }.start()
+    }
     override fun onResume() {
         super.onResume()
         if (findViewById<DrawerLayout>(R.id.drawer_layout) != null) {

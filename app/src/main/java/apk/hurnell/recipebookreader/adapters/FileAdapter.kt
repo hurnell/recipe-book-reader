@@ -17,7 +17,8 @@ data class FileItem(
 )
 
 class FileAdapter(
-    private val onClick: (File) -> Unit
+    private val onClick: (File) -> Unit,
+    private val onLongClick: ((File) -> Unit)? = null
 ) : ListAdapter<FileItem, FileAdapter.FileViewHolder>(DiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FileViewHolder {
@@ -27,8 +28,7 @@ class FileAdapter(
     }
 
     override fun onBindViewHolder(holder: FileViewHolder, position: Int) {
-        val item = getItem(position)
-        holder.bind(item, onClick)
+        holder.bind(getItem(position), onClick, onLongClick)
     }
 
     class FileViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -36,7 +36,7 @@ class FileAdapter(
         private val fileName: TextView = itemView.findViewById(R.id.fileName)
         private val innerCount: TextView = itemView.findViewById(R.id.innerCount)
 
-        fun bind(item: FileItem, onClick: (File) -> Unit) {
+        fun bind(item: FileItem, onClick: (File) -> Unit, onLongClick: ((File) -> Unit)?) {
             fileName.text = item.displayName
 
             val countText = if (item.file.isDirectory) {
@@ -57,6 +57,10 @@ class FileAdapter(
             )
 
             itemView.setOnClickListener { onClick(item.file) }
+            itemView.setOnLongClickListener {
+                onLongClick?.invoke(item.file)
+                true
+            }
         }
 
     }
