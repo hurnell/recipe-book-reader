@@ -80,13 +80,14 @@
         android:visibility="gone">
 
         <ScrollView
-            android:id="@+id/fileInfoOverlay"
+            android:id="@+id/bookInfoOverlay"
             android:layout_width="300dp"
             android:layout_height="400dp"
             android:layout_gravity="center"
             android:background="@drawable/overlay_background"
             android:clipToPadding="false"
             android:padding="16dp"
+            android:scrollbars="none"
             android:visibility="gone">
 
             <LinearLayout
@@ -94,15 +95,44 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
-                <TextView
-                    android:id="@+id/fileInfoTitle"
-                    android:layout_width="wrap_content"
+                <apk.hurnell.recipebookreader.ui.EditableTextView
+                    android:id="@+id/bookTitle"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
+                    app:bold="true"
+                    app:textSize="18sp" />
+
+                <ImageView
+                    android:id="@+id/bookPreviewImage"
+                    android:layout_width="match_parent"
+                    android:layout_height="180dp"
+                    android:layout_marginTop="8dp"
+                    android:contentDescription="@string/pdf_preview"
+                    android:scaleType="fitCenter" />
+
+                <apk.hurnell.recipebookreader.ui.EditableTextView
+                    android:id="@+id/bookAuthor"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:bold="false"
+                    app:textSize="16sp" />
+
+                <apk.hurnell.recipebookreader.ui.EditableTextView
+                    android:id="@+id/bookCategory"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:bold="false"
+                    app:textSize="16sp" />
+
+                <apk.hurnell.recipebookreader.ui.EditableTextView
+                    android:id="@+id/bookSubCategory"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:bold="false"
+                    app:textSize="16sp" />
 
                 <TextView
-                    android:id="@+id/fileInfoContent"
+                    android:id="@+id/bookInfoContent"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Loading..." />
