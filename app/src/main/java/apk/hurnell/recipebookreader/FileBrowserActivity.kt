@@ -1,45 +1,52 @@
 package apk.hurnell.recipebookreader
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.provider.Settings
+import android.util.Log
+import android.view.View
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.widget.Toolbar
-import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.adapters.FileAdapter
 import apk.hurnell.recipebookreader.adapters.FileItem
+import apk.hurnell.recipebookreader.helpers.PdfStreamer
+import com.artifex.mupdf.fitz.Document
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
+import apk.hurnell.recipebookreader.helpers.DatabaseHelper
 
-// 1. Inherit from BaseDrawerActivity
 class FileBrowserActivity : BaseDrawerActivity() {
-
+    private lateinit var loadingOverlay: LinearLayout
+    private val dbHelper by lazy { DatabaseHelper(this) }
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: FileAdapter
     private lateinit var breadcrumbLayout: LinearLayout
     private lateinit var breadcrumbScroll: HorizontalScrollView
 
     private val rootDir = Environment.getExternalStorageDirectory()
-    private var currentDir: File = File(rootDir, "Documents/moon/moon/spanish")
+    private var currentDir: File = File(rootDir, "Documents/moon/moon/asian")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_file_browser)
 
-        // 2. Setup the Base Drawer logic
+        loadingOverlay = findViewById(R.id.loadingOverlay)
         val toolbar: Toolbar = findViewById(R.id.toolbar)
         setupDrawer(toolbar)
         drawerLayout.closeDrawer(GravityCompat.START, false)
-        // 3. UI Component Initialization
         breadcrumbLayout = findViewById(R.id.breadcrumbLayout)
         breadcrumbScroll = findViewById(R.id.breadcrumbScroll)
         recyclerView = findViewById(R.id.fileRecyclerView)
@@ -47,16 +54,12 @@ class FileBrowserActivity : BaseDrawerActivity() {
         adapter = FileAdapter { file -> onFileClick(file) }
         recyclerView.adapter = adapter
 
-        // 4. Custom Back Navigation (Overrides Base logic for folder climbing)
-        // Inside onCreate of FileBrowserActivity
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                // We don't need to check drawerLayout here; BaseDrawerActivity handles it!
                 if (currentDir.absolutePath != rootDir.absolutePath) {
                     val parent = currentDir.parentFile
                     if (parent != null) showFiles(parent)
                 } else {
-                    // Exit activity
                     isEnabled = false
                     onBackPressedDispatcher.onBackPressed()
                 }
@@ -68,8 +71,6 @@ class FileBrowserActivity : BaseDrawerActivity() {
 
     override fun onResume() {
         super.onResume()
-        // We check if the drawer is actually attached to the window
-        // to avoid "lateinit not initialized" errors.
         if (findViewById<DrawerLayout>(R.id.drawer_layout) != null) {
             drawerLayout.closeDrawer(GravityCompat.START, false)
         }
@@ -105,27 +106,53 @@ class FileBrowserActivity : BaseDrawerActivity() {
         if (file.isDirectory) {
             showFiles(file)
         } else if (file.extension.equals("pdf", ignoreCase = true)) {
-            val tempFile = File(cacheDir, file.name)
-            if (!tempFile.exists()) {
-                contentResolver.openInputStream(file.toUri())?.use { input ->
-                    tempFile.outputStream().use { output ->
-                        input.copyTo(output)
-                    }
-                }
+            if (file.isDirectory) {
+                showFiles(file)
+            } else if (file.extension.equals("pdf", ignoreCase = true)) {
+                processAndOpenBook(file)
             }
-            val contentUri = getFileContentUri(tempFile)
-            // TODO: Start RecipeBookActivity with contentUri
         }
     }
 
-    private fun getFileContentUri(file: File): Uri {
-        return FileProvider.getUriForFile(this, "${packageName}.fileprovider", file)
+    private fun processAndOpenBook(pdfFile: File) {
+        loadingOverlay.visibility = View.VISIBLE
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val stream = PdfStreamer(contentResolver, pdfFile.toUri())
+                val document = Document.openDocument(stream, "application/pdf")
+
+                dbHelper.checkAddBookToDatabase(pdfFile, pdfFile.absolutePath, document)
+
+                val dbFile = getDatabasePath("recipe-reader.db")
+                val exportFile = File(getExternalFilesDir(null), "recipe-reader.db")
+                dbFile.copyTo(exportFile, overwrite = true)
+
+                withContext(Dispatchers.Main) {
+                    loadingOverlay.visibility = View.GONE
+                    val intent =
+                        Intent(this@FileBrowserActivity, RecipeBookActivity::class.java).apply {
+                            putExtra("PDF_PATH", pdfFile.absolutePath)
+                        }
+                    startActivity(intent)
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    loadingOverlay.visibility = View.GONE
+                    Toast.makeText(
+                        this@FileBrowserActivity,
+                        "Error loading PDF: ${e.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    Log.e("NIGEL_HURNELL", "Processing failed ${e.message}", e)
+                }
+            }
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        // When we navigate back here from the drawer, reset to the root folder
         resetToRoot()
     }
 
@@ -154,7 +181,6 @@ class FileBrowserActivity : BaseDrawerActivity() {
         breadcrumbScroll.post { breadcrumbScroll.fullScroll(HorizontalScrollView.FOCUS_RIGHT) }
     }
 
-    // This is called by ControlFragment
     fun resetToRoot() {
         showFiles(rootDir)
         drawerLayout.closeDrawers()
