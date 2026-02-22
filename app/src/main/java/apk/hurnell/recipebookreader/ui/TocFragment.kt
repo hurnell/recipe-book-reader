@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.TypedValue
 import android.view.*
 import android.widget.EditText
 import android.widget.ImageButton
@@ -16,12 +17,9 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.R
 import apk.hurnell.recipebookreader.adapters.TocAdapter
-import androidx.core.graphics.toColorInt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import android.view.ViewGroup.LayoutParams.MATCH_PARENT
-import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import apk.hurnell.recipebookreader.model.TocItem
 
 class TocFragment : Fragment() {
@@ -33,8 +31,6 @@ class TocFragment : Fragment() {
     private var allExpanded = false
 
     companion object {
-        private const val ARG_BOOK_ID = "book_id"
-
         fun newInstance(bookId: Int, listener: (TocItem) -> Unit): TocFragment {
             return TocFragment().apply {
                 this.bookId = bookId
@@ -48,64 +44,38 @@ class TocFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        val context = requireContext()
-        val root = LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-            layoutParams = ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
-            isFocusableInTouchMode = true
-            descendantFocusability = ViewGroup.FOCUS_BEFORE_DESCENDANTS
+        val view = inflater.inflate(R.layout.fragment_toc, container, false)
+
+        val root = view.findViewById<LinearLayout>(R.id.tocRoot)
+        val tocRecyclerView = view.findViewById<RecyclerView>(R.id.tocRecyclerView)
+        val searchField = view.findViewById<EditText>(R.id.searchField)
+        val btnClear = view.findViewById<ImageButton>(R.id.btnClear)
+        val btnToggle = view.findViewById<ImageButton>(R.id.btnToggle)
+
+        // Setup RecyclerView
+        tocRecyclerView.layoutManager = LinearLayoutManager(requireContext())
+
+        // Setup Toggle
+        btnToggle.setOnClickListener {
+            allExpanded = !allExpanded
+            toggleAll(tocData, allExpanded)
+            adapter?.updateVisibleItems()
+            btnToggle.setImageResource(
+                if (allExpanded) R.drawable.ic_expand_more
+                else R.drawable.ic_chevron_right
+            )
         }
 
-        val btnClear = ImageButton(context).apply {
-            setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
-            background = null
-            visibility = View.GONE
-        }
-
-        val recyclerView = RecyclerView(context).apply {
-            id = R.id.recyclerView
-            layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, 0, 1f)
-            layoutManager = LinearLayoutManager(context)
-            clipToPadding = false
-        }
-
-        val controlBar = LinearLayout(context).apply {
-            orientation = LinearLayout.HORIZONTAL
-            layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT)
-            setPadding(16, 16, 16, 16)
-            gravity = Gravity.CENTER_VERTICAL
-            setBackgroundColor("#F5F5F5".toColorInt())
-        }
-
-        val btnToggle = ImageButton(context).apply {
-            setImageResource(R.drawable.ic_chevron_right)
-            background = null
-            setOnClickListener {
-                allExpanded = !allExpanded
-                toggleAll(tocData, allExpanded)
-                adapter?.updateVisibleItems()
-                setImageResource(
-                    if (allExpanded) R.drawable.ic_expand_more
-                    else R.drawable.ic_chevron_right
-                )
+        // Setup Search
+        searchField.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                adapter?.filter(s.toString())
+                tocRecyclerView.scrollToPosition(0)
+                btnClear.visibility = if (s.isNullOrEmpty()) View.GONE else View.VISIBLE
             }
-        }
-
-        val searchField = EditText(context).apply {
-            layoutParams = LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f)
-            hint = "Search TOC..."
-            background = null
-            maxLines = 1
-            addTextChangedListener(object : TextWatcher {
-                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                    adapter?.filter(s.toString())
-                    recyclerView.scrollToPosition(0)
-                    btnClear.visibility = if (s.isNullOrEmpty()) View.GONE else View.VISIBLE
-                }
-                override fun afterTextChanged(s: Editable?) {}
-            })
-        }
+            override fun afterTextChanged(s: Editable?) {}
+        })
 
         btnClear.setOnClickListener {
             searchField.text.clear()
@@ -113,22 +83,27 @@ class TocFragment : Fragment() {
             searchField.clearFocus()
         }
 
-        controlBar.addView(btnToggle)
-        controlBar.addView(searchField)
-        controlBar.addView(btnClear)
-
-        root.addView(recyclerView)
-        root.addView(controlBar)
-
+        // Handle the bottom items being cut off via Insets
         ViewCompat.setOnApplyWindowInsetsListener(root) { _, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
+
+            // 1. Push Toolbar down below Status Bar
+            val toolbar = view.findViewById<View>(R.id.tocToolbar)
+            toolbar.setPadding(0, systemBars.top, 0, 0)
+            // Update toolbar height to accommodate padding
+            val params = toolbar.layoutParams
+            params.height = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 56f, resources.displayMetrics).toInt() + systemBars.top
+            toolbar.layoutParams = params
+
+            // 2. Pad the bottom of the recycler
             val bottomInset = systemBars.bottom.coerceAtLeast(imeInsets.bottom)
             root.setPadding(0, 0, 0, bottomInset)
+
             insets
         }
 
-        return root
+        return view
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -139,8 +114,8 @@ class TocFragment : Fragment() {
             hideKeyboard()
         }
 
-        val recyclerView = view.findViewById<RecyclerView>(R.id.recyclerView)
-        recyclerView.adapter = adapter
+        val tocRecyclerView = view.findViewById<RecyclerView>(R.id.tocRecyclerView)
+        tocRecyclerView.adapter = adapter
 
         loadTocAsync()
     }
