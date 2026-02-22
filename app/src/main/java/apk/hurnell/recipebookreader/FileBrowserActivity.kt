@@ -1,20 +1,13 @@
 package apk.hurnell.recipebookreader
 
 import android.content.Intent
-import android.graphics.Bitmap
-import android.graphics.Typeface
 import android.os.Bundle
 import android.os.Environment
 import android.provider.Settings
 import android.util.Log
 import android.view.View
-import android.widget.EditText
-import android.widget.FrameLayout
 import android.widget.HorizontalScrollView
-import android.widget.ImageButton
-import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
@@ -27,32 +20,17 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.adapters.FileAdapter
 import apk.hurnell.recipebookreader.adapters.FileItem
-import apk.hurnell.recipebookreader.helpers.PdfStreamer
-import com.artifex.mupdf.fitz.Document
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
-import apk.hurnell.recipebookreader.helpers.DatabaseHelper
-import androidx.core.graphics.createBitmap
-import apk.hurnell.recipebookreader.ui.EditableTextView
-import com.artifex.mupdf.fitz.Matrix
-import com.artifex.mupdf.fitz.android.AndroidDrawDevice
 
 class FileBrowserActivity : BaseDrawerActivity() {
     private lateinit var loadingOverlay: LinearLayout
-    private val dbHelper by lazy { DatabaseHelper(this) }
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: FileAdapter
     private lateinit var breadcrumbLayout: LinearLayout
     private lateinit var breadcrumbScroll: HorizontalScrollView
-    private lateinit var overlayContainer: FrameLayout
-    private lateinit var bookInfoOverlay: ScrollView
-    private lateinit var bookTitle: EditableTextView
-    private lateinit var bookAuthor: EditableTextView
-    private lateinit var bookCategory: EditableTextView
-    private lateinit var bookSubCategory: EditableTextView
-    private lateinit var bookPreviewImage: ImageView
     private val rootDir = Environment.getExternalStorageDirectory()
     private var currentDir: File = File(rootDir, "Documents/moon/moon/asian")
 
@@ -67,20 +45,10 @@ class FileBrowserActivity : BaseDrawerActivity() {
         breadcrumbLayout = findViewById(R.id.breadcrumbLayout)
         breadcrumbScroll = findViewById(R.id.breadcrumbScroll)
         recyclerView = findViewById(R.id.fileRecyclerView)
-        overlayContainer = findViewById(R.id.overlayContainer)
-        bookInfoOverlay = findViewById(R.id.bookInfoOverlay)
-        bookPreviewImage = findViewById(R.id.bookPreviewImage)
-        bookTitle = findViewById(R.id.bookTitle)
-        bookAuthor = findViewById(R.id.bookAuthor)
-        bookCategory = findViewById(R.id.bookCategory)
-        bookSubCategory = findViewById(R.id.bookSubCategory)
-        overlayContainer.setOnClickListener {
-            hideBookInfoOverlay()
-        }
         recyclerView.layoutManager = LinearLayoutManager(this)
         adapter = FileAdapter(
             onClick = { file -> onFileClick(file) },
-            onLongClick = { file -> showBookInfoOverlay(file) }
+            onLongClick = { file -> browserShowBookInfoOverlay(file) }
         )
         recyclerView.adapter = adapter
 
@@ -99,89 +67,14 @@ class FileBrowserActivity : BaseDrawerActivity() {
         requestStoragePermission()
     }
 
-    private fun showBookInfoOverlay(pdfFile: File) {
+    private fun browserShowBookInfoOverlay(pdfFile: File) {
         if (pdfFile.isDirectory) {
             showFiles(pdfFile)
             return
         }
-
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                val stream = PdfStreamer(contentResolver, pdfFile.toUri())
-                val document = Document.openDocument(stream, "application/pdf")
-
-                val book = dbHelper.getOrInsertBook(pdfFile, pdfFile.absolutePath, document)
-                val firstPageBitmap: Bitmap? = try {
-                    val page = document.loadPage(0)
-                    val width = 600  // adjust for desired preview width
-
-                    val pageWidth = page.bounds.x1 - page.bounds.x0
-                    val pageHeight = page.bounds.y1 - page.bounds.y0
-                    val scale = width / pageWidth
-                    val height = (width.toFloat() / pageWidth * pageHeight).toInt()
-                    val bitmap = createBitmap(width, height)
-                    val device = AndroidDrawDevice(bitmap, 0, 0)
-                    page.run(device, Matrix(scale, scale), null)
-                    bitmap
-                } catch (e: Exception) {
-                    Log.e("NIGEL_HURNELL", "Failed to render first page: ${e.message}", e)
-                    null
-                }
-                withContext(Dispatchers.Main) {
-                    if (book != null) {
-                        bookTitle.setParams(book.name ?: pdfFile.name, "Title", Typeface.BOLD)
-                        bookTitle.onAccept { newText ->
-                            dbHelper.updateBookStringParam(book.id, "name", newText)
-                        }
-                        bookAuthor.setParams(book.author?.ifBlank { "Unknown" } ?: "Unknown", "Author")
-                        bookAuthor.onAccept { newText ->
-                            dbHelper.updateBookStringParam(book.id, "author", newText)
-                        }
-                        bookCategory.setParams(book.category ?: "Unknown", "Category")
-                        bookCategory.onAccept { newText ->
-                            dbHelper.updateBookStringParam(book.id, "category", newText)
-                        }
-                        bookSubCategory.setParams(
-                            book.subCategory ?: "Unknown",
-                            "Sub Category",
-                            true)
-                        bookSubCategory.onAccept { newText ->
-                            dbHelper.updateBookStringParam(book.id, "sub_category", newText)
-                        }
-                        bookPreviewImage.setImageBitmap(firstPageBitmap)
-
-
-                        overlayContainer.visibility = View.VISIBLE
-                        bookInfoOverlay.scaleX = 0.8f
-                        bookInfoOverlay.scaleY = 0.8f
-                        bookInfoOverlay.alpha = 0f
-                        bookInfoOverlay.visibility = View.VISIBLE
-                        bookInfoOverlay.animate()
-                            .alpha(1f)
-                            .scaleX(1f)
-                            .scaleY(1f)
-                            .setDuration(250)
-                            .start()
-                    }
-                    document.destroy()
-                }
-            } catch (e: Exception) {
-                Log.e("NIGEL_HURNELL", "Error opening PDF: ${e.message}", e)
-            }
-        }
+        showBookInfoOverlay(pdfFile)
     }
 
-    private fun hideBookInfoOverlay() {
-        bookInfoOverlay.animate()
-            .alpha(0f)
-            .scaleX(0.8f)
-            .scaleY(0.8f)
-            .setDuration(200)
-            .withEndAction {
-                bookInfoOverlay.visibility = View.GONE
-                overlayContainer.visibility = View.GONE
-            }.start()
-    }
 
     override fun onResume() {
         super.onResume()
@@ -220,11 +113,7 @@ class FileBrowserActivity : BaseDrawerActivity() {
         if (file.isDirectory) {
             showFiles(file)
         } else if (file.extension.equals("pdf", ignoreCase = true)) {
-            if (file.isDirectory) {
-                showFiles(file)
-            } else if (file.extension.equals("pdf", ignoreCase = true)) {
-                processAndOpenBook(file)
-            }
+            processAndOpenBook(file)
         }
     }
 
@@ -233,15 +122,6 @@ class FileBrowserActivity : BaseDrawerActivity() {
 
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val stream = PdfStreamer(contentResolver, pdfFile.toUri())
-                val document = Document.openDocument(stream, "application/pdf")
-
-                dbHelper.checkAddBookToDatabase(pdfFile, pdfFile.absolutePath, document)
-
-                val dbFile = getDatabasePath("recipe-reader.db")
-                val exportFile = File(getExternalFilesDir(null), "recipe-reader.db")
-                dbFile.copyTo(exportFile, overwrite = true)
-
                 withContext(Dispatchers.Main) {
                     loadingOverlay.visibility = View.GONE
                     val intent =
@@ -255,10 +135,10 @@ class FileBrowserActivity : BaseDrawerActivity() {
                     loadingOverlay.visibility = View.GONE
                     Toast.makeText(
                         this@FileBrowserActivity,
-                        "Error loading PDF: ${e.message}",
+                        "Error opening PDF: ${e.message}",
                         Toast.LENGTH_LONG
                     ).show()
-                    Log.e("NIGEL_HURNELL", "Processing failed ${e.message}", e)
+                    Log.e("NIGEL_HURNELL", "Failed to open PDF", e)
                 }
             }
         }
