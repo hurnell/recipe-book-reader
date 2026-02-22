@@ -12,9 +12,15 @@
         android:layout_height="match_parent">
 
         <apk.hurnell.recipebookreader.ui.PinchRecyclerView
-            android:id="@+id/recyclerView"
+            android:id="@+id/bookRecyclerView"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="match_parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.0" />
 
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
@@ -28,16 +34,33 @@
             app:titleCentered="true"
             app:titleTextAppearance="@style/ToolbarTitleStyle" />
 
+
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/bottomBar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@color/pastel_blue"
-            android:padding="12dp"
+            android:paddingEnd="12dp"
+            android:paddingStart="12dp"
+            android:paddingBottom="12dp"
             app:layout_constraintBottom_toBottomOf="parent">
 
+            <ProgressBar
+                android:id="@+id/horizontalLoader"
+                style="@android:style/Widget.ProgressBar.Horizontal"
+                android:layout_width="0dp"
+                android:layout_height="4dp"
+                android:indeterminate="false"
+                android:max="100"
+                android:progress="0"
+                android:progressTint="@color/pastel_blue"
+                android:visibility="gone"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
             <SeekBar
                 android:id="@+id/pageSeekBar"
+                android:paddingTop="12dp"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:progressBackgroundTint="@color/black"
@@ -52,6 +75,7 @@
                 android:id="@+id/pageIndicator"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:paddingTop="12dp"
                 android:paddingStart="8dp"
                 android:paddingEnd="32dp"
                 android:text="@string/default_indicator_text"
@@ -105,27 +129,14 @@
 
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/tocPanel"
-        android:layout_width="300dp"
+        android:layout_width="280dp"
         android:layout_height="match_parent"
         android:layout_gravity="start"
         android:background="@android:color/white">
 
-        <LinearLayout
+        <FrameLayout
+            android:id="@+id/tocFragmentContainer"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical">
-
-            <com.google.android.material.appbar.MaterialToolbar
-                android:id="@+id/tocToolbar"
-                android:layout_width="match_parent"
-                android:layout_height="?attr/actionBarSize"
-                app:navigationIcon="?attr/homeAsUpIndicator"
-                app:title="Table of Contents" />
-
-            <FrameLayout
-                android:id="@+id/tocFragmentContainer"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent" />
-        </LinearLayout>
+            android:layout_height="match_parent" />
     </com.google.android.material.navigation.NavigationView>
 </androidx.drawerlayout.widget.DrawerLayout>
