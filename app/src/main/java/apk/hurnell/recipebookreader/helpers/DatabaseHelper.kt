@@ -89,7 +89,19 @@ class DatabaseHelper(private val context: Context) {
         if (!dbFile.exists()) {
             copyDatabaseIfNeeded()
         }
-        return SQLiteDatabase.openDatabase(dbFile.path, null, SQLiteDatabase.OPEN_READWRITE)
+        val db = SQLiteDatabase.openDatabase(
+            dbFile.path,
+            null,
+            SQLiteDatabase.OPEN_READWRITE
+        )
+
+        val cursor = db.rawQuery("PRAGMA journal_mode=WAL;", null)
+        cursor.use {
+            if (it.moveToFirst()) {
+                Log.d(LOG_TAG, "Journal mode set to: ${it.getString(0)}")
+            }
+        }
+        return db
     }
 
     fun extractPageFromUri(uri: String?): Int {
@@ -101,20 +113,74 @@ class DatabaseHelper(private val context: Context) {
     }
 
 
+    private fun countOutlineEntries(outlineArray: Array<Outline>): Int {
+        var count = 0
+        outlineArray.forEach { entry ->
+            count++ // this entry
+            if (!entry.down.isNullOrEmpty()) {
+                count += countOutlineEntries(entry.down)
+            }
+        }
+        return count
+    }
+
     fun insertOutline(
         document: Document,
         db: SQLiteDatabase,
         bookId: Long,
-        outlineArray: Array<Outline>
+        outlineArray: Array<Outline>,
+        progressCallback: ((percent: Int) -> Unit)? = null
     ) {
-        db.transaction {
-            try {
+        val totalEntries = countOutlineEntries(outlineArray)
+        var insertedEntries = 0
 
-                performRecursiveInsert(document, this, bookId, outlineArray, null, 0)
-                Log.i(LOG_TAG, "TOC Transaction Successful for book $bookId")
+        db.transaction {
+            fun insertRecursive(
+                entries: Array<Outline>,
+                parentId: Long?,
+                level: Int
+            ) {
+                val stmt = db.compileStatement(
+                    """
+                    INSERT INTO toc (book_id_fk, parent_id, level, title, page, `offset`, scale, translate)
+                    VALUES (?,?,?,?,?,?,?,?)
+                    """.trimIndent()
+                )
+
+                entries.forEach { entry ->
+                    val page = extractPageFromUri(entry.uri)
+                    val pageCoordinates = FunctionalStructuredTextWalker().getPageCoordinates(document, page - 1)
+
+                    stmt.clearBindings()
+                    stmt.bindLong(1, bookId)
+                    parentId?.let { stmt.bindLong(2, it) } ?: stmt.bindNull(2)
+                    stmt.bindLong(3, level.toLong())
+                    stmt.bindString(4, entry.title ?: "")
+                    stmt.bindLong(5, page.toLong())
+                    stmt.bindDouble(6, pageCoordinates.leftOffset.toDouble())
+                    stmt.bindDouble(7, pageCoordinates.targetScale.toDouble())
+                    stmt.bindDouble(8, pageCoordinates.translatingPercentage.toDouble())
+
+                    val rowId = stmt.executeInsert()
+                    insertedEntries++
+
+                    // update progress
+                    progressCallback?.let { callback ->
+                        val percent = ((insertedEntries.toDouble() / totalEntries) * 100).toInt()
+                        callback(percent)
+                    }
+
+                    if (!entry.down.isNullOrEmpty()) {
+                        insertRecursive(entry.down, rowId, level + 1)
+                    }
+                }
+                stmt.close()
+            }
+
+            try {
+                insertRecursive(outlineArray, null, 0)
             } catch (e: Exception) {
-                Log.e(LOG_TAG, "TOC Insert failed: ${e.message}")
-            } finally {
+                Log.e("NIGEL_HURNELL", "TOC Insert failed: ${e.message}")
             }
         }
     }
@@ -133,7 +199,7 @@ class DatabaseHelper(private val context: Context) {
     """.trimIndent()
 
         val stmt = db.compileStatement(insertSql)
-
+        val start = System.currentTimeMillis()
         outlineArray.forEach { entry ->
             val page = extractPageFromUri(entry.uri)
             val pageCoordinates =
@@ -150,8 +216,12 @@ class DatabaseHelper(private val context: Context) {
             stmt.bindDouble(8, pageCoordinates.translatingPercentage.toDouble())
 
             val rowId = stmt.executeInsert()
-            Log.d(LOG_TAG, "Inserted: ${entry.title} at level $level")
-
+            val then = System.currentTimeMillis()
+            val elapsed = then - start
+            Log.d(
+                LOG_TAG,
+                "Inserted: ${entry.title} at level $level which took $elapsed ms = ${elapsed / 1000} secs"
+            )
             if (!entry.down.isNullOrEmpty()) {
                 performRecursiveInsert(document, db, bookId, entry.down, rowId, level + 1)
             }
@@ -178,57 +248,6 @@ class DatabaseHelper(private val context: Context) {
                 iterateOutline(document, entry.down, level + 1)
             }
         }
-    }
-
-    fun generateTOC(document: Document?, bookId: Long): Boolean {
-        if (document == null) {
-            Log.e(LOG_TAG, "Cannot generate TOC: Document is null")
-            return false
-        }
-        var success = false
-        val outline = try {
-            document.loadOutline()
-        } catch (e: Exception) {
-            Log.e(LOG_TAG, "Error loading outline: ${e.message}")
-            null
-        }
-
-        if (outline != null) {
-            val db = openDatabase()
-
-            insertOutline(document, db, bookId, outline)
-
-            val values = ContentValues().apply {
-                put("toc_created", 1)
-            }
-            val rowsUpdated = db.update("books", values, "id = ?", arrayOf(bookId.toString()))
-
-            if (rowsUpdated > 0) {
-                success = true
-                Log.i(LOG_TAG, "Successfully updated toc_created flag for book $bookId")
-            } else {
-                success = false
-                Log.e(LOG_TAG, "Failed to update toc_created flag for book $bookId")
-            }
-        } else {
-            val db = openDatabase()
-            val values = ContentValues().apply {
-                put("toc_unavailable", 1)
-            }
-            val rowsUpdated = db.update("books", values, "id = ?", arrayOf(bookId.toString()))
-            if (rowsUpdated > 0) {
-                success = false
-                Log.i(LOG_TAG, "Successfully updated toc_unavailable flag for book $bookId")
-            } else {
-                success = false
-                Log.e(LOG_TAG, "Failed to update toc_unavailable flag for book $bookId")
-            }
-            Log.e(
-                LOG_TAG,
-                "loadOutline returned null. Page count: ${document.countPages()}"
-            )
-        }
-        return success
     }
 
     fun updateBookStringParam(bookId: Long, column: String, value: String): Boolean {
