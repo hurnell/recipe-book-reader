@@ -21,15 +21,15 @@ data class PageCoordinates(
     var translatingPercentage: Float = 0.0f,
     var found: Boolean = false
 
-){
-    fun populate(){
+) {
+    fun populate() {
         if (found) {
             val currentWidth = maxX - minX
             if (currentWidth != 0f) {
                 leftOffset = minX
                 val rightOffset = width - maxX
                 translatingPercentage = leftOffset / (leftOffset + rightOffset)
-                targetScale = (width / currentWidth ) * 0.95f
+                targetScale = (width / currentWidth) * 0.95f
             }
         }
     }
@@ -68,6 +68,7 @@ class FunctionalStructuredTextWalker {
                 flags: Int
             ) {
             }
+
             override fun beginLine(bbox: Rect?, wmode: Int, dir: Point?) {}
             override fun endLine() {}
             override fun beginStruct(standard: String?, raw: String?, index: Int) {}
