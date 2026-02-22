@@ -11,7 +11,6 @@ import android.widget.Toast
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.net.toUri
 import androidx.core.view.GravityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -20,9 +19,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.adapters.BookAdapter
 import apk.hurnell.recipebookreader.databinding.ActivityRecipeBookBinding
-import apk.hurnell.recipebookreader.helpers.DatabaseHelper
 import apk.hurnell.recipebookreader.helpers.FunctionalStructuredTextWalker
-import apk.hurnell.recipebookreader.helpers.PdfStreamer
 import apk.hurnell.recipebookreader.ui.PinchRecyclerView
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
@@ -76,31 +73,39 @@ class RecipeBookActivity : AppCompatActivity() {
             return
         }
         val pdfFile = File(pdfFilePath)
-        val sizeInBytes = pdfFile.length()
         binding.btnTOC.visibility = View.GONE
         repository = PdfRepository(contentResolver, this)
-        val pdfUri = pdfFile.toUri()
 
         lifecycleScope.launch {
             try {
-                // 1️⃣ open document (for UI)
-                val loadedDoc = repository.openDocument(pdfUri)
-                document = loadedDoc
-
-                // show immediately
-                onDocumentReady(loadedDoc)
-
-                // 2️⃣ register book
-                val bookId = repository.checkOrCreateBook(
+                val currentDocument = runCatching {
+                    repository.openPdfFast(pdfFile)
+                }.getOrElse {
+                    Log.e(LOG_TAG, "Failed to open document", it)
+                    finish()
+                    return@launch
+                }
+                document = currentDocument
+                onDocumentReady(currentDocument)
+                val book = repository.getOrCreateBook(
                     pdfFile,
                     pdfFilePath,
-                    loadedDoc
-                )
-                val book = repository.getBook(pdfFile, pdfFile.absolutePath, loadedDoc)
-                if (book != null && !book.name.equals("") ) {
+                    currentDocument
+                ) ?: run {
+                    Log.e(LOG_TAG, "Failed to create or fetch book")
+                    finish()
+                    return@launch
+                }
+
+                val bookId = book.id
+                if (bookId == -1L) {
+                    Log.e(LOG_TAG, "Invalid bookId returned")
+                    finish()
+                    return@launch
+                }
+                if (!book.name.equals("") ) {
                     binding.toolbar.title = book.name
                 }
-                // 3️⃣ check TOC
                 if (repository.hasToc(bookId)) {
                     initializeTocFragment(bookId)
                     binding.btnTOC.visibility = View.VISIBLE
@@ -110,22 +115,18 @@ class RecipeBookActivity : AppCompatActivity() {
                     binding.horizontalLoader.progress = 0
 
                     lifecycleScope.launch(Dispatchers.IO) {
-
-                        val success = repository.generateTocAsync(pdfUri, bookId, sizeInBytes) { percent, delta, total ->
+                        val success = repository.generateTocAsync(currentDocument, bookId) { percent, delta, total ->
                             if (deltaList.size < maxSamples) {
                                 deltaList.add(delta)
                             }
 
-                            // Calculate average over first few inserts
                             val averageDelta = if (deltaList.isNotEmpty()) {
                                 deltaList.sum() / deltaList.size
                             } else 0L
 
-                            // Estimate total time
                             val estimatedTotalMs = averageDelta * total
                             val estimatedTotalSec = estimatedTotalMs / 1000
 
-                            // If threshold exceeded and first few inserts
                             if (deltaList.size == maxSamples && estimatedTotalSec > 10) { // arbitrary threshold
                                 runOnUiThread {
                                     showTocAlert(estimatedTotalSec)
@@ -135,13 +136,11 @@ class RecipeBookActivity : AppCompatActivity() {
                                 binding.horizontalLoader.progress = percent
                                 if (percent >= 100) {
                                     binding.horizontalLoader.visibility = View.GONE
-                                    // optionally show TOC button
                                     binding.btnTOC.visibility = View.VISIBLE
                                 }
                             }
                         }
                         if (success) {
-                            // refresh fragment AFTER TOC is definitely in DB
                             initializeTocFragment(bookId)
                             binding.btnTOC.visibility = View.VISIBLE
                         }
