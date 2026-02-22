@@ -32,4 +32,7 @@
     <string name="generic_editable_text_view_edit_button">Generic Editable Text View Edit Button</string>
     <string name="generic_editable_text_view_cancel_button">Generic Editable Text View Cancel Button</string>
     <string name="label_for_editable_widget">Label For Editable Widger</string>
+    <string name="clear_button_for_toc">Clear Button for TOC</string>
+    <string name="search_toc">Search TOC…</string>
+    <string name="toggle_toc_list_expanded">Toggle TOC list expanded</string>
 </resources>
