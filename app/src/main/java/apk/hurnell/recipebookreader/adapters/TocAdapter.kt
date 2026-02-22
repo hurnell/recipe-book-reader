@@ -7,7 +7,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.R
-import apk.hurnell.recipebookreader.ui.TocItem
+import apk.hurnell.recipebookreader.model.TocItem
 
 class TocAdapter(
     private var fullList: List<TocItem>, // now var

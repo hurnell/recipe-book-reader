@@ -22,17 +22,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
-
-data class TocItem(
-    val title: String,
-    val page: Int,
-    val level: Int,
-    val offset: Float = 0f,
-    val scale: Float = 1f,
-    val translate: Float = 0f,
-    val children: List<TocItem> = emptyList(),
-    var isExpanded: Boolean = false
-)
+import apk.hurnell.recipebookreader.model.TocItem
 
 class TocFragment : Fragment() {
 
