@@ -38,6 +38,7 @@
         <activity
             android:name=".RecipeBookActivity"
             android:configChanges="orientation|screenSize|keyboardHidden"
+            android:windowSoftInputMode="adjustResize"
             android:exported="true" >
         </activity>
 
