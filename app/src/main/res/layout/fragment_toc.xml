@@ -52,7 +52,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:background="@null"
-            android:digits="abcdefghijklmnopqrstuvwxyz0123456789"
+            android:digits="@string/search_chars"
             android:hint="@string/search_toc"
             android:importantForAutofill="no"
             android:inputType="text"

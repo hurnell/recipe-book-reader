@@ -124,67 +124,6 @@ class DatabaseHelper(private val context: Context) {
         return count
     }
 
-    fun insertOutline(
-        document: Document,
-        db: SQLiteDatabase,
-        bookId: Long,
-        outlineArray: Array<Outline>,
-        progressCallback: ((percent: Int) -> Unit)? = null
-    ) {
-        val totalEntries = countOutlineEntries(outlineArray)
-        var insertedEntries = 0
-
-        db.transaction {
-            fun insertRecursive(
-                entries: Array<Outline>,
-                parentId: Long?,
-                level: Int
-            ) {
-                val stmt = db.compileStatement(
-                    """
-                    INSERT INTO toc (book_id_fk, parent_id, level, title, page, `offset`, scale, translate)
-                    VALUES (?,?,?,?,?,?,?,?)
-                    """.trimIndent()
-                )
-
-                entries.forEach { entry ->
-                    val page = extractPageFromUri(entry.uri)
-                    val pageCoordinates = FunctionalStructuredTextWalker().getPageCoordinates(document, page - 1)
-
-                    stmt.clearBindings()
-                    stmt.bindLong(1, bookId)
-                    parentId?.let { stmt.bindLong(2, it) } ?: stmt.bindNull(2)
-                    stmt.bindLong(3, level.toLong())
-                    stmt.bindString(4, entry.title ?: "")
-                    stmt.bindLong(5, page.toLong())
-                    stmt.bindDouble(6, pageCoordinates.leftOffset.toDouble())
-                    stmt.bindDouble(7, pageCoordinates.targetScale.toDouble())
-                    stmt.bindDouble(8, pageCoordinates.translatingPercentage.toDouble())
-
-                    val rowId = stmt.executeInsert()
-                    insertedEntries++
-
-                    // update progress
-                    progressCallback?.let { callback ->
-                        val percent = ((insertedEntries.toDouble() / totalEntries) * 100).toInt()
-                        callback(percent)
-                    }
-
-                    if (!entry.down.isNullOrEmpty()) {
-                        insertRecursive(entry.down, rowId, level + 1)
-                    }
-                }
-                stmt.close()
-            }
-
-            try {
-                insertRecursive(outlineArray, null, 0)
-            } catch (e: Exception) {
-                Log.e("NIGEL_HURNELL", "TOC Insert failed: ${e.message}")
-            }
-        }
-    }
-
     private fun performRecursiveInsert(
         document: Document,
         db: SQLiteDatabase,

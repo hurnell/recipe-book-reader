@@ -7,6 +7,7 @@ import android.util.TypedValue
 import android.view.MotionEvent
 import android.view.View
 import android.widget.SeekBar
+import android.widget.Toast
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -24,6 +25,7 @@ import apk.hurnell.recipebookreader.helpers.FunctionalStructuredTextWalker
 import apk.hurnell.recipebookreader.helpers.PdfStreamer
 import apk.hurnell.recipebookreader.ui.PinchRecyclerView
 import androidx.activity.OnBackPressedCallback
+import androidx.appcompat.app.AlertDialog
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import apk.hurnell.recipebookreader.helpers.PdfRepository
@@ -43,6 +45,9 @@ class RecipeBookActivity : AppCompatActivity() {
     private var barsVisible = true
     private var document: Document? = null
     private lateinit var repository: PdfRepository
+    private val deltaList = mutableListOf<Long>()
+    private val maxSamples = 5
+    private var alertAlreadyShown = false
 
     companion object {
         private const val LOG_TAG = "NIGEL_HURNELL"
@@ -105,7 +110,27 @@ class RecipeBookActivity : AppCompatActivity() {
                     binding.horizontalLoader.progress = 0
 
                     lifecycleScope.launch(Dispatchers.IO) {
-                        val success = repository.generateTocAsync(pdfUri, bookId, sizeInBytes) { percent ->
+
+                        val success = repository.generateTocAsync(pdfUri, bookId, sizeInBytes) { percent, delta, total ->
+                            if (deltaList.size < maxSamples) {
+                                deltaList.add(delta)
+                            }
+
+                            // Calculate average over first few inserts
+                            val averageDelta = if (deltaList.isNotEmpty()) {
+                                deltaList.sum() / deltaList.size
+                            } else 0L
+
+                            // Estimate total time
+                            val estimatedTotalMs = averageDelta * total
+                            val estimatedTotalSec = estimatedTotalMs / 1000
+
+                            // If threshold exceeded and first few inserts
+                            if (deltaList.size == maxSamples && estimatedTotalSec > 10) { // arbitrary threshold
+                                runOnUiThread {
+                                    showTocAlert(estimatedTotalSec)
+                                }
+                            }
                             runOnUiThread {
                                 binding.horizontalLoader.progress = percent
                                 if (percent >= 100) {
@@ -127,6 +152,31 @@ class RecipeBookActivity : AppCompatActivity() {
                 Log.e(LOG_TAG, "Error loading PDF", e)
                 finish()
             }
+        }
+    }
+
+    private fun showTocAlert(estimatedSec: Long) {
+        if (!alertAlreadyShown) {
+            alertAlreadyShown = true
+            AlertDialog.Builder(this)
+                .setTitle("TOC Generation Warning")
+                .setMessage(
+                    "The table of contents for this book is taking too long.\n" +
+                            "Expected total insert time: $estimatedSec seconds."
+                )
+                .setPositiveButton("Cancel") { dialog, _ ->
+                    // stop generation if possible
+                    dialog.dismiss()
+                    // optionally cancel coroutine here
+                }
+                .setNegativeButton("Ignore TOC params") { dialog, _ ->
+                    dialog.dismiss()
+                    Toast.makeText(this, "TOC params will be ignored from now on", Toast.LENGTH_SHORT).show()
+                    repository.setIgnoreTocParams()
+                    // continue generating TOC
+                }
+                .setCancelable(false)
+                .show()
         }
     }
 
@@ -403,6 +453,7 @@ class RecipeBookActivity : AppCompatActivity() {
             )
 
             binding.tocPanel.setPadding(0, 0, 0, bottomInset)
+            binding.zoomIt.setPadding(0, 0, 0, bottomInset)
 
             insets
         }
@@ -418,13 +469,11 @@ class RecipeBookActivity : AppCompatActivity() {
 
         val translationTop = if (show) 0f else -binding.toolbar.height.toFloat()
         val translationBottom = if (show) 0f else binding.bottomBar.height.toFloat()
-
+        val translationBottomFab = if (barsVisible)translationBottom else translationBottom - binding.zoomIt.height
         binding.toolbar.animate().translationY(translationTop).setDuration(300).start()
         binding.bottomBar.animate().translationY(translationBottom).setDuration(300).start()
         binding.btnRotate.animate().translationY(translationBottom).setDuration(300).start()
-
-        // ⚡ Animate loader along with bottom bar
-        //binding.horizontalLoader.animate().translationY(translationBottom).setDuration(300).start()
+        binding.zoomIt.animate().translationY(translationBottomFab).setDuration(300).start()
     }
 
     override fun onDestroy() {

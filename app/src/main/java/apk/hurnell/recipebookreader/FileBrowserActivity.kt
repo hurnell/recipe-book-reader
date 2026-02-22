@@ -141,7 +141,10 @@ class FileBrowserActivity : BaseDrawerActivity() {
                         bookCategory.onAccept { newText ->
                             dbHelper.updateBookStringParam(book.id, "category", newText)
                         }
-                        bookSubCategory.setParams(book.subCategory ?: "Unknown", "Sub Category")
+                        bookSubCategory.setParams(
+                            book.subCategory ?: "Unknown",
+                            "Sub Category",
+                            true)
                         bookSubCategory.onAccept { newText ->
                             dbHelper.updateBookStringParam(book.id, "sub_category", newText)
                         }

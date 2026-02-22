@@ -35,4 +35,7 @@
     <string name="clear_button_for_toc">Clear Button for TOC</string>
     <string name="search_toc">Search TOC…</string>
     <string name="toggle_toc_list_expanded">Toggle TOC list expanded</string>
+    <string name="lowercase_chars">abcdefghijklmnopqrstuvwxyz</string>
+    <string name="search_chars">abcdefghijklmnopqrstuvwxyz0123456789</string>
+
 </resources>

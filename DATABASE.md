@@ -34,6 +34,8 @@ ON t.book_id_fk = b.id;
         offset REAL DEFAULT NULL,
         scale REAL DEFAULT NULL,
         translate REAL DEFAULT NULL,
+        has_images INTEGER,
+        has_text INTEGER,
         position_ignored INTEGER DEFAULT 0        
     );
 ```
@@ -58,6 +60,6 @@ open app/src/main/assets/recipe-reader.db
 ```shell
 cd ~/Documents/recipe_reader
 adb shell "run-as apk.hurnell.recipebookreader cp /data/data/apk.hurnell.recipebookreader/databases/recipe-reader.db /sdcard/recipe-reader.db"
-adb pull /storage/emulated/0/Android/data/apk.hurnell.recipebookreader/files/recipe-reader.db
+adb pull /sdcard/recipe-reader.db
 open recipe-reader.db
 ```

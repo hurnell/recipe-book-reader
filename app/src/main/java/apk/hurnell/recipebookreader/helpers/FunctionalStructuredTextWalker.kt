@@ -17,6 +17,8 @@ data class PageCoordinates(
     var width: Float = 0.0f,
     var height: Float = 0.0f,
     var leftOffset: Float = 0.0f,
+    var hasImages: Boolean = false,
+    var hasText: Boolean = false,
     var targetScale: Float = 0.0f,
     var translatingPercentage: Float = 0.0f,
     var found: Boolean = false
@@ -33,12 +35,21 @@ data class PageCoordinates(
             }
         }
     }
+
+    fun intercept(offset: Float?, scale: Float?, percentage: Float?) {
+        offset?.let { leftOffset = it }
+        scale?.let { targetScale = it }
+        percentage?.let { translatingPercentage = it }
+    }
 }
 
 class FunctionalStructuredTextWalker {
 
-    fun getPageCoordinates(document: Document, pageNumber: Int): PageCoordinates {
+    fun getPageCoordinates(document: Document, pageNumber: Int, ignoreParams: Boolean = false): PageCoordinates {
         val pageCoordinates = PageCoordinates()
+        if(ignoreParams) {
+            return pageCoordinates
+        }
         val page = document.loadPage(pageNumber)
         val bounds = page.bounds
         pageCoordinates.width = bounds.x1 - bounds.x0
@@ -49,12 +60,14 @@ class FunctionalStructuredTextWalker {
                 pageCoordinates.minX = min(pageCoordinates.minX, bbox.x0)
                 pageCoordinates.maxX = max(pageCoordinates.maxX, bbox.x1)
                 pageCoordinates.found = true
+                pageCoordinates.hasImages = true
             }
 
             override fun beginTextBlock(bbox: Rect) {
                 pageCoordinates.minX = min(pageCoordinates.minX, bbox.x0)
                 pageCoordinates.maxX = max(pageCoordinates.maxX, bbox.x1)
                 pageCoordinates.found = true
+                pageCoordinates.hasText = true
             }
 
             override fun endTextBlock() {}

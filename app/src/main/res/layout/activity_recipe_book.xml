@@ -121,7 +121,7 @@
             android:contentDescription="@string/zoom_button"
             app:fabCustomSize="32dp"
             app:fabSize="mini"
-            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintBottom_toTopOf="@+id/bottomBar"
             app:layout_constraintEnd_toEndOf="parent"
             app:maxImageSize="18dp"
             app:srcCompat="@drawable/ic_zoom" />

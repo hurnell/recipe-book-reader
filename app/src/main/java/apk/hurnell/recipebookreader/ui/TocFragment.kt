@@ -74,6 +74,7 @@ class TocFragment : Fragment() {
                 tocRecyclerView.scrollToPosition(0)
                 btnClear.visibility = if (s.isNullOrEmpty()) View.GONE else View.VISIBLE
             }
+
             override fun afterTextChanged(s: Editable?) {}
         })
 
@@ -93,7 +94,11 @@ class TocFragment : Fragment() {
             toolbar.setPadding(0, systemBars.top, 0, 0)
             // Update toolbar height to accommodate padding
             val params = toolbar.layoutParams
-            params.height = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 56f, resources.displayMetrics).toInt() + systemBars.top
+            params.height = TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                56f,
+                resources.displayMetrics
+            ).toInt() + systemBars.top
             toolbar.layoutParams = params
 
             // 2. Pad the bottom of the recycler
@@ -134,7 +139,7 @@ class TocFragment : Fragment() {
         val db = context.openOrCreateDatabase("recipe-reader.db", 0, null)
         val cursor = db.rawQuery(
             """
-            SELECT id, parent_id, title, page, level, `offset`, scale, translate
+            SELECT id, parent_id, title, page, level, `offset`, scale, translate, has_images, has_text
             FROM toc
             WHERE book_id_fk = ?
             ORDER BY id
@@ -149,7 +154,9 @@ class TocFragment : Fragment() {
             val level: Int,
             val offset: Float,
             val scale: Float,
-            val translate: Float
+            val translate: Float,
+            val hasImages: Long,
+            val hasText: Long
         )
 
         val rows = mutableListOf<Row>()
@@ -163,7 +170,9 @@ class TocFragment : Fragment() {
                     level = cursor.getInt(4),
                     offset = cursor.getFloat(5),
                     scale = cursor.getFloat(6),
-                    translate = cursor.getFloat(7)
+                    translate = cursor.getFloat(7),
+                    hasImages = cursor.getLong(8),
+                    hasText = cursor.getLong(9)
                 )
             )
         }
@@ -179,6 +188,8 @@ class TocFragment : Fragment() {
                     offset = row.offset,
                     scale = row.scale,
                     translate = row.translate,
+                    hasImages = row.hasImages == 1L,
+                    hasText = row.hasText == 1L,
                     children = build(row.id)
                 )
             } ?: emptyList()
@@ -194,7 +205,8 @@ class TocFragment : Fragment() {
     }
 
     private fun hideKeyboard() {
-        val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+        val imm =
+            requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
         view?.let { imm.hideSoftInputFromWindow(it.windowToken, 0) }
     }
 }

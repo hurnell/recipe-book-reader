@@ -2,6 +2,7 @@ package apk.hurnell.recipebookreader.ui
 
 import android.content.Context
 import android.graphics.Typeface
+import android.text.InputFilter
 import android.util.AttributeSet
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -26,6 +27,7 @@ class EditableTextView @JvmOverloads constructor(
     private val cancelButton: ImageButton
     private var hasLabel = false
     private var originalText: String? = null
+    private var lowercaseChars: String = ""
 
     private var isEditing = false
     var onAccept: ((String) -> Unit)? = null
@@ -34,9 +36,8 @@ class EditableTextView @JvmOverloads constructor(
         orientation = HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
         LayoutInflater.from(context).inflate(R.layout.view_editable_text, this, true)
-
+        lowercaseChars = context.getString(R.string.lowercase_chars)
         textView = findViewById(R.id.editableTextViewText)
-        originalText
         labelView = findViewById(R.id.editableTextViewLabel)
         labelView.visibility = GONE
         editText = findViewById(R.id.editableTextViewEditView)
@@ -67,10 +68,12 @@ class EditableTextView @JvmOverloads constructor(
         }
         cancelButton.setOnClickListener { cancelEdit() }
     }
+
     fun onAccept(listener: (String) -> Unit): EditableTextView {
         this.onAccept = listener
         return this
     }
+
     private fun toggleEditMode() {
         if (!isEditing) {
             isEditing = true
@@ -121,20 +124,50 @@ class EditableTextView @JvmOverloads constructor(
         textView.text = value
         originalText = value
     }
+
     fun setLabel(value: String) {
         labelView.text = value
         labelView.visibility = VISIBLE
         hasLabel = true
     }
+
     fun setParams(
         text: String,
         label: String? = null,
-        style: Int = Typeface.NORMAL
-    ){
+        style: Int = Typeface.NORMAL,
+        lowercase: Boolean? = false
+    ) {
         setText(text)
         textView.setTypeface(textView.typeface, style)
         if (label != null) {
             setLabel(label)
         }
+        if (lowercase == true) {
+            setAllowedChars()
+        }
+    }
+
+    fun setParams(
+        text: String,
+        label: String? = null,
+        lowercase: Boolean? = false
+    ) {
+        setText(text)
+        textView.setTypeface(textView.typeface, Typeface.NORMAL)
+        if (label != null) {
+            setLabel(label)
+        }
+        if (lowercase == true) {
+            setAllowedChars()
+        }
+    }
+
+    private fun setAllowedChars() {
+        editText.filters = arrayOf(InputFilter { source, _, _, _, _, _ ->
+            source?.map {
+                val c = it.lowercaseChar()     // convert to lowercase
+                if (c in lowercaseChars) c else null  // keep only allowed chars
+            }?.filterNotNull()?.joinToString("")  // remove disallowed chars
+        })
     }
 }
