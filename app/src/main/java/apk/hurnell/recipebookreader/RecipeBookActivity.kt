@@ -49,6 +49,7 @@ class RecipeBookActivity : AppCompatActivity() {
     companion object {
         private const val LOG_TAG = "NIGEL_HURNELL"
     }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -74,7 +75,7 @@ class RecipeBookActivity : AppCompatActivity() {
         }
         val pdfFile = File(pdfFilePath)
         binding.btnTOC.visibility = View.GONE
-        repository = PdfRepository(contentResolver, this)
+        repository = PdfRepository(this)
 
         lifecycleScope.launch {
             try {
@@ -103,7 +104,7 @@ class RecipeBookActivity : AppCompatActivity() {
                     finish()
                     return@launch
                 }
-                if (!book.name.equals("") ) {
+                if (!book.name.equals("")) {
                     binding.toolbar.title = book.name
                 }
                 if (repository.hasToc(bookId)) {
@@ -115,7 +116,10 @@ class RecipeBookActivity : AppCompatActivity() {
                     binding.horizontalLoader.progress = 0
 
                     lifecycleScope.launch(Dispatchers.IO) {
-                        val success = repository.generateTocAsync(currentDocument, bookId) { percent, delta, total ->
+                        val success = repository.generateTocAsync(
+                            currentDocument,
+                            bookId
+                        ) { percent, delta, total ->
                             if (deltaList.size < maxSamples) {
                                 deltaList.add(delta)
                             }
@@ -170,7 +174,11 @@ class RecipeBookActivity : AppCompatActivity() {
                 }
                 .setNegativeButton("Ignore TOC params") { dialog, _ ->
                     dialog.dismiss()
-                    Toast.makeText(this, "TOC params will be ignored from now on", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        this,
+                        "TOC params will be ignored from now on",
+                        Toast.LENGTH_SHORT
+                    ).show()
                     repository.setIgnoreTocParams()
                     // continue generating TOC
                 }
@@ -468,7 +476,8 @@ class RecipeBookActivity : AppCompatActivity() {
 
         val translationTop = if (show) 0f else -binding.toolbar.height.toFloat()
         val translationBottom = if (show) 0f else binding.bottomBar.height.toFloat()
-        val translationBottomFab = if (barsVisible)translationBottom else translationBottom - binding.zoomIt.height
+        val translationBottomFab =
+            if (barsVisible) translationBottom else translationBottom - binding.zoomIt.height
         binding.toolbar.animate().translationY(translationTop).setDuration(300).start()
         binding.bottomBar.animate().translationY(translationBottom).setDuration(300).start()
         binding.btnRotate.animate().translationY(translationBottom).setDuration(300).start()

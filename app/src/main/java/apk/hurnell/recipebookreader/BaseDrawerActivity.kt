@@ -85,7 +85,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
 
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val repository = PdfRepository(contentResolver, this@BaseDrawerActivity)
+                val repository = PdfRepository(this@BaseDrawerActivity)
                 val currentDocument = runCatching {
                     repository.openPdfFast(pdfFile)
                 }.getOrElse {
