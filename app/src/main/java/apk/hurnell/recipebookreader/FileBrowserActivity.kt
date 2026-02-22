@@ -52,7 +52,6 @@ class FileBrowserActivity : BaseDrawerActivity() {
     private lateinit var bookAuthor: EditableTextView
     private lateinit var bookCategory: EditableTextView
     private lateinit var bookSubCategory: EditableTextView
-    private lateinit var bookInfoContent: TextView
     private lateinit var bookPreviewImage: ImageView
     private val rootDir = Environment.getExternalStorageDirectory()
     private var currentDir: File = File(rootDir, "Documents/moon/moon/asian")
@@ -70,7 +69,6 @@ class FileBrowserActivity : BaseDrawerActivity() {
         recyclerView = findViewById(R.id.fileRecyclerView)
         overlayContainer = findViewById(R.id.overlayContainer)
         bookInfoOverlay = findViewById(R.id.bookInfoOverlay)
-        bookInfoContent = findViewById(R.id.bookInfoContent)
         bookPreviewImage = findViewById(R.id.bookPreviewImage)
         bookTitle = findViewById(R.id.bookTitle)
         bookAuthor = findViewById(R.id.bookAuthor)
