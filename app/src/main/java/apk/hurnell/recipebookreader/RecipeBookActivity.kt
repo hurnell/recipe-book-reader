@@ -57,7 +57,7 @@ class RecipeBookActivity : AppCompatActivity() {
             )
         )
         binding = ActivityRecipeBookBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        setContentView(binding.drawerLayout)
 
         setupWindowInsets()
         setupSystemBars()
@@ -71,6 +71,7 @@ class RecipeBookActivity : AppCompatActivity() {
             return
         }
         val pdfFile = File(pdfFilePath)
+        val sizeInBytes = pdfFile.length()
         binding.btnTOC.visibility = View.GONE
         repository = PdfRepository(contentResolver, this)
         val pdfUri = pdfFile.toUri()
@@ -90,18 +91,32 @@ class RecipeBookActivity : AppCompatActivity() {
                     pdfFilePath,
                     loadedDoc
                 )
-
+                val book = repository.getBook(pdfFile, pdfFile.absolutePath, loadedDoc)
+                if (book != null && !book.name.equals("") ) {
+                    binding.toolbar.title = book.name
+                }
                 // 3️⃣ check TOC
                 if (repository.hasToc(bookId)) {
                     initializeTocFragment(bookId)
                     binding.btnTOC.visibility = View.VISIBLE
                 } else {
                     Log.d(LOG_TAG, "Generating TOC in background...")
+                    binding.horizontalLoader.visibility = View.VISIBLE
+                    binding.horizontalLoader.progress = 0
 
-                    lifecycleScope.launch {
-                        val success = repository.generateTocAsync(pdfUri, bookId)
-
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        val success = repository.generateTocAsync(pdfUri, bookId, sizeInBytes) { percent ->
+                            runOnUiThread {
+                                binding.horizontalLoader.progress = percent
+                                if (percent >= 100) {
+                                    binding.horizontalLoader.visibility = View.GONE
+                                    // optionally show TOC button
+                                    binding.btnTOC.visibility = View.VISIBLE
+                                }
+                            }
+                        }
                         if (success) {
+                            // refresh fragment AFTER TOC is definitely in DB
                             initializeTocFragment(bookId)
                             binding.btnTOC.visibility = View.VISIBLE
                         }
@@ -117,8 +132,8 @@ class RecipeBookActivity : AppCompatActivity() {
 
     private fun initializeTocFragment(id: Long) {
         val tocFragment = TocFragment.newInstance(id.toInt()) { item ->
-            binding.recyclerView.scrollToPosition(item.page)
-            binding.recyclerView.setScaleFactor(
+            binding.bookRecyclerView.scrollToPosition(item.page)
+            binding.bookRecyclerView.setScaleFactor(
                 item.scale.coerceAtMost(3.0f),
                 item.page,
                 item.translate
@@ -133,8 +148,8 @@ class RecipeBookActivity : AppCompatActivity() {
 
     private fun onDocumentReady(doc: Document) {
         val adapter = BookAdapter(doc)
-        binding.recyclerView.layoutManager = LinearLayoutManager(this)
-        binding.recyclerView.adapter = adapter
+        binding.bookRecyclerView.layoutManager = LinearLayoutManager(this)
+        binding.bookRecyclerView.adapter = adapter
 
         val totalPages = doc.countPages()
         binding.pageSeekBar.max = if (totalPages > 0) totalPages - 1 else 0
@@ -144,7 +159,7 @@ class RecipeBookActivity : AppCompatActivity() {
     }
 
     private fun setupRecyclerViewTouchListener() {
-        binding.recyclerView.addOnItemTouchListener(object : RecyclerView.OnItemTouchListener {
+        binding.bookRecyclerView.addOnItemTouchListener(object : RecyclerView.OnItemTouchListener {
             override fun onInterceptTouchEvent(rv: RecyclerView, e: MotionEvent): Boolean {
 
                 val currentDoc = document ?: return false
@@ -237,7 +252,7 @@ class RecipeBookActivity : AppCompatActivity() {
         binding.pageSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
-                    binding.recyclerView.scrollToPosition(progress)
+                    binding.bookRecyclerView.scrollToPosition(progress)
                     updatePageText(progress, document?.countPages() ?: 0)
                 }
             }
@@ -246,7 +261,7 @@ class RecipeBookActivity : AppCompatActivity() {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
-        binding.recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+        binding.bookRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 val layoutManager = recyclerView.layoutManager as LinearLayoutManager
                 val currentPosition = layoutManager.findFirstVisibleItemPosition()
@@ -367,7 +382,7 @@ class RecipeBookActivity : AppCompatActivity() {
     }
 
     private fun setupWindowInsets() {
-        ViewCompat.setOnApplyWindowInsetsListener(binding.main) { _, insets ->
+        ViewCompat.setOnApplyWindowInsetsListener(binding.drawerLayout) { _, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
 
@@ -387,7 +402,7 @@ class RecipeBookActivity : AppCompatActivity() {
                 bottomInset
             )
 
-            binding.tocFragmentContainer.setPadding(0, 0, 0, bottomInset)
+            binding.tocPanel.setPadding(0, 0, 0, bottomInset)
 
             insets
         }
@@ -400,12 +415,16 @@ class RecipeBookActivity : AppCompatActivity() {
     private fun toggleBars(show: Boolean) {
         if (barsVisible == show) return
         barsVisible = show
+
         val translationTop = if (show) 0f else -binding.toolbar.height.toFloat()
         val translationBottom = if (show) 0f else binding.bottomBar.height.toFloat()
 
         binding.toolbar.animate().translationY(translationTop).setDuration(300).start()
         binding.bottomBar.animate().translationY(translationBottom).setDuration(300).start()
         binding.btnRotate.animate().translationY(translationBottom).setDuration(300).start()
+
+        // ⚡ Animate loader along with bottom bar
+        //binding.horizontalLoader.animate().translationY(translationBottom).setDuration(300).start()
     }
 
     override fun onDestroy() {
