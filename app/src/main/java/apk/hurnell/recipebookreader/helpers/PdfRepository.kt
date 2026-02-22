@@ -1,9 +1,7 @@
 package apk.hurnell.recipebookreader.helpers
 
-import android.content.ContentResolver
 import android.content.ContentValues
 import android.content.Context
-import android.net.Uri
 import androidx.core.database.sqlite.transaction
 import apk.hurnell.recipebookreader.model.Book
 import com.artifex.mupdf.fitz.Document
@@ -12,36 +10,38 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 class PdfRepository(
-    private val contentResolver: ContentResolver,
     private val context: Context
 ) {
     private var ignoreTocParams = false
     private var ignoredOffset: Float? = null
     private var ignoredScale: Float? = null
     private var ignoredTranslate: Float? = null
-    suspend fun openDocument(uri: Uri): Document =
-        withContext(Dispatchers.IO) {
-            val stream = PdfStreamer(contentResolver, uri)
-            Document.openDocument(stream, "application/pdf")
+
+
+    suspend fun openPdfFast(file: File): Document = withContext(Dispatchers.IO) {
+        val tmpFile = File(context.cacheDir, "tmp_${file.name}")
+        if (!tmpFile.exists()) {
+            file.inputStream().use { input ->
+                tmpFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
         }
-    fun setIgnoreTocParams(){
-        ignoreTocParams = true
-    }
-    suspend fun checkOrCreateBook(
-        file: File,
-        path: String,
-        document: Document
-    ): Long = withContext(Dispatchers.IO) {
-        DatabaseHelper(context).checkAddBookToDatabase(file, path, document)
-    }
-    suspend fun getBook(
-        file: File,
-        path: String,
-        document: Document
-    ): Book? = withContext(Dispatchers.IO) {
-        DatabaseHelper(context).getOrInsertBook(file, path, document)
+        Document.openDocument(tmpFile.absolutePath)
     }
 
+    fun setIgnoreTocParams() {
+        ignoreTocParams = true
+    }
+
+    fun updateBookStringParam(bookId: Long, column: String, value: String): Boolean {
+        return DatabaseHelper(context).updateBookStringParam(bookId, column, value)
+    }
+
+    suspend fun getOrCreateBook(file: File, path: String, document: Document): Book? =
+        withContext(Dispatchers.IO) {
+            DatabaseHelper(context).getOrInsertBook(file, path, document)
+        }
 
     suspend fun hasToc(bookId: Long): Boolean =
         withContext(Dispatchers.IO) {
@@ -49,13 +49,11 @@ class PdfRepository(
         }
 
     suspend fun generateTocAsync(
-        pdfUri: Uri,
+        document: Document,
         bookId: Long,
-        sizeInBytes: Long,
         progressCallback: ((percent: Int, lastInsertMs: Long, total: Int) -> Unit)? = null
     ): Boolean = withContext(Dispatchers.IO) {
 
-        val document = openDocument(pdfUri)
         val outline = document.loadOutline() ?: return@withContext false
 
         val dbHelper = DatabaseHelper(context)
@@ -65,11 +63,17 @@ class PdfRepository(
         val total = flatList.size
         var processed = 0
 
-        fun insertWithProgress(entries: List<com.artifex.mupdf.fitz.Outline>, parentId: Long?, level: Int) {
-            val stmt = db.compileStatement("""
+        fun insertWithProgress(
+            entries: List<com.artifex.mupdf.fitz.Outline>,
+            parentId: Long?,
+            level: Int
+        ) {
+            val stmt = db.compileStatement(
+                """
                 INSERT INTO toc (book_id_fk, parent_id, level, title, page, `offset`, scale, translate, has_images, has_text, position_ignored)
                 VALUES (?,?,?,?,?,?,?,?, ?, ? ,?)
-            """.trimIndent())
+            """.trimIndent()
+            )
             var lastTime = System.currentTimeMillis()
             entries.forEach { entry ->
                 val currentTime = System.currentTimeMillis()
@@ -78,11 +82,19 @@ class PdfRepository(
 
                 val page = dbHelper.extractPageFromUri(entry.uri)
                 val pageCoordinates =
-                    FunctionalStructuredTextWalker().getPageCoordinates(document, page - 1, ignoreTocParams)
+                    FunctionalStructuredTextWalker().getPageCoordinates(
+                        document,
+                        page - 1,
+                        ignoreTocParams
+                    )
                 if (!ignoreTocParams) {
-                    ignoredOffset = ignoredOffset?.let { minOf(it, pageCoordinates.leftOffset) } ?: pageCoordinates.leftOffset
-                    ignoredScale = ignoredScale?.let { minOf(it, pageCoordinates.targetScale) } ?: pageCoordinates.targetScale
-                    ignoredTranslate = ignoredTranslate?.let { minOf(it, pageCoordinates.translatingPercentage) } ?: pageCoordinates.translatingPercentage
+                    ignoredOffset = ignoredOffset?.let { minOf(it, pageCoordinates.leftOffset) }
+                        ?: pageCoordinates.leftOffset
+                    ignoredScale = ignoredScale?.let { minOf(it, pageCoordinates.targetScale) }
+                        ?: pageCoordinates.targetScale
+                    ignoredTranslate =
+                        ignoredTranslate?.let { minOf(it, pageCoordinates.translatingPercentage) }
+                            ?: pageCoordinates.translatingPercentage
                 } else {
                     pageCoordinates.intercept(ignoredOffset, ignoredScale, ignoredTranslate)
                 }
