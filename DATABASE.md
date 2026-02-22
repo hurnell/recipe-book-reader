@@ -31,9 +31,10 @@ ON t.book_id_fk = b.id;
         level INTEGER,
         title TEXT,
         page INTEGER,
-        offset REAL,
-        scale REAL,
-        translate REAL
+        offset REAL DEFAULT NULL,
+        scale REAL DEFAULT NULL,
+        translate REAL DEFAULT NULL,
+        position_ignored INTEGER DEFAULT 0        
     );
 ```
 ```sqldelight
@@ -48,8 +49,14 @@ ON t.book_id_fk = b.id;
         translate REAL
     );
 ```
-
+## OPEN ASSETS DATABASE
 ```shell
+open app/src/main/assets/recipe-reader.db
+```
+
+## GET AND READ ACTUAL DATABASE
+```shell
+cd ~/Documents/recipe_reader
 adb shell "run-as apk.hurnell.recipebookreader cp /data/data/apk.hurnell.recipebookreader/databases/recipe-reader.db /sdcard/recipe-reader.db"
 adb pull /storage/emulated/0/Android/data/apk.hurnell.recipebookreader/files/recipe-reader.db
 open recipe-reader.db
