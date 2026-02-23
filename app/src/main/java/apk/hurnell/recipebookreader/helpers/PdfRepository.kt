@@ -70,8 +70,8 @@ class PdfRepository(
         ) {
             val stmt = db.compileStatement(
                 """
-                INSERT INTO toc (book_id_fk, parent_id, level, title, page, `offset`, scale, translate, has_images, has_text, position_ignored)
-                VALUES (?,?,?,?,?,?,?,?, ?, ? ,?)
+                INSERT INTO toc (book_id_fk, parent_id, level, title, page, `offset`, scale, translate)
+                VALUES (?,?,?,?,?,?,?,?)
             """.trimIndent()
             )
             entries.forEach { entry ->
@@ -103,10 +103,6 @@ class PdfRepository(
                 stmt.bindDouble(6, pageCoordinates.leftOffset.toDouble())
                 stmt.bindDouble(7, pageCoordinates.targetScale.toDouble())
                 stmt.bindDouble(8, pageCoordinates.translatingPercentage.toDouble())
-                stmt.bindLong(9, if (pageCoordinates.hasImages) 1L else 0L)
-                stmt.bindLong(10, if (pageCoordinates.hasText) 1L else 0L)
-                val ignored = if (pageCoordinates.found) 0L else 1L
-                stmt.bindLong(11, ignored)
                 val rowId = stmt.executeInsert()
                 processed++
                 progressCallback?.invoke((processed * 100) / total)

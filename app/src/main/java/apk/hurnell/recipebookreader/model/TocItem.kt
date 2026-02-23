@@ -7,9 +7,6 @@ data class TocItem(
     val offset: Float = 0f,
     val scale: Float = 1f,
     val translate: Float = 0f,
-    val hasImages: Boolean,
-    val hasText: Boolean,
-    var positionIgnored: Boolean = false,
     val children: List<TocItem> = emptyList(),
     var isExpanded: Boolean = false
 )

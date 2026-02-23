@@ -33,10 +33,7 @@ ON t.book_id_fk = b.id;
         page INTEGER,
         offset REAL DEFAULT NULL,
         scale REAL DEFAULT NULL,
-        translate REAL DEFAULT NULL,
-        has_images INTEGER,
-        has_text INTEGER,
-        position_ignored INTEGER DEFAULT 0        
+        translate REAL DEFAULT NULL      
     );
 ```
 ```sqldelight

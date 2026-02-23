@@ -139,7 +139,7 @@ class TocFragment : Fragment() {
         val db = context.openOrCreateDatabase("recipe-reader.db", 0, null)
         val cursor = db.rawQuery(
             """
-            SELECT id, parent_id, title, page, level, `offset`, scale, translate, has_images, has_text
+            SELECT id, parent_id, title, page, level, `offset`, scale, translate
             FROM toc
             WHERE book_id_fk = ?
             ORDER BY id
@@ -154,9 +154,7 @@ class TocFragment : Fragment() {
             val level: Int,
             val offset: Float,
             val scale: Float,
-            val translate: Float,
-            val hasImages: Long,
-            val hasText: Long
+            val translate: Float
         )
 
         val rows = mutableListOf<Row>()
@@ -170,9 +168,7 @@ class TocFragment : Fragment() {
                     level = cursor.getInt(4),
                     offset = cursor.getFloat(5),
                     scale = cursor.getFloat(6),
-                    translate = cursor.getFloat(7),
-                    hasImages = cursor.getLong(8),
-                    hasText = cursor.getLong(9)
+                    translate = cursor.getFloat(7)
                 )
             )
         }
@@ -188,8 +184,6 @@ class TocFragment : Fragment() {
                     offset = row.offset,
                     scale = row.scale,
                     translate = row.translate,
-                    hasImages = row.hasImages == 1L,
-                    hasText = row.hasText == 1L,
                     children = build(row.id)
                 )
             } ?: emptyList()

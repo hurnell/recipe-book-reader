@@ -17,8 +17,6 @@ data class PageCoordinates(
     var width: Float = 0.0f,
     var height: Float = 0.0f,
     var leftOffset: Float = 0.0f,
-    var hasImages: Boolean = false,
-    var hasText: Boolean = false,
     var targetScale: Float = 0.0f,
     var translatingPercentage: Float = 0.0f,
     var found: Boolean = false
@@ -60,14 +58,12 @@ class FunctionalStructuredTextWalker {
                 pageCoordinates.minX = min(pageCoordinates.minX, bbox.x0)
                 pageCoordinates.maxX = max(pageCoordinates.maxX, bbox.x1)
                 pageCoordinates.found = true
-                pageCoordinates.hasImages = true
             }
 
             override fun beginTextBlock(bbox: Rect) {
                 pageCoordinates.minX = min(pageCoordinates.minX, bbox.x0)
                 pageCoordinates.maxX = max(pageCoordinates.maxX, bbox.x1)
                 pageCoordinates.found = true
-                pageCoordinates.hasText = true
             }
 
             override fun endTextBlock() {}
