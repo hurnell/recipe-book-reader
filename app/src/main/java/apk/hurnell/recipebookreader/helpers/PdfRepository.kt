@@ -49,9 +49,9 @@ class PdfRepository(
     fun updateBookCategory(bookId: Long, bookColumn: String, categoryId: Long) {
         return DatabaseHelper(context).updateBookCategory(bookId, bookColumn,  categoryId)
     }
-    suspend fun getOrCreateBook(file: File, path: String, document: Document): Book? =
+    suspend fun getOrCreateBook(file: File, path: String, document: Document, opened: Boolean): Book? =
         withContext(Dispatchers.IO) {
-            DatabaseHelper(context).getOrInsertBook(file, path, document)
+            DatabaseHelper(context).getOrInsertBook(file, path, document, opened)
         }
 
     suspend fun hasToc(bookId: Long): Boolean =

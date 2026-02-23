@@ -86,7 +86,8 @@ class RecipeBookActivity : AppCompatActivity() {
                 val book = repository.getOrCreateBook(
                     pdfFile,
                     pdfFilePath,
-                    currentDocument
+                    currentDocument,
+                    true
                 ) ?: run {
                     Log.e(LOG_TAG, "Failed to create or fetch book")
                     finish()

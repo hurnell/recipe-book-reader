@@ -50,8 +50,8 @@ class DatabaseHelper(private val context: Context) {
         }
     }
 
-    fun getOrInsertBook(file: File, path: String, document: Document): Book? {
-        val bookId = checkAddBookToDatabase(file, path, document)
+    fun getOrInsertBook(file: File, path: String, document: Document, opened: Boolean): Book? {
+        val bookId = checkAddBookToDatabase(file, path, document, opened)
         val db = openDatabase()
 
         return db.query(
@@ -216,20 +216,29 @@ class DatabaseHelper(private val context: Context) {
         }
     }
 
-    fun checkAddBookToDatabase(file: File, path: String, document: Document): Long {
+    fun checkAddBookToDatabase(file: File, path: String, document: Document, opened: Boolean): Long {
         val db = openDatabase()
 
         return db.query("books", arrayOf("id"), "location = ?", arrayOf(path), null, null, null)
             .use { cursor ->
                 if (cursor.moveToFirst()) {
-                    cursor.getLong(0)
+                    val bookId = cursor.getLong(0)
+                    if (opened) {
+                        val values = ContentValues().apply {
+                            put("last_opened", System.currentTimeMillis())
+                        }
+                        db.update("books", values, "id = ?", arrayOf(bookId.toString()))
+                    }
+                    bookId
                 } else {
                     val values = ContentValues().apply {
                         put("name", document.getMetaData(Document.META_INFO_TITLE) ?: file.name)
                         put("location", path)
                         put("sha", file.sha256())
                         put("author", document.getMetaData(Document.META_INFO_AUTHOR) ?: "Unknown")
-                        put("last_opened", System.currentTimeMillis())
+                        if (opened) {
+                            put("last_opened", System.currentTimeMillis())
+                        }
                         put("toc_created", 0)
                     }
 

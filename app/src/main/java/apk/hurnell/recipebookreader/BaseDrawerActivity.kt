@@ -100,7 +100,8 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                 val book = repository.getOrCreateBook(
                     pdfFile,
                     pdfFile.absolutePath,
-                    currentDocument
+                    currentDocument,
+                    false
                 ) ?: run {
                     Log.e(LOG_TAG, "Failed to create or fetch book")
                     finish()

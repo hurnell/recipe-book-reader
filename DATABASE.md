@@ -6,7 +6,7 @@
         name TEXT,
         location TEXT,
         author TEXT,
-        last_opened INTEGER,
+        last_opened INTEGER DEFAULT NULL,
         toc_created INTEGER,
         toc_unavailable INTEGER DEFAULT 0,
         category INTEGER DEFAULT NULL,
