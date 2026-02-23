@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.content.Context
 import androidx.core.database.sqlite.transaction
 import apk.hurnell.recipebookreader.model.Book
+import apk.hurnell.recipebookreader.model.Category
 import com.artifex.mupdf.fitz.Document
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -30,6 +31,10 @@ class PdfRepository(
         Document.openDocument(tmpFile.absolutePath)
     }
 
+    fun loadCategories(): List<Category> {
+        return DatabaseHelper(context).loadCategories()
+    }
+
     fun setIgnoreTocParams() {
         ignoreTocParams = true
     }
@@ -38,6 +43,12 @@ class PdfRepository(
         return DatabaseHelper(context).updateBookStringParam(bookId, column, value)
     }
 
+    fun createCategory(name: String): Long {
+        return DatabaseHelper(context).createCategory(name)
+    }
+    fun updateBookCategory(bookId: Long, bookColumn: String, categoryId: Long) {
+        return DatabaseHelper(context).updateBookCategory(bookId, bookColumn,  categoryId)
+    }
     suspend fun getOrCreateBook(file: File, path: String, document: Document): Book? =
         withContext(Dispatchers.IO) {
             DatabaseHelper(context).getOrInsertBook(file, path, document)

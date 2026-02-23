@@ -4,4 +4,8 @@
         <attr name="textSize" format="dimension" />
         <attr name="bold" format="boolean" />
     </declare-styleable>
+    <declare-styleable name="EditableCategoryView">
+        <attr name="categoryTextSize" format="dimension" />
+        <attr name="categoryBold" format="boolean" />
+    </declare-styleable>
 </resources>

@@ -47,14 +47,14 @@
                 app:bold="false"
                 app:textSize="16sp" />
 
-            <apk.hurnell.recipebookreader.ui.EditableTextView
+            <apk.hurnell.recipebookreader.ui.EditableCategoryView
                 android:id="@+id/bookCategory"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:bold="false"
                 app:textSize="16sp" />
 
-            <apk.hurnell.recipebookreader.ui.EditableTextView
+            <apk.hurnell.recipebookreader.ui.EditableCategoryView
                 android:id="@+id/bookSubCategory"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

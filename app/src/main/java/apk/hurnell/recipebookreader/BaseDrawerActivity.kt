@@ -18,6 +18,7 @@ import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.lifecycleScope
 import apk.hurnell.recipebookreader.helpers.PdfRepository
+import apk.hurnell.recipebookreader.ui.EditableCategoryView
 import apk.hurnell.recipebookreader.ui.EditableTextView
 import com.artifex.mupdf.fitz.Matrix
 import com.artifex.mupdf.fitz.android.AndroidDrawDevice
@@ -36,9 +37,10 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
     protected var bookInfoOverlay: ScrollView? = null
     protected var bookTitle: EditableTextView? = null
     protected var bookAuthor: EditableTextView? = null
-    protected var bookCategory: EditableTextView? = null
-    protected var bookSubCategory: EditableTextView? = null
+    protected var bookCategory: EditableCategoryView? = null
+    protected var bookSubCategory: EditableCategoryView? = null
     protected var bookPreviewImage: ImageView? = null
+
     // Store the callback so we can enable/disable it dynamically
     private val drawerBackCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
@@ -52,12 +54,14 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
 
         private const val LOG_TAG = "NIGEL_HURNELL"
     }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Add the callback to the dispatcher
         onBackPressedDispatcher.addCallback(this, drawerBackCallback)
 
     }
+
     override fun setContentView(layoutResID: Int) {
         super.setContentView(layoutResID)
 
@@ -123,20 +127,35 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                     bookTitle?.onAccept { newText ->
                         repository.updateBookStringParam(book.id, "name", newText)
                     }
-                    bookAuthor?.setParams(book.author?.ifBlank { "Unknown" } ?: "Unknown", "Author")
+                    bookAuthor?.setParams(book.author?.ifBlank { "" } ?: "", "Author")
                     bookAuthor?.onAccept { newText ->
                         repository.updateBookStringParam(book.id, "author", newText)
                     }
-                    bookCategory?.setParams(book.category ?: "Unknown", "Category")
-                    bookCategory?.onAccept { newText ->
-                        repository.updateBookStringParam(book.id, "category", newText)
+                    bookCategory?.setParams(repository, book.category, "Category")
+                    bookCategory?.onAccept { name, categoryId ->
+
+                        if (categoryId != null) {
+                            repository.updateBookCategory(book.id, "category", categoryId)
+                        } else {
+                            val newId = repository.createCategory(name)
+                            repository.updateBookCategory(book.id, "category", newId)
+                            bookCategory?.setNewCategoryId(newId.toInt())
+                        }
                     }
                     bookSubCategory?.setParams(
-                        book.subCategory ?: "Unknown",
-                        "Sub Category",
-                        true)
-                    bookSubCategory?.onAccept { newText ->
-                        repository.updateBookStringParam(book.id, "sub_category", newText)
+                        repository,
+                        book.subCategory,
+                        "Sub Category"
+                    )
+                    bookSubCategory?.onAccept { name, categoryId ->
+
+                        if (categoryId != null) {
+                            repository.updateBookCategory(book.id, "sub_category", categoryId)
+                        } else {
+                            val newId = repository.createCategory(name)
+                            repository.updateBookCategory(book.id, "sub_category", newId)
+                            bookSubCategory?.setNewCategoryId(newId.toInt())
+                        }
                     }
                     bookPreviewImage?.setImageBitmap(firstPageBitmap)
 
@@ -171,6 +190,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
             }
             ?.start()
     }
+
     protected fun setupDrawer(toolbar: Toolbar) {
         drawerLayout = findViewById(R.id.drawer_layout)
         setSupportActionBar(toolbar)

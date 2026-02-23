@@ -29,6 +29,7 @@
     <string name="author" />
     <string name="edit_save_title">Edit or Save Title</string>
     <string name="general_title">Title</string>
+    <string name="unknown_value"/>
     <string name="generic_editable_text_view_edit_button">Generic Editable Text View Edit Button</string>
     <string name="generic_editable_text_view_cancel_button">Generic Editable Text View Cancel Button</string>
     <string name="label_for_editable_widget">Label For Editable Widger</string>
@@ -37,5 +38,6 @@
     <string name="toggle_toc_list_expanded">Toggle TOC list expanded</string>
     <string name="lowercase_chars">abcdefghijklmnopqrstuvwxyz</string>
     <string name="search_chars">abcdefghijklmnopqrstuvwxyz0123456789</string>
+    <string name="choose_or_type_new_category">Choose or type new category</string>
 
 </resources>

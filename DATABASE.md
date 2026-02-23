@@ -9,11 +9,42 @@
         last_opened INTEGER,
         toc_created INTEGER,
         toc_unavailable INTEGER DEFAULT 0,
-        category TEXT DEFAULT "Cookery",
-        sub_category TEXT DEFAULT NULL,
+        category INTEGER DEFAULT NULL,
+        sub_category INTEGER DEFAULT NULL,
         alternate_cover TEXT DEFAULT NULL
     );
 ```
+
+```shell
+    DROP TABLE IF EXISTS categories;
+    CREATE TABLE categories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        category TEXT DEFAULT NULL,
+        root_location TEXT DEFAULT NULL
+	);
+    INSERT INTO categories (category) VALUES ('Cookbooks');
+    INSERT INTO categories (category, root_location) VALUES ('American', '/storage/emulated/0/Documents/moon/moon/american/');
+    INSERT INTO categories (category, root_location) VALUES ('Asian', '/storage/emulated/0/Documents/moon/moon/asian/');
+    INSERT INTO categories (category, root_location) VALUES ('British', '/storage/emulated/0/Documents/moon/moon/british/');
+    INSERT INTO categories (category, root_location) VALUES ('Burmese', '/storage/emulated/0/Documents/moon/moon/burmese/');
+    INSERT INTO categories (category, root_location) VALUES ('Caucasus', '/storage/emulated/0/Documents/moon/moon/caucusus/');
+    INSERT INTO categories (category, root_location) VALUES ('Chinese', '/storage/emulated/0/Documents/moon/moon/chinese/');
+    INSERT INTO categories (category, root_location) VALUES ('French', '/storage/emulated/0/Documents/moon/moon/french/');
+    INSERT INTO categories (category, root_location) VALUES ('Ice cream', '/storage/emulated/0/Documents/moon/moon/ice_cream/');
+    INSERT INTO categories (category, root_location) VALUES ('Indian', '/storage/emulated/0/Documents/moon/moon/indian/');
+    INSERT INTO categories (category, root_location) VALUES ('Indonesian', '/storage/emulated/0/Documents/moon/moon/indonesian/');
+    INSERT INTO categories (category, root_location) VALUES ('Italian', '/storage/emulated/0/Documents/moon/moon/italian/');
+    INSERT INTO categories (category, root_location) VALUES ('Japanese', '/storage/emulated/0/Documents/moon/moon/japanese/');
+    INSERT INTO categories (category, root_location) VALUES ('Korean', '/storage/emulated/0/Documents/moon/moon/korean/');
+    INSERT INTO categories (category, root_location) VALUES ('Malaysian', '/storage/emulated/0/Documents/moon/moon/malaysian/');
+    INSERT INTO categories (category, root_location) VALUES ('Mexican', '/storage/emulated/0/Documents/moon/moon/mexican/');
+    INSERT INTO categories (category, root_location) VALUES ('Middle East', '/storage/emulated/0/Documents/moon/moon/middle_east/');
+    INSERT INTO categories (category, root_location) VALUES ('Other', '/storage/emulated/0/Documents/moon/moon/other/');
+    INSERT INTO categories (category, root_location) VALUES ('Spanish', '/storage/emulated/0/Documents/moon/moon/spanish/');
+    INSERT INTO categories (category, root_location) VALUES ('Thai', '/storage/emulated/0/Documents/moon/moon/thai/');
+    INSERT INTO categories (category, root_location) VALUES ('Vietnamese', '/storage/emulated/0/Documents/moon/moon/vietnamese/');
+```
+
 
 ### count toc per book
 ```sqldelight
@@ -22,6 +53,7 @@ FROM toc AS t
 LEFT JOIN books AS b
 ON t.book_id_fk = b.id;
 ```
+
 ```sqldelight
     DROP TABLE IF EXISTS toc;
     CREATE TABLE toc (

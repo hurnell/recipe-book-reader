@@ -10,7 +10,7 @@ data class Book(
     val lastOpened: Long?,
     val tocCreated: Long?,
     val tocUnavailable: Int?,
-    val category: String?,
-    val subCategory: String?,
+    val category: Int? = null,
+    val subCategory: Int? = null,
     val alternateCover: String?
 )

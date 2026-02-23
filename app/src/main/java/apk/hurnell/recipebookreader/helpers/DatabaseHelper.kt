@@ -15,6 +15,7 @@ import java.io.IOException
 import java.security.MessageDigest
 import androidx.core.database.sqlite.transaction
 import apk.hurnell.recipebookreader.model.Book
+import apk.hurnell.recipebookreader.model.Category
 
 
 class DatabaseHelper(private val context: Context) {
@@ -76,8 +77,8 @@ class DatabaseHelper(private val context: Context) {
                     lastOpened = cursor.getLongOrNull(cursor.getColumnIndexOrThrow("last_opened")),
                     tocCreated = cursor.getLongOrNull(cursor.getColumnIndexOrThrow("toc_created")),
                     tocUnavailable = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("toc_unavailable")),
-                    category = cursor.getString(cursor.getColumnIndexOrThrow("category")),
-                    subCategory = cursor.getString(cursor.getColumnIndexOrThrow("sub_category")),
+                    category = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("category")),
+                    subCategory = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("sub_category")),
                     alternateCover = cursor.getString(cursor.getColumnIndexOrThrow("alternate_cover"))
                 )
             } else null
@@ -256,5 +257,46 @@ class DatabaseHelper(private val context: Context) {
             }
         }
         return digest.digest().joinToString("") { "%02x".format(it) }
+    }
+
+    fun loadCategories():List<Category> {
+        val list = mutableListOf<Category>()
+        val db = openDatabase()
+        val cursor = db.rawQuery(
+            "SELECT id, category FROM categories ORDER BY category",
+            null
+        )
+
+        cursor.use {
+            while (it.moveToNext()) {
+                list.add(
+                    Category(
+                        id = it.getLong(0),
+                        category = it.getString(1)
+                    )
+                )
+            }
+        }
+        return list
+    }
+
+    fun createCategory(category: String): Long {
+        val db = openDatabase()
+        val insertSql = """
+            INSERT INTO categories (category)
+            VALUES (?)
+        """.trimIndent()
+        val stmt = db.compileStatement(insertSql)
+        stmt.bindString(1, category)
+        val rowId = stmt.executeInsert()
+        stmt.close()
+        return rowId
+    }
+    fun updateBookCategory(bookId: Long, bookColumn: String,  categoryId: Long) {
+        val db = openDatabase()
+        val values = ContentValues().apply {
+            put(bookColumn, categoryId)
+        }
+        db.update("books", values, "id = ?", arrayOf(bookId.toString()))
     }
 }
