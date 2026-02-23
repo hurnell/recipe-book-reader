@@ -6,6 +6,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.util.Log
 import androidx.core.database.getIntOrNull
 import androidx.core.database.getLongOrNull
+import androidx.core.database.sqlite.transaction
 import com.artifex.mupdf.fitz.Document
 import com.artifex.mupdf.fitz.Outline
 import java.io.File
@@ -13,7 +14,7 @@ import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
 import java.security.MessageDigest
-import androidx.core.database.sqlite.transaction
+import com.google.gson.Gson
 import apk.hurnell.recipebookreader.model.Book
 import apk.hurnell.recipebookreader.model.Category
 
@@ -21,10 +22,48 @@ import apk.hurnell.recipebookreader.model.Category
 class DatabaseHelper(private val context: Context) {
     companion object {
         private const val DB_NAME = "recipe-reader.db"
-
+        private val gson = Gson()
         private const val LOG_TAG = "NIGEL_HURNELL"
     }
 
+    fun saveConfiguration(key: String, data: Any) {
+        val db = openDatabase()
+        val jsonString = gson.toJson(data)
+        db.transaction {
+            val values = ContentValues().apply {
+                put("key", key)
+                put("json", jsonString)
+            }
+
+            // Try to update first
+            val rowsAffected = db.update("configuration", values, "key = ?", arrayOf(key))
+
+            // If no rows updated, insert new
+            if (rowsAffected == 0) {
+                db.insert("configuration", null, values)
+            }
+        }
+    }
+
+    /**
+     * Retrieves a configuration and parses the JSON back into a specific class
+     */
+    fun <T> getConfiguration(key: String, clazz: Class<T>): T? {
+        val db = openDatabase()
+        db.query(
+            "configuration",
+            arrayOf("json"),
+            "key = ?",
+            arrayOf(key),
+            null, null, null
+        ).use { cursor ->
+            if (cursor.moveToFirst()) {
+                val json = cursor.getString(0)
+                return gson.fromJson(json, clazz)
+            }
+        }
+        return null
+    }
     @Throws(IOException::class)
     fun copyDatabaseIfNeeded() {
         val dbFile: File = context.getDatabasePath(DB_NAME)

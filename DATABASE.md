@@ -14,8 +14,18 @@
         alternate_cover TEXT DEFAULT NULL
     );
 ```
+```sqldelight
+    DROP TABLE IF EXISTS configuration;
+     CREATE TABLE configuration (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        key TEXT,
+        json TEXT
+       );
+    
+```
 
-```shell
+
+```sqldelight
     DROP TABLE IF EXISTS categories;
     CREATE TABLE categories (
         id INTEGER PRIMARY KEY AUTOINCREMENT,

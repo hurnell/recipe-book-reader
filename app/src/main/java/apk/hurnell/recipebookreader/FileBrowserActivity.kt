@@ -20,15 +20,19 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.adapters.FileAdapter
 import apk.hurnell.recipebookreader.adapters.FileItem
+import apk.hurnell.recipebookreader.helpers.PdfRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 
+data class LastFolderRequested(val directory: String)
+
 class FileBrowserActivity : BaseDrawerActivity() {
     private lateinit var loadingOverlay: LinearLayout
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: FileAdapter
+    private lateinit var repository: PdfRepository
     private lateinit var breadcrumbLayout: LinearLayout
     private lateinit var breadcrumbScroll: HorizontalScrollView
     private val rootDir = Environment.getExternalStorageDirectory()
@@ -37,6 +41,7 @@ class FileBrowserActivity : BaseDrawerActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_file_browser)
+        repository = PdfRepository(this)
 
         loadingOverlay = findViewById(R.id.loadingOverlay)
         val toolbar: Toolbar = findViewById(R.id.toolbar)
@@ -51,6 +56,8 @@ class FileBrowserActivity : BaseDrawerActivity() {
             onLongClick = { file -> browserShowBookInfoOverlay(file) }
         )
         recyclerView.adapter = adapter
+        requestStoragePermission()
+        navigateToSavedDirectory()
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -64,9 +71,20 @@ class FileBrowserActivity : BaseDrawerActivity() {
             }
         })
 
-        requestStoragePermission()
     }
 
+
+    private fun navigateToSavedDirectory(){
+        val savedDir = repository.getLastDirectory()
+        currentDir = if (savedDir != null && savedDir.exists()) {
+            savedDir
+        } else {
+            File(rootDir, "Documents/moon/moon/asian")
+        }
+
+        // 3. Trigger the UI update
+        showFiles(currentDir)
+    }
     private fun browserShowBookInfoOverlay(pdfFile: File) {
         if (pdfFile.isDirectory) {
             showFiles(pdfFile)
@@ -88,8 +106,6 @@ class FileBrowserActivity : BaseDrawerActivity() {
             val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
             intent.data = "package:$packageName".toUri()
             startActivity(intent)
-        } else {
-            showFiles(currentDir)
         }
     }
 
@@ -107,6 +123,8 @@ class FileBrowserActivity : BaseDrawerActivity() {
 
         adapter.submitList(items)
         updateBreadcrumb(currentDir)
+        val configData = LastFolderRequested(dir.absolutePath)
+        repository.saveConfiguration("FileBrowserActivityDirectory",configData)
     }
 
     private fun onFileClick(file: File) {

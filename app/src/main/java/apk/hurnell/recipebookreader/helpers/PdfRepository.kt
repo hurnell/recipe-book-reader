@@ -3,6 +3,7 @@ package apk.hurnell.recipebookreader.helpers
 import android.content.ContentValues
 import android.content.Context
 import androidx.core.database.sqlite.transaction
+import apk.hurnell.recipebookreader.LastFolderRequested
 import apk.hurnell.recipebookreader.model.Book
 import apk.hurnell.recipebookreader.model.Category
 import com.artifex.mupdf.fitz.Document
@@ -31,6 +32,15 @@ class PdfRepository(
         Document.openDocument(tmpFile.absolutePath)
     }
 
+    fun saveConfiguration(key: String, json: Any) {
+        DatabaseHelper(context).saveConfiguration("FileBrowserActivityDirectory", json)
+    }
+
+    fun getLastDirectory(): File? {
+        val saved = DatabaseHelper(context).getConfiguration("FileBrowserActivityDirectory", LastFolderRequested::class.java)
+        return saved?.let { File(it.directory) }
+    }
+
     fun loadCategories(): List<Category> {
         return DatabaseHelper(context).loadCategories()
     }
@@ -46,10 +56,17 @@ class PdfRepository(
     fun createCategory(name: String): Long {
         return DatabaseHelper(context).createCategory(name)
     }
+
     fun updateBookCategory(bookId: Long, bookColumn: String, categoryId: Long) {
-        return DatabaseHelper(context).updateBookCategory(bookId, bookColumn,  categoryId)
+        return DatabaseHelper(context).updateBookCategory(bookId, bookColumn, categoryId)
     }
-    suspend fun getOrCreateBook(file: File, path: String, document: Document, opened: Boolean): Book? =
+
+    suspend fun getOrCreateBook(
+        file: File,
+        path: String,
+        document: Document,
+        opened: Boolean
+    ): Book? =
         withContext(Dispatchers.IO) {
             DatabaseHelper(context).getOrInsertBook(file, path, document, opened)
         }
