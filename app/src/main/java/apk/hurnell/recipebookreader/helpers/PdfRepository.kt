@@ -51,7 +51,7 @@ class PdfRepository(
     suspend fun generateTocAsync(
         document: Document,
         bookId: Long,
-        progressCallback: ((percent: Int, lastInsertMs: Long, total: Int) -> Unit)? = null
+        progressCallback: ((percent: Int) -> Unit)? = null
     ): Boolean = withContext(Dispatchers.IO) {
 
         val outline = document.loadOutline() ?: return@withContext false
@@ -74,11 +74,7 @@ class PdfRepository(
                 VALUES (?,?,?,?,?,?,?,?, ?, ? ,?)
             """.trimIndent()
             )
-            var lastTime = System.currentTimeMillis()
             entries.forEach { entry ->
-                val currentTime = System.currentTimeMillis()
-                val delta = currentTime - lastTime
-                lastTime = currentTime
 
                 val page = dbHelper.extractPageFromUri(entry.uri)
                 val pageCoordinates =
@@ -113,7 +109,7 @@ class PdfRepository(
                 stmt.bindLong(11, ignored)
                 val rowId = stmt.executeInsert()
                 processed++
-                progressCallback?.invoke((processed * 100) / total, delta, total)
+                progressCallback?.invoke((processed * 100) / total)
 
                 if (!entry.down.isNullOrEmpty()) {
                     insertWithProgress(entry.down.toList(), rowId, level + 1)
