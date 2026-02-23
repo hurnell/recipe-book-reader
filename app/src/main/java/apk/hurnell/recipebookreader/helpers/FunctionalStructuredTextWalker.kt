@@ -30,6 +30,11 @@ data class PageCoordinates(
                 val rightOffset = width - maxX
                 translatingPercentage = leftOffset / (leftOffset + rightOffset)
                 targetScale = (width / currentWidth) * 0.95f
+                if (translatingPercentage.isNaN() || translatingPercentage == 0.0f) {
+                    translatingPercentage = 0.0f
+                    targetScale = 1.0f
+                    leftOffset = 0.0f
+                }
             }
         }
     }
@@ -43,9 +48,13 @@ data class PageCoordinates(
 
 class FunctionalStructuredTextWalker {
 
-    fun getPageCoordinates(document: Document, pageNumber: Int, ignoreParams: Boolean = false): PageCoordinates {
+    fun getPageCoordinates(
+        document: Document,
+        pageNumber: Int,
+        ignoreParams: Boolean = false
+    ): PageCoordinates {
         val pageCoordinates = PageCoordinates()
-        if(ignoreParams) {
+        if (ignoreParams) {
             return pageCoordinates
         }
         val page = document.loadPage(pageNumber)

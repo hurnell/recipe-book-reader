@@ -1,6 +1,7 @@
 package apk.hurnell.recipebookreader
 
 import android.content.pm.ActivityInfo
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.util.Log
 import android.util.TypedValue
@@ -21,6 +22,7 @@ import apk.hurnell.recipebookreader.databinding.ActivityRecipeBookBinding
 import apk.hurnell.recipebookreader.helpers.FunctionalStructuredTextWalker
 import apk.hurnell.recipebookreader.ui.PinchRecyclerView
 import androidx.activity.OnBackPressedCallback
+import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import apk.hurnell.recipebookreader.helpers.PdfRepository
@@ -38,6 +40,7 @@ class RecipeBookActivity : AppCompatActivity() {
     private lateinit var binding: ActivityRecipeBookBinding
     private var isPortrait = true
     private var barsVisible = true
+    private var linksWorking = true
     private var document: Document? = null
     private lateinit var repository: PdfRepository
 
@@ -125,8 +128,10 @@ class RecipeBookActivity : AppCompatActivity() {
                             }
                         }
                         if (success) {
-                            initializeTocFragment(bookId)
-                            binding.btnTOC.visibility = View.VISIBLE
+                            withContext(Dispatchers.Main) {
+                                initializeTocFragment(bookId)
+                                binding.btnTOC.visibility = View.VISIBLE
+                            }
                         }
                     }
                 }
@@ -256,6 +261,9 @@ class RecipeBookActivity : AppCompatActivity() {
         binding.zoomIt.setOnClickListener {
             toggleBars(!barsVisible)
         }
+        binding.stopLinks.setOnClickListener {
+            toggleLinks(!linksWorking)
+        }
 
         binding.pageSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
@@ -337,7 +345,6 @@ class RecipeBookActivity : AppCompatActivity() {
         document: Document?,
         pageNumber: Int
     ) {
-
         if (document == null) return
         val page = document.loadPage(pageNumber)
         val links = page.links
@@ -351,10 +358,14 @@ class RecipeBookActivity : AppCompatActivity() {
 
                 if (link.isExternal) {
                     val uri = link.uri
-                    handleExternalLink(uri)
+                    if (linksWorking) {
+                        handleExternalLink(uri)
+                    }
                 } else {
                     page.destroy()
-                    handleInternalLink(rv, link, w)
+                    if (linksWorking) {
+                        handleInternalLink(rv, link, w)
+                    }
                 }
                 break
             }
@@ -369,6 +380,9 @@ class RecipeBookActivity : AppCompatActivity() {
         width: Float,
         currentPage: Int
     ): Boolean {
+        if (!linksWorking) {
+            return true
+        }
         if (document == null) {
             return false
         }
@@ -421,6 +435,20 @@ class RecipeBookActivity : AppCompatActivity() {
         binding.pageIndicator.text = getString(R.string.page_indicator, current + 1, total)
     }
 
+    private fun toggleLinks(allow: Boolean) {
+        linksWorking = allow
+        if (linksWorking) {
+            val color = ContextCompat.getColor(this, R.color.links_working)
+            binding.stopLinks.imageTintList = ColorStateList.valueOf(color)
+            binding.stopLinks.setImageResource(R.drawable.ic_link_on)
+        } else {
+            val colorOff = ContextCompat.getColor(this, R.color.links_off)
+            binding.stopLinks.imageTintList = ColorStateList.valueOf(colorOff)
+            binding.stopLinks.setImageResource(R.drawable.ic_link_off)
+        }
+
+    }
+
     private fun toggleBars(show: Boolean) {
         if (barsVisible == show) return
         barsVisible = show
@@ -433,6 +461,7 @@ class RecipeBookActivity : AppCompatActivity() {
         binding.bottomBar.animate().translationY(translationBottom).setDuration(300).start()
         binding.btnRotate.animate().translationY(translationBottom).setDuration(300).start()
         binding.zoomIt.animate().translationY(translationBottomFab).setDuration(300).start()
+        binding.stopLinks.animate().translationY(translationBottomFab).setDuration(300).start()
     }
 
     override fun onDestroy() {

@@ -58,6 +58,7 @@ class PinchRecyclerView @JvmOverloads constructor(
         })
 
     fun getScaleFactor(): Float = scaleFactor
+
     fun setScaleFactor(sf: Float, pageNumber: Int, translatingPercentage: Float) {
         scaleFactor = sf
         invalidate()

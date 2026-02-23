@@ -44,7 +44,6 @@ class EditableTextView @JvmOverloads constructor(
         editButton = findViewById(R.id.editButton)
         cancelButton = findViewById(R.id.cancelButton)
 
-        // Apply custom attributes
         attrs?.let {
             val ta = context.obtainStyledAttributes(it, R.styleable.EditableTextView)
             try {
@@ -165,9 +164,9 @@ class EditableTextView @JvmOverloads constructor(
     private fun setAllowedChars() {
         editText.filters = arrayOf(InputFilter { source, _, _, _, _, _ ->
             source?.map {
-                val c = it.lowercaseChar()     // convert to lowercase
-                if (c in lowercaseChars) c else null  // keep only allowed chars
-            }?.filterNotNull()?.joinToString("")  // remove disallowed chars
+                val c = it.lowercaseChar()
+                if (c in lowercaseChars) c else null
+            }?.filterNotNull()?.joinToString("")
         })
     }
 }

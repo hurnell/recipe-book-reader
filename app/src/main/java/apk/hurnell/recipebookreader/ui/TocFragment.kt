@@ -52,10 +52,8 @@ class TocFragment : Fragment() {
         val btnClear = view.findViewById<ImageButton>(R.id.btnClear)
         val btnToggle = view.findViewById<ImageButton>(R.id.btnToggle)
 
-        // Setup RecyclerView
         tocRecyclerView.layoutManager = LinearLayoutManager(requireContext())
 
-        // Setup Toggle
         btnToggle.setOnClickListener {
             allExpanded = !allExpanded
             toggleAll(tocData, allExpanded)
@@ -65,8 +63,6 @@ class TocFragment : Fragment() {
                 else R.drawable.ic_chevron_right
             )
         }
-
-        // Setup Search
         searchField.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
@@ -84,15 +80,12 @@ class TocFragment : Fragment() {
             searchField.clearFocus()
         }
 
-        // Handle the bottom items being cut off via Insets
         ViewCompat.setOnApplyWindowInsetsListener(root) { _, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
 
-            // 1. Push Toolbar down below Status Bar
             val toolbar = view.findViewById<View>(R.id.tocToolbar)
             toolbar.setPadding(0, systemBars.top, 0, 0)
-            // Update toolbar height to accommodate padding
             val params = toolbar.layoutParams
             params.height = TypedValue.applyDimension(
                 TypedValue.COMPLEX_UNIT_DIP,
@@ -101,7 +94,6 @@ class TocFragment : Fragment() {
             ).toInt() + systemBars.top
             toolbar.layoutParams = params
 
-            // 2. Pad the bottom of the recycler
             val bottomInset = systemBars.bottom.coerceAtLeast(imeInsets.bottom)
             root.setPadding(0, 0, 0, bottomInset)
 

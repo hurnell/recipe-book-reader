@@ -1,6 +1,6 @@
 package apk.hurnell.recipebookreader
 
-import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Typeface
 import android.os.Bundle
@@ -8,7 +8,9 @@ import android.util.Log
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.ScrollView
+import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
@@ -32,7 +34,9 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
     lateinit var drawerLayout: DrawerLayout
     private lateinit var toggle: ActionBarDrawerToggle
 
-    // overlay views
+
+    protected lateinit var loadingOverlay: LinearLayout
+
     protected var overlayContainer: FrameLayout? = null
     protected var bookInfoOverlay: ScrollView? = null
     protected var bookTitle: EditableTextView? = null
@@ -41,7 +45,6 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
     protected var bookSubCategory: EditableCategoryView? = null
     protected var bookPreviewImage: ImageView? = null
 
-    // Store the callback so we can enable/disable it dynamically
     private val drawerBackCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
             if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
@@ -57,16 +60,39 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Add the callback to the dispatcher
         onBackPressedDispatcher.addCallback(this, drawerBackCallback)
-
     }
 
     override fun setContentView(layoutResID: Int) {
         super.setContentView(layoutResID)
-
-        // now layout exists
         initBaseViews()
+    }
+
+    protected fun processAndOpenBook(pdfFile: File) {
+        loadingOverlay.visibility = View.VISIBLE
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                withContext(Dispatchers.Main) {
+                    loadingOverlay.visibility = View.GONE
+                    val intent =
+                        Intent(this@BaseDrawerActivity, RecipeBookActivity::class.java).apply {
+                            putExtra("PDF_PATH", pdfFile.absolutePath)
+                        }
+                    startActivity(intent)
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    loadingOverlay.visibility = View.GONE
+                    Toast.makeText(
+                        this@BaseDrawerActivity,
+                        "Error opening PDF: ${e.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    Log.e("NIGEL_HURNELL", "Failed to open PDF", e)
+                }
+            }
+        }
     }
 
     private fun initBaseViews() {
@@ -109,7 +135,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                 }
                 val firstPageBitmap: Bitmap? = try {
                     val page = currentDocument.loadPage(0)
-                    val width = 600  // adjust for desired preview width
+                    val width = 600
 
                     val pageWidth = page.bounds.x1 - page.bounds.x0
                     val pageHeight = page.bounds.y1 - page.bounds.y0
@@ -196,7 +222,6 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         drawerLayout = findViewById(R.id.drawer_layout)
         setSupportActionBar(toolbar)
 
-        // Ensure the content doesn't hide behind the status bar
         window.statusBarColor = getColor(R.color.pastel_blue)
 
         toggle = ActionBarDrawerToggle(

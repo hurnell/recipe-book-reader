@@ -17,6 +17,7 @@ import java.security.MessageDigest
 import com.google.gson.Gson
 import apk.hurnell.recipebookreader.model.Book
 import apk.hurnell.recipebookreader.model.Category
+import apk.hurnell.recipebookreader.model.RecentFile
 
 
 class DatabaseHelper(private val context: Context) {
@@ -35,19 +36,14 @@ class DatabaseHelper(private val context: Context) {
                 put("json", jsonString)
             }
 
-            // Try to update first
             val rowsAffected = db.update("configuration", values, "key = ?", arrayOf(key))
 
-            // If no rows updated, insert new
             if (rowsAffected == 0) {
                 db.insert("configuration", null, values)
             }
         }
     }
 
-    /**
-     * Retrieves a configuration and parses the JSON back into a specific class
-     */
     fun <T> getConfiguration(key: String, clazz: Class<T>): T? {
         val db = openDatabase()
         db.query(
@@ -156,7 +152,7 @@ class DatabaseHelper(private val context: Context) {
     private fun countOutlineEntries(outlineArray: Array<Outline>): Int {
         var count = 0
         outlineArray.forEach { entry ->
-            count++ // this entry
+            count++
             if (!entry.down.isNullOrEmpty()) {
                 count += countOutlineEntries(entry.down)
             }
@@ -346,5 +342,26 @@ class DatabaseHelper(private val context: Context) {
             put(bookColumn, categoryId)
         }
         db.update("books", values, "id = ?", arrayOf(bookId.toString()))
+    }
+
+    fun getRecentFiles(): List<RecentFile>{
+        val db = openDatabase()
+        val list = mutableListOf<RecentFile>()
+        val cursor = db.rawQuery(
+            "SELECT location FROM books ORDER BY (last_opened IS NULL) ASC, last_opened DESC",
+            null
+        )
+
+        cursor.use {
+            while (it.moveToNext()) {
+                list.add(
+                    RecentFile(
+                        location = it.getString(0),
+                        lastOpened = it.getLongOrNull(1)
+                    )
+                )
+            }
+        }
+        return list
     }
 }

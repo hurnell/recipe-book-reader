@@ -10,12 +10,10 @@ class BookShelfActivity : BaseDrawerActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_book_shelf)
 
-        // setupDrawer is inherited from BaseDrawerActivity
         val toolbar: Toolbar = findViewById(R.id.toolbar)
         setupDrawer(toolbar)
 
         val recyclerView = findViewById<RecyclerView>(R.id.shelfRecyclerView)
         recyclerView.layoutManager = GridLayoutManager(this, 3)
-        // adapter = BookShelfAdapter(...)
     }
 }

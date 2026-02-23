@@ -5,4 +5,6 @@
     <color name="grey">#DDDDDD</color>
     <color name="pastel_blue">#FFC6E2E7</color>
     <color name="transparent">#00000000</color>
+    <color name="links_working">#FF16A085 </color>
+    <color name="links_off">#FFC0392B</color>
 </resources>

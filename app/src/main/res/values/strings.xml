@@ -39,5 +39,6 @@
     <string name="lowercase_chars">abcdefghijklmnopqrstuvwxyz</string>
     <string name="search_chars">abcdefghijklmnopqrstuvwxyz0123456789</string>
     <string name="choose_or_type_new_category">Choose or type new category</string>
+    <string name="toggle_links_button">Toggle links button</string>
 
 </resources>

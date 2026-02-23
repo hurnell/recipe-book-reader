@@ -10,7 +10,7 @@ import apk.hurnell.recipebookreader.R
 import apk.hurnell.recipebookreader.model.TocItem
 
 class TocAdapter(
-    private var fullList: List<TocItem>, // now var
+    private var fullList: List<TocItem>,
     private val onClick: (TocItem) -> Unit
 ) : RecyclerView.Adapter<TocAdapter.TocViewHolder>() {
 
@@ -21,7 +21,6 @@ class TocAdapter(
         updateVisibleItems()
     }
 
-    // New method to update TOC data dynamically
     fun updateData(newList: List<TocItem>) {
         fullList = newList
         updateVisibleItems()

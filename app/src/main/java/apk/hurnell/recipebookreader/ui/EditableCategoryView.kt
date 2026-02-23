@@ -51,11 +51,9 @@ class EditableCategoryView @JvmOverloads constructor(
         editButton = findViewById(R.id.categoryEditButton)
         cancelButton = findViewById(R.id.categoryCancelButton)
 
-        // Apply custom attributes
         attrs?.let {
             val ta = context.obtainStyledAttributes(it, R.styleable.EditableCategoryView)
             try {
-                // default to 18sp converted to px
                 val defaultSizePx = resources.getDimension(R.dimen.default_category_text_size)
                 val sizeInPx = ta.getDimension(
                     R.styleable.EditableCategoryView_categoryTextSize,
@@ -98,7 +96,6 @@ class EditableCategoryView @JvmOverloads constructor(
 
         editText.setAdapter(adapter)
 
-        // When user picks from dropdown
         editText.setOnItemClickListener { _, _, position, _ ->
             selectedCategoryId = categories[position].id.toInt()
         }

@@ -10,10 +10,10 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import java.io.File
 import apk.hurnell.recipebookreader.R
-// Data model
 data class FileItem(
     val file: File,
-    val displayName: String // Just the file/folder name
+    val displayName: String,
+    val opened:Boolean? = null
 )
 
 class FileAdapter(
@@ -46,12 +46,11 @@ class FileAdapter(
 
                 "(${children.size})"
             } else {
-                "" // blank for files
+                ""
             }
 
             innerCount.text = countText
 
-            // Set icon
             fileIcon.setImageResource(
                 if (item.file.isDirectory) R.drawable.ic_folder else R.drawable.ic_pdf_file
             )

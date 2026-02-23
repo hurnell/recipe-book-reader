@@ -2,14 +2,17 @@ package apk.hurnell.recipebookreader.helpers
 
 import android.content.ContentValues
 import android.content.Context
+import android.util.Log
 import androidx.core.database.sqlite.transaction
 import apk.hurnell.recipebookreader.LastFolderRequested
 import apk.hurnell.recipebookreader.model.Book
 import apk.hurnell.recipebookreader.model.Category
+import apk.hurnell.recipebookreader.model.RecentFile
 import com.artifex.mupdf.fitz.Document
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.IOException
 
 class PdfRepository(
     private val context: Context
@@ -23,10 +26,21 @@ class PdfRepository(
     suspend fun openPdfFast(file: File): Document = withContext(Dispatchers.IO) {
         val tmpFile = File(context.cacheDir, "tmp_${file.name}")
         if (!tmpFile.exists()) {
-            file.inputStream().use { input ->
-                tmpFile.outputStream().use { output ->
-                    input.copyTo(output)
+            context.cacheDir.listFiles()?.forEach { child ->
+                try {
+                    child.deleteRecursively()
+                } catch (e: Exception) {
+                    Log.e("CACHE", "Failed to delete ${child.name}")
                 }
+            }
+            try {
+                file.inputStream().use { input ->
+                    tmpFile.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+            } catch (e: IOException) {
+                Log.e("CACHE", "Copy failed: ${e.message}")
             }
         }
         Document.openDocument(tmpFile.absolutePath)
@@ -160,5 +174,9 @@ class PdfRepository(
         }
         recurse(outline)
         return result
+    }
+
+    fun getRecentFiles(): List<RecentFile> {
+        return DatabaseHelper(context).getRecentFiles()
     }
 }

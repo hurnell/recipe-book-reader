@@ -29,14 +29,13 @@ import java.io.File
 data class LastFolderRequested(val directory: String)
 
 class FileBrowserActivity : BaseDrawerActivity() {
-    private lateinit var loadingOverlay: LinearLayout
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: FileAdapter
     private lateinit var repository: PdfRepository
     private lateinit var breadcrumbLayout: LinearLayout
     private lateinit var breadcrumbScroll: HorizontalScrollView
     private val rootDir = Environment.getExternalStorageDirectory()
-    private var currentDir: File = File(rootDir, "Documents/moon/moon/asian")
+    private var currentDir: File = File(rootDir, "Documents")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -73,18 +72,16 @@ class FileBrowserActivity : BaseDrawerActivity() {
 
     }
 
-
-    private fun navigateToSavedDirectory(){
+    private fun navigateToSavedDirectory() {
         val savedDir = repository.getLastDirectory()
         currentDir = if (savedDir != null && savedDir.exists()) {
             savedDir
         } else {
-            File(rootDir, "Documents/moon/moon/asian")
+            File(rootDir, "Documents")
         }
-
-        // 3. Trigger the UI update
         showFiles(currentDir)
     }
+
     private fun browserShowBookInfoOverlay(pdfFile: File) {
         if (pdfFile.isDirectory) {
             showFiles(pdfFile)
@@ -92,7 +89,6 @@ class FileBrowserActivity : BaseDrawerActivity() {
         }
         showBookInfoOverlay(pdfFile)
     }
-
 
     override fun onResume() {
         super.onResume()
@@ -124,7 +120,7 @@ class FileBrowserActivity : BaseDrawerActivity() {
         adapter.submitList(items)
         updateBreadcrumb(currentDir)
         val configData = LastFolderRequested(dir.absolutePath)
-        repository.saveConfiguration("FileBrowserActivityDirectory",configData)
+        repository.saveConfiguration("FileBrowserActivityDirectory", configData)
     }
 
     private fun onFileClick(file: File) {
@@ -132,33 +128,6 @@ class FileBrowserActivity : BaseDrawerActivity() {
             showFiles(file)
         } else if (file.extension.equals("pdf", ignoreCase = true)) {
             processAndOpenBook(file)
-        }
-    }
-
-    private fun processAndOpenBook(pdfFile: File) {
-        loadingOverlay.visibility = View.VISIBLE
-
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                withContext(Dispatchers.Main) {
-                    loadingOverlay.visibility = View.GONE
-                    val intent =
-                        Intent(this@FileBrowserActivity, RecipeBookActivity::class.java).apply {
-                            putExtra("PDF_PATH", pdfFile.absolutePath)
-                        }
-                    startActivity(intent)
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    loadingOverlay.visibility = View.GONE
-                    Toast.makeText(
-                        this@FileBrowserActivity,
-                        "Error opening PDF: ${e.message}",
-                        Toast.LENGTH_LONG
-                    ).show()
-                    Log.e("NIGEL_HURNELL", "Failed to open PDF", e)
-                }
-            }
         }
     }
 
@@ -177,7 +146,6 @@ class FileBrowserActivity : BaseDrawerActivity() {
             pathList.add(0, temp)
             temp = temp.parentFile
         }
-
         pathList.forEachIndexed { index, file ->
             val textView = TextView(this).apply {
                 text = if (file.absolutePath == rootDir.absolutePath) "Root" else file.name

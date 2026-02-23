@@ -15,24 +15,28 @@
             android:id="@+id/bookRecyclerView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            app:fabSize="mini"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.0" />
+            app:layout_constraintVertical_bias="0.0"
+            app:useCompatPadding="false" />
 
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:background="@color/pastel_blue"
+            app:fabSize="mini"
             app:layout_constraintTop_toTopOf="parent"
             app:navigationIcon="?attr/homeAsUpIndicator"
             app:navigationIconTint="@android:color/white"
             app:title="Recipe Book"
             app:titleCentered="true"
-            app:titleTextAppearance="@style/ToolbarTitleStyle" />
+            app:titleTextAppearance="@style/ToolbarTitleStyle"
+            app:useCompatPadding="false" />
 
 
         <androidx.constraintlayout.widget.ConstraintLayout
@@ -40,8 +44,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@color/pastel_blue"
-            android:paddingEnd="12dp"
             android:paddingStart="12dp"
+            android:paddingEnd="12dp"
             android:paddingBottom="12dp"
             app:layout_constraintBottom_toBottomOf="parent">
 
@@ -53,16 +57,18 @@
                 android:indeterminate="false"
                 android:max="100"
                 android:progress="0"
+                android:progressBackgroundTint="@color/links_working"
                 android:progressTint="@color/pastel_blue"
                 android:visibility="gone"
-                app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
+
             <SeekBar
                 android:id="@+id/pageSeekBar"
-                android:paddingTop="12dp"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:paddingTop="12dp"
                 android:progressBackgroundTint="@color/black"
                 android:progressTint="@color/black"
                 android:thumbTint="@color/black"
@@ -75,8 +81,8 @@
                 android:id="@+id/pageIndicator"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:paddingTop="12dp"
                 android:paddingStart="8dp"
+                android:paddingTop="12dp"
                 android:paddingEnd="32dp"
                 android:text="@string/default_indicator_text"
                 android:textColor="@android:color/black"
@@ -120,11 +126,26 @@
             android:layout_margin="2dp"
             android:contentDescription="@string/zoom_button"
             app:fabCustomSize="32dp"
-            app:fabSize="mini"
             app:layout_constraintBottom_toTopOf="@+id/bottomBar"
             app:layout_constraintEnd_toEndOf="parent"
             app:maxImageSize="18dp"
             app:srcCompat="@drawable/ic_zoom" />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/stopLinks"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="2dp"
+            android:layout_marginTop="2dp"
+            android:layout_marginEnd="-4dp"
+            android:layout_marginBottom="2dp"
+            android:contentDescription="@string/toggle_links_button"
+            app:fabCustomSize="32dp"
+            app:layout_constraintBottom_toTopOf="@+id/bottomBar"
+            app:layout_constraintEnd_toStartOf="@+id/zoomIt"
+            app:maxImageSize="18dp"
+            app:srcCompat="@drawable/ic_link_on"
+            app:tint="@color/links_working" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <com.google.android.material.navigation.NavigationView
