@@ -90,6 +90,39 @@ ON t.book_id_fk = b.id;
         translate REAL
     );
 ```
+
+```sqldelight
+SELECT b.name, c.category AS main_category, sc.category AS sub_category
+FROM  books AS b
+LEFT JOIN  categories AS c
+ON c.id = b.category
+
+LEFT JOIN  categories AS sc
+ON sc.id = b.sub_category
+
+WHERE b.id IS NOT NULL AND c.category = 'Cookbooks'
+ORDER BY (b.sub_category IS NULL) ASC, b.sub_category ASC, (b.category  IS NULL) ASC, b.category  ASC;
+
+
+```
+
+## get a list of categories is use
+
+```sqldelight
+SELECT c.category AS used_categories
+FROM books AS b
+LEFT JOIN categories AS c
+ON c.id = b.category
+WHERE c.category IS NOT NULL
+UNION
+SELECT sc.category
+FROM books AS b
+LEFT JOIN categories AS sc
+ON sc.id = b.sub_category
+WHERE sc.category IS NOT NULL
+ORDER BY category;
+
+```
 ## OPEN ASSETS DATABASE
 ```shell
 open app/src/main/assets/recipe-reader.db
