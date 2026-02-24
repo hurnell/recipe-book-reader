@@ -3,6 +3,8 @@ package apk.hurnell.recipebookreader.helpers
 import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.util.Log
 import androidx.core.database.getIntOrNull
 import androidx.core.database.getLongOrNull
@@ -18,6 +20,9 @@ import com.google.gson.Gson
 import apk.hurnell.recipebookreader.model.Book
 import apk.hurnell.recipebookreader.model.Category
 import apk.hurnell.recipebookreader.model.RecentFile
+import com.artifex.mupdf.fitz.Matrix
+import com.artifex.mupdf.fitz.android.AndroidDrawDevice
+import androidx.core.graphics.createBitmap
 
 
 class DatabaseHelper(private val context: Context) {
@@ -60,6 +65,7 @@ class DatabaseHelper(private val context: Context) {
         }
         return null
     }
+
     @Throws(IOException::class)
     fun copyDatabaseIfNeeded() {
         val dbFile: File = context.getDatabasePath(DB_NAME)
@@ -251,7 +257,12 @@ class DatabaseHelper(private val context: Context) {
         }
     }
 
-    fun checkAddBookToDatabase(file: File, path: String, document: Document, opened: Boolean): Long {
+    fun checkAddBookToDatabase(
+        file: File,
+        path: String,
+        document: Document,
+        opened: Boolean
+    ): Long {
         val db = openDatabase()
 
         return db.query("books", arrayOf("id"), "location = ?", arrayOf(path), null, null, null)
@@ -266,10 +277,11 @@ class DatabaseHelper(private val context: Context) {
                     }
                     bookId
                 } else {
+                    val sha =  file.sha256()
                     val values = ContentValues().apply {
                         put("name", document.getMetaData(Document.META_INFO_TITLE) ?: file.name)
                         put("location", path)
-                        put("sha", file.sha256())
+                        put("sha", sha)
                         put("author", document.getMetaData(Document.META_INFO_AUTHOR) ?: "Unknown")
                         if (opened) {
                             put("last_opened", System.currentTimeMillis())
@@ -284,12 +296,47 @@ class DatabaseHelper(private val context: Context) {
                             LOG_TAG,
                             "Failed to insert book! Check for column name mismatches."
                         )
+                    } else {
+                        generateBookCoverThumbnail(context, sha, document)
                     }
                     newId
                 }
             }
     }
+    fun generateBookCoverThumbnail(
+        context: Context,
+        sha: String,
+        document: Document,
+        targetWidth: Int = 200,
+        targetHeight: Int = 300
+    ): Boolean {
+        return try {
+            val hashName = "${sha}.png"
+            val thumbnailFile = File(context.filesDir, hashName)
+            if (thumbnailFile.exists()) return true
+            val page = document.loadPage(0)
+            val bounds = page.bounds
+            val pageWidth = bounds.x1 - bounds.x0
+            val pageHeight = bounds.y1 - bounds.y0
+            val scaleX = targetWidth / pageWidth
+            val scaleY = targetHeight / pageHeight
+            val scale = minOf(scaleX, scaleY)
+            val bitmap = createBitmap((pageWidth * scale).toInt(), (pageHeight * scale).toInt())
+            val device = AndroidDrawDevice(bitmap, 0, 0)
+            page.run(device, Matrix(scale, scale), null)
 
+            device.close()
+            device.destroy()
+            page.destroy()
+            FileOutputStream(thumbnailFile).use { out ->
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+            }
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
 
     fun File.sha256(): String {
         val digest = MessageDigest.getInstance("SHA-256")
@@ -303,7 +350,7 @@ class DatabaseHelper(private val context: Context) {
         return digest.digest().joinToString("") { "%02x".format(it) }
     }
 
-    fun loadCategories():List<Category> {
+    fun loadCategories(): List<Category> {
         val list = mutableListOf<Category>()
         val db = openDatabase()
         val cursor = db.rawQuery(
@@ -336,7 +383,8 @@ class DatabaseHelper(private val context: Context) {
         stmt.close()
         return rowId
     }
-    fun updateBookCategory(bookId: Long, bookColumn: String,  categoryId: Long) {
+
+    fun updateBookCategory(bookId: Long, bookColumn: String, categoryId: Long) {
         val db = openDatabase()
         val values = ContentValues().apply {
             put(bookColumn, categoryId)
@@ -344,7 +392,7 @@ class DatabaseHelper(private val context: Context) {
         db.update("books", values, "id = ?", arrayOf(bookId.toString()))
     }
 
-    fun getRecentFiles(): List<RecentFile>{
+    fun getRecentFiles(): List<RecentFile> {
         val db = openDatabase()
         val list = mutableListOf<RecentFile>()
         val cursor = db.rawQuery(
@@ -360,6 +408,38 @@ class DatabaseHelper(private val context: Context) {
                         lastOpened = it.getLongOrNull(1)
                     )
                 )
+            }
+        }
+        return list
+    }
+
+    fun getUsedCategories(): List<String> {
+        val db = openDatabase()
+        val list = mutableListOf<String>()
+        val sql = """
+            SELECT c.category AS used_categories
+            FROM books AS b
+            LEFT JOIN categories AS c
+              ON c.id = b.category
+            WHERE c.category IS NOT NULL
+            
+            UNION
+            
+            SELECT sc.category
+            FROM books AS b
+            LEFT JOIN categories AS sc
+              ON sc.id = b.sub_category
+            WHERE sc.category IS NOT NULL
+            
+            ORDER BY used_categories
+        """.trimIndent()
+        val cursor = db.rawQuery(
+            sql,
+            null
+        )
+        cursor.use {
+            while (it.moveToNext()) {
+                list.add(it.getString(0))
             }
         }
         return list
