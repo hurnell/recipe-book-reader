@@ -1,5 +1,6 @@
 package apk.hurnell.recipebookreader.adapters
 
+import android.graphics.BitmapFactory
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -7,13 +8,17 @@ import android.widget.ImageView
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.R
 import apk.hurnell.recipebookreader.model.FileItem // Adjust based on your package
-class BookShelfAdapter : RecyclerView.Adapter<BookShelfAdapter.RowViewHolder>() {
+import com.google.android.material.card.MaterialCardView
+import java.io.File
 
-    // A list of lists! Each inner list is exactly 3 items (some might be null)
+class BookShelfAdapter(
+    private val onClick: (File) -> Unit,
+    private val onLongClick: ((File) -> Unit)? = null
+) : RecyclerView.Adapter<BookShelfAdapter.RowViewHolder>() {
+
     private var rows: List<List<FileItem?>> = emptyList()
 
     fun setRows(allFiles: List<FileItem?>) {
-        // Chunk the flat list into groups of 3
         this.rows = allFiles.chunked(3)
         notifyDataSetChanged()
     }
@@ -27,27 +32,54 @@ class BookShelfAdapter : RecyclerView.Adapter<BookShelfAdapter.RowViewHolder>() 
     override fun onBindViewHolder(holder: RowViewHolder, position: Int) {
         val rowItems = rows[position]
 
-        // Bind book 1
-        bindBook(holder.book1Cover, rowItems.getOrNull(0))
-        // Bind book 2
-        bindBook(holder.book2Cover, rowItems.getOrNull(1))
-        // Bind book 3
-        bindBook(holder.book3Cover, rowItems.getOrNull(2))
+        bindBook(holder.book1Cover, rowItems.getOrNull(0), onClick, onLongClick)
+
+        bindBook(holder.book2Cover, rowItems.getOrNull(1), onClick, onLongClick)
+
+        bindBook(holder.book3Cover, rowItems.getOrNull(2), onClick, onLongClick)
     }
 
-    private fun bindBook(imageView: ImageView, item: FileItem?) {
-        if (item == null) {
-            imageView.visibility = View.INVISIBLE
-        } else {
+    private fun bindBook(
+        imageView: ImageView,
+        item: FileItem?,
+        onClick: (File) -> Unit,
+        onLongClick: ((File) -> Unit)?
+    ) {
+        val cardContainer = imageView.parent as MaterialCardView
+
+        var thumbnailFile: File? = null
+        if (item != null && item.bookInfo != null) {
+            thumbnailFile = File(imageView.context.filesDir, "${item.bookInfo.sha}.png")
+        }
+        if (item != null && thumbnailFile != null && thumbnailFile.exists()) {
+            val bitmap = BitmapFactory.decodeFile(thumbnailFile.absolutePath)
+
+            imageView.setImageBitmap(bitmap)
             imageView.visibility = View.VISIBLE
-            // Load your cover bitmap here
+            imageView.setOnClickListener { onClick(item.file) }
+            imageView.setOnLongClickListener {
+                onLongClick?.invoke(item.file)
+                true
+            }
+            cardContainer.visibility = View.VISIBLE
+        } else {
+            imageView.setImageDrawable(null)
+            imageView.visibility = View.INVISIBLE // keeps spacing; use GONE if you want collapse
+            imageView.setOnClickListener(null)
+            cardContainer.visibility = View.INVISIBLE
+
+            imageView.setOnLongClickListener(null)
+
+        }
+
+        if (item == null) {
+            imageView.visibility = View.GONE
         }
     }
 
     override fun getItemCount(): Int = rows.size
 
     class RowViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        // Find the ImageViews inside the included layouts
         val book1Cover: ImageView = view.findViewById<View>(R.id.book1).findViewById(R.id.bookCover)
         val book2Cover: ImageView = view.findViewById<View>(R.id.book2).findViewById(R.id.bookCover)
         val book3Cover: ImageView = view.findViewById<View>(R.id.book3).findViewById(R.id.bookCover)

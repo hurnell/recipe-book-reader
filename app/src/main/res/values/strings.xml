@@ -45,5 +45,6 @@
     <string name="left_hand_book_cover">Left Hand Book Cover</string>
     <string name="book_cover_for_single_item">Book cover for single item</string>
     <string name="single_book_cover">Single Book Cover</string>
+    <string name="the_image_of_the_book_cover_on_the_book_shelf">The image of the book cover on the book shelf</string>
 
 </resources>

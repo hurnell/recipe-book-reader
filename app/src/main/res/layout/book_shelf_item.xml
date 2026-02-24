@@ -10,6 +10,8 @@
         android:layout_height="0dp"
         android:layout_marginTop="20dp"
         android:layout_marginBottom="0dp"
+        android:background="@color/transparent"
+        app:cardBackgroundColor="@android:color/transparent"
         app:cardCornerRadius="2dp"
         app:cardElevation="0dp"
         app:cardUseCompatPadding="false"
@@ -24,7 +26,7 @@
             android:id="@+id/bookCover"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="#D2B48C"
+            android:contentDescription="@string/the_image_of_the_book_cover_on_the_book_shelf"
             android:scaleType="centerCrop" />
 
     </com.google.android.material.card.MaterialCardView>

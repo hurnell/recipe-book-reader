@@ -60,6 +60,10 @@
                 android:layout_height="wrap_content"
                 app:bold="false"
                 app:textSize="16sp" />
+            <TextView
+                android:id="@+id/bookSavePath"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
 
         </LinearLayout>
     </ScrollView>

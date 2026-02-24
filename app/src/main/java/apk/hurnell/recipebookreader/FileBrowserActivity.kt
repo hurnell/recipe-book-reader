@@ -86,6 +86,9 @@ class FileBrowserActivity : BaseDrawerActivity() {
 
     override fun onResume() {
         super.onResume()
+        refreshFilesAndUI()
+    }
+    override fun refreshFilesAndUI() {
         if (findViewById<DrawerLayout>(R.id.drawer_layout) != null) {
             drawerLayout.closeDrawer(GravityCompat.START, false)
         }

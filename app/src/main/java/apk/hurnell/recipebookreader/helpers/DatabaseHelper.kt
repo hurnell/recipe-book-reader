@@ -3,8 +3,8 @@ package apk.hurnell.recipebookreader.helpers
 import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
+import android.database.sqlite.SQLiteOpenHelper
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.util.Log
 import androidx.core.database.getIntOrNull
 import androidx.core.database.getLongOrNull
@@ -22,19 +22,42 @@ import apk.hurnell.recipebookreader.model.Category
 import apk.hurnell.recipebookreader.model.RecentFile
 import com.artifex.mupdf.fitz.Matrix
 import com.artifex.mupdf.fitz.android.AndroidDrawDevice
-import androidx.core.graphics.createBitmap
 import apk.hurnell.recipebookreader.model.BookInfo
+import apk.hurnell.recipebookreader.model.FileItem
+import androidx.core.graphics.createBitmap
 
 
-class DatabaseHelper(private val context: Context) {
+class DatabaseHelper(private val context: Context) :
+    SQLiteOpenHelper(context.applicationContext, DB_NAME, null, 1) {
+
     companion object {
         private const val DB_NAME = "recipe-reader.db"
         private val gson = Gson()
         private const val LOG_TAG = "NIGEL_HURNELL"
     }
 
+    private val appContext = context.applicationContext
+
+    override fun onCreate(db: SQLiteDatabase) {
+        // Not used because we copy prebuilt DB from assets
+    }
+
+    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        // Handle migrations later if needed
+    }
+
+    override fun getWritableDatabase(): SQLiteDatabase {
+        copyDatabaseIfNeeded()  // Copy database lazily, when DB is first accessed
+        return super.getWritableDatabase()
+    }
+
+    override fun getReadableDatabase(): SQLiteDatabase {
+        copyDatabaseIfNeeded()  // Same here
+        return super.getReadableDatabase()
+    }
+
     fun saveConfiguration(key: String, data: Any) {
-        val db = openDatabase()
+        val db = writableDatabase
         val jsonString = gson.toJson(data)
         db.transaction {
             val values = ContentValues().apply {
@@ -51,7 +74,7 @@ class DatabaseHelper(private val context: Context) {
     }
 
     fun <T> getConfiguration(key: String, clazz: Class<T>): T? {
-        val db = openDatabase()
+        val db = writableDatabase
         db.query(
             "configuration",
             arrayOf("json"),
@@ -70,21 +93,16 @@ class DatabaseHelper(private val context: Context) {
     @Throws(IOException::class)
     fun copyDatabaseIfNeeded() {
         val dbFile: File = context.getDatabasePath(DB_NAME)
-
         if (!dbFile.exists()) {
-            Log.d(LOG_TAG, "Database not found, copying from assets...")
-
-            dbFile.parentFile?.let { parent ->
-                if (!parent.exists()) parent.mkdirs()
-            }
-
+            Log.d(
+                LOG_TAG,
+                "Database not found, copying from assets..."
+            )
+            dbFile.parentFile?. let { parent -> if (!parent.exists()) parent.mkdirs() }
             try {
-                context.assets.open(DB_NAME).use { input ->
-                    FileOutputStream(dbFile).use { output ->
-                        input.copyTo(output)
-                    }
-                }
-                Log.d(LOG_TAG, "Database copied successfully.")
+                context.assets.open(DB_NAME)
+                    .use { input -> FileOutputStream(dbFile).use { output -> input.copyTo(output) } }
+                Log.d (LOG_TAG, "Database copied successfully.")
             } catch (e: IOException) {
                 Log.e(LOG_TAG, "FAILED to copy database: ${e.message}")
                 throw e
@@ -94,7 +112,7 @@ class DatabaseHelper(private val context: Context) {
 
     fun getOrInsertBook(file: File, path: String, document: Document, opened: Boolean): Book? {
         val bookId = checkAddBookToDatabase(file, path, document, opened)
-        val db = openDatabase()
+        val db = writableDatabase
 
         return db.query(
             "books",
@@ -127,25 +145,6 @@ class DatabaseHelper(private val context: Context) {
         }
     }
 
-    fun openDatabase(): SQLiteDatabase {
-        val dbFile = context.getDatabasePath(DB_NAME)
-        if (!dbFile.exists()) {
-            copyDatabaseIfNeeded()
-        }
-        val db = SQLiteDatabase.openDatabase(
-            dbFile.path,
-            null,
-            SQLiteDatabase.OPEN_READWRITE
-        )
-
-        val cursor = db.rawQuery("PRAGMA journal_mode=WAL;", null)
-        cursor.use {
-            if (it.moveToFirst()) {
-                Log.d(LOG_TAG, "Journal mode set to: ${it.getString(0)}")
-            }
-        }
-        return db
-    }
 
     fun extractPageFromUri(uri: String?): Int {
         if (uri.isNullOrEmpty()) return 0
@@ -233,7 +232,7 @@ class DatabaseHelper(private val context: Context) {
     }
 
     fun updateBookStringParam(bookId: Long, column: String, value: String): Boolean {
-        val db = openDatabase()
+        val db = writableDatabase
         val values = ContentValues().apply {
             put(column, value)
         }
@@ -242,7 +241,7 @@ class DatabaseHelper(private val context: Context) {
     }
 
     fun hasTableOfContents(bookId: Long): Boolean {
-        val db = openDatabase()
+        val db = writableDatabase
         return db.query(
             "books",
             arrayOf("toc_created"),
@@ -264,7 +263,7 @@ class DatabaseHelper(private val context: Context) {
         document: Document,
         opened: Boolean
     ): Long {
-        val db = openDatabase()
+        val db = writableDatabase
 
         return db.query("books", arrayOf("id"), "location = ?", arrayOf(path), null, null, null)
             .use { cursor ->
@@ -298,15 +297,14 @@ class DatabaseHelper(private val context: Context) {
                             "Failed to insert book! Check for column name mismatches."
                         )
                     } else {
-                        generateBookCoverThumbnail(context, sha, document)
+                        generateBookCoverThumbnail(sha, document)
                     }
                     newId
                 }
             }
     }
 
-    fun generateBookCoverThumbnail(
-        context: Context,
+    private fun generateBookCoverThumbnail(
         sha: String,
         document: Document,
         targetWidth: Int = 200,
@@ -314,22 +312,27 @@ class DatabaseHelper(private val context: Context) {
     ): Boolean {
         return try {
             val hashName = "${sha}.png"
-            val thumbnailFile = File(context.filesDir, hashName)
+            val thumbnailFile = File(this.context.filesDir, hashName)  // <--- use 'this.context'
             if (thumbnailFile.exists()) return true
+
             val page = document.loadPage(0)
             val bounds = page.bounds
             val pageWidth = bounds.x1 - bounds.x0
             val pageHeight = bounds.y1 - bounds.y0
+
             val scaleX = targetWidth / pageWidth
             val scaleY = targetHeight / pageHeight
             val scale = minOf(scaleX, scaleY)
+
             val bitmap = createBitmap((pageWidth * scale).toInt(), (pageHeight * scale).toInt())
+
             val device = AndroidDrawDevice(bitmap, 0, 0)
             page.run(device, Matrix(scale, scale), null)
 
             device.close()
             device.destroy()
             page.destroy()
+
             FileOutputStream(thumbnailFile).use { out ->
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
             }
@@ -354,7 +357,7 @@ class DatabaseHelper(private val context: Context) {
 
     fun loadCategories(): List<Category> {
         val list = mutableListOf<Category>()
-        val db = openDatabase()
+        val db = writableDatabase
         val cursor = db.rawQuery(
             "SELECT id, category FROM categories ORDER BY category",
             null
@@ -374,7 +377,7 @@ class DatabaseHelper(private val context: Context) {
     }
 
     fun createCategory(category: String): Long {
-        val db = openDatabase()
+        val db = writableDatabase
         val insertSql = """
             INSERT INTO categories (category)
             VALUES (?)
@@ -387,7 +390,7 @@ class DatabaseHelper(private val context: Context) {
     }
 
     fun updateBookCategory(bookId: Long, bookColumn: String, categoryId: Long) {
-        val db = openDatabase()
+        val db = writableDatabase
         val values = ContentValues().apply {
             put(bookColumn, categoryId)
         }
@@ -395,7 +398,7 @@ class DatabaseHelper(private val context: Context) {
     }
 
     fun getRecentFiles(): List<RecentFile> {
-        val db = openDatabase()
+        val db = writableDatabase
         val list = mutableListOf<RecentFile>()
         val cursor = db.rawQuery(
             "SELECT location FROM books ORDER BY (last_opened IS NULL) ASC, last_opened DESC",
@@ -416,7 +419,7 @@ class DatabaseHelper(private val context: Context) {
     }
 
     fun getUsedCategories(): List<String> {
-        val db = openDatabase()
+        val db = writableDatabase
         val list = mutableListOf<String>()
         val sql = """
             SELECT c.category AS used_categories
@@ -448,7 +451,7 @@ class DatabaseHelper(private val context: Context) {
     }
 
     fun getBookInfoForItemPath(location: String): BookInfo? {
-        val db = openDatabase()
+        val db = writableDatabase
         return db.query(
             "books",
             arrayOf("sha", "name"),
@@ -464,5 +467,139 @@ class DatabaseHelper(private val context: Context) {
                 null
             }
         }
+    }
+
+    fun getBookShelfBooks(): List<FileItem> {
+        val db = writableDatabase
+        val list = mutableListOf<FileItem>()
+        val sql = """
+            SELECT DISTINCT b.sha AS book_sha, b.name AS book_name, c.category AS main_category, sc.category AS sub_category , b.location as book_location
+            FROM  books AS b
+            LEFT JOIN  categories AS c
+            ON c.id = b.category
+            LEFT JOIN  categories AS sc
+            ON sc.id = b.sub_category
+            ORDER BY (b.sub_category IS NULL) ASC, b.sub_category ASC, (b.category  IS NULL) ASC, b.category  ASC;
+        """.trimIndent()
+        val cursor = db.rawQuery(
+            sql,
+            null
+        )
+        cursor.use { cursor ->
+            while (cursor.moveToNext()) {
+                val sha = cursor.getString(cursor.getColumnIndexOrThrow("book_sha"))
+                val name = cursor.getString(cursor.getColumnIndexOrThrow("book_name"))
+                val mainCategory = cursor.getString(cursor.getColumnIndexOrThrow("main_category"))
+                val subCategory = cursor.getString(cursor.getColumnIndexOrThrow("sub_category"))
+                val location = cursor.getString(cursor.getColumnIndexOrThrow("book_location"))
+                val file = File(location)
+                val bookInfo = BookInfo(sha, name, mainCategory, subCategory)
+                list.add(FileItem(file, file.name, bookInfo))
+            }
+        }
+        return list
+    }
+
+    fun generateToc(
+        document: Document,
+        bookId: Long,
+        progressCallback: ((percent: Int) -> Unit)? = null,
+        ignoreTocParams: Boolean = false
+    ): Boolean {
+        try {
+            val outline = document.loadOutline() ?: return false
+            val db = writableDatabase
+
+            var ignoredOffset: Float? = null
+            var ignoredScale: Float? = null
+            var ignoredTranslate: Float? = null
+
+            val flatList = flattenOutline(outline)
+            val total = flatList.size
+            var processed = 0
+
+            fun insertWithProgress(
+                entries: List<Outline>,
+                parentId: Long?,
+                level: Int
+            ) {
+                val stmt = db.compileStatement(
+                    """
+                INSERT INTO toc (book_id_fk, parent_id, level, title, page, `offset`, scale, translate)
+                VALUES (?,?,?,?,?,?,?,?)
+                """.trimIndent()
+                )
+
+                entries.forEach { entry ->
+                    val page = extractPageFromUri(entry.uri)
+                    val pageCoordinates = FunctionalStructuredTextWalker().getPageCoordinates(
+                        document,
+                        page - 1,
+                        ignoreTocParams
+                    )
+
+                    if (!ignoreTocParams) {
+                        ignoredOffset = ignoredOffset?.let { minOf(it, pageCoordinates.leftOffset) }
+                            ?: pageCoordinates.leftOffset
+                        ignoredScale = ignoredScale?.let { minOf(it, pageCoordinates.targetScale) }
+                            ?: pageCoordinates.targetScale
+                        ignoredTranslate =
+                            ignoredTranslate?.let {
+                                minOf(
+                                    it,
+                                    pageCoordinates.translatingPercentage
+                                )
+                            }
+                                ?: pageCoordinates.translatingPercentage
+                    } else {
+                        pageCoordinates.intercept(ignoredOffset, ignoredScale, ignoredTranslate)
+                    }
+
+                    stmt.clearBindings()
+                    stmt.bindLong(1, bookId)
+                    parentId?.let { stmt.bindLong(2, it) } ?: stmt.bindNull(2)
+                    stmt.bindLong(3, level.toLong())
+                    stmt.bindString(4, entry.title ?: "")
+                    stmt.bindLong(5, page.toLong())
+                    stmt.bindDouble(6, pageCoordinates.leftOffset.toDouble())
+                    stmt.bindDouble(7, pageCoordinates.targetScale.toDouble())
+                    stmt.bindDouble(8, pageCoordinates.translatingPercentage.toDouble())
+
+                    val rowId = stmt.executeInsert()
+                    processed++
+                    progressCallback?.invoke((processed * 100) / total)
+
+                    if (!entry.down.isNullOrEmpty()) {
+                        insertWithProgress(entry.down.toList(), rowId, level + 1)
+                    }
+                }
+
+                stmt.close()
+            }
+
+            db.transaction {
+                insertWithProgress(outline.toList(), null, 0)
+            }
+
+            val values = ContentValues().apply { put("toc_created", 1) }
+            db.update("books", values, "id = ?", arrayOf(bookId.toString()))
+            return true
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return false
+        }
+    }
+
+    private fun flattenOutline(outline: Array<Outline>): List<Outline> {
+        val result = mutableListOf<Outline>()
+        fun recurse(entries: Array<Outline>) {
+            entries.forEach {
+                result.add(it)
+                if (!it.down.isNullOrEmpty()) recurse(it.down)
+            }
+        }
+        recurse(outline)
+        return result
     }
 }

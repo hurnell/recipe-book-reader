@@ -1,6 +1,9 @@
 package apk.hurnell.recipebookreader
 
 import android.os.Bundle
+import android.util.Log
+import android.view.View
+import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Spinner
 import androidx.appcompat.widget.Toolbar
@@ -9,50 +12,132 @@ import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.adapters.BookShelfAdapter
 import apk.hurnell.recipebookreader.helpers.PdfRepository
 import apk.hurnell.recipebookreader.model.FileItem
+import java.io.File
 
 class BookShelfActivity : BaseDrawerActivity() {
     private lateinit var repository: PdfRepository
+    private lateinit var bookRowAdapter: BookShelfAdapter
+    private lateinit var spinner: Spinner
+    private var categories =  mutableListOf("All")
+    private var currentCategory = "All"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_book_shelf)
 
         repository = PdfRepository(this)
-        val categories = mutableListOf("All")
-        categories.addAll(repository.getUsedCategories())
+
+        loadingOverlay = findViewById(R.id.loadingOverlay)
 
         val toolbar: Toolbar = findViewById(R.id.bookShelfToolbar)
-        val spinner: Spinner = findViewById(R.id.categorySpinner)
-        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, categories)
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        spinner.adapter = adapter
+        spinner = findViewById(R.id.categorySpinner)
+
+        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(
+                parent: AdapterView<*>,
+                view: View?,
+                position: Int,
+                id: Long
+            ) {
+                val selectedCategory = parent.getItemAtPosition(position) as String
+                populateShelf(selectedCategory)
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>) {
+                populateShelf("All")
+            }
+        }
+
+        refreshCategories()
         setupDrawer(toolbar)
 
         val recyclerView = findViewById<RecyclerView>(R.id.shelfRecyclerView)
-// Standard vertical list, because the ADAPTER handles the 3-wide grid now
         recyclerView.layoutManager = LinearLayoutManager(this)
 
-        val bookRowAdapter = BookShelfAdapter()
+        bookRowAdapter = BookShelfAdapter(
+            onClick = { file -> onBookClicked(file) },
+            onLongClick = { file -> shelfShowBookInfoOverlay(file) }
+        )
         recyclerView.adapter = bookRowAdapter
 
-        // --- Logic to add 10 empty rows ---
-        val actualBooks: List<FileItem> = getMyBooks() // Fetch your real data
+        populateShelf("All")
+    }
 
-        // Create a mutable list starting with your books
-        val displayList = actualBooks.toMutableList<FileItem?>()
+    fun refreshCategories() {
+        val usedCategories = repository.getUsedCategories()
 
-        // Calculate how many slots we need to reach 10 full rows (30 slots)
-        val totalSlotsNeeded = 30
-        val emptySlotsToAdd = (totalSlotsNeeded - displayList.size).coerceAtLeast(0)
+        val set = LinkedHashSet<String>()
+        set.add("All") // always first
+        usedCategories.forEach { if (it.isNotBlank()) set.add(it) }
 
-        repeat(emptySlotsToAdd) {
-            displayList.add(null) // Add 'null' to represent an empty spot on the shelf
+        categories = set.toMutableList()
+
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, categories)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spinner.adapter = adapter
+    }
+
+    override fun refreshFilesAndUI() {
+        populateShelf(currentCategory)
+        categories.addAll(repository.getUsedCategories())
+        refreshCategories()
+    }
+
+    private fun onBookClicked(file: File) {
+        if (file.extension.equals("pdf", ignoreCase = true)) {
+            processAndOpenBook(file)
+        }
+    }
+
+    private fun populateShelf(category: String) {
+        currentCategory = category
+        val allBooks: List<FileItem> = getBookShelfBooks()
+
+        val filteredBooks = if (category == "All") {
+            allBooks
+        } else {
+            allBooks.filter {
+                it.bookInfo?.mainCategory == category ||
+                        it.bookInfo?.subCategory == category
+            }
+        }.sortedWith(compareBy<FileItem> {
+            // Items without a subcategory go last
+            it.bookInfo?.subCategory.isNullOrEmpty()
+        }.thenBy {
+            // Items with subcategory are sorted alphabetically
+            it.bookInfo?.subCategory ?: ""
+        }.thenBy {
+            // If subcategory is same, sort by main category
+            it.bookInfo?.mainCategory ?: ""
+        })
+        filteredBooks.forEach { item ->
+            val main = item.bookInfo?.mainCategory ?: "null"
+            val sub = item.bookInfo?.subCategory ?: "null"
+            Log.i("BookShelfSort", "Book: , MainCategory: $main, SubCategory: $sub")
+        }
+        val minSlots = filteredBooks.size.coerceAtLeast(15)
+
+        // Round up to nearest multiple of 3
+        val totalSlotsNeeded = if (minSlots % 3 == 0) {
+            minSlots
+        } else {
+            minSlots + (3 - (minSlots % 3))
         }
 
-        bookRowAdapter.setRows(displayList)    }
+        val displayList = filteredBooks.toMutableList<FileItem?>()
 
-    private fun getMyBooks(): List<FileItem> {
-        // Return your actual list from DB or folder
-        return emptyList()
+        repeat(totalSlotsNeeded - displayList.size) {
+            displayList.add(null)
+        }
+
+        bookRowAdapter.setRows(displayList)
+    }
+
+    private fun shelfShowBookInfoOverlay(pdfFile: File) {
+        showBookInfoOverlay(pdfFile)
+    }
+
+    private fun getBookShelfBooks(): List<FileItem> {
+        return repository.getBookShelfBooks()
     }
 }

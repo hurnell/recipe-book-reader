@@ -10,6 +10,7 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.ActionBarDrawerToggle
@@ -44,6 +45,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
     protected var bookCategory: EditableCategoryView? = null
     protected var bookSubCategory: EditableCategoryView? = null
     protected var bookPreviewImage: ImageView? = null
+    protected var bookSavePath: TextView? = null
 
     private val drawerBackCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
@@ -62,6 +64,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         onBackPressedDispatcher.addCallback(this, drawerBackCallback)
     }
+    abstract fun refreshFilesAndUI()
 
     override fun setContentView(layoutResID: Int) {
         super.setContentView(layoutResID)
@@ -101,6 +104,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         overlayContainer = findViewById(R.id.overlayContainer)
         bookInfoOverlay = findViewById(R.id.bookInfoOverlay)
         bookPreviewImage = findViewById(R.id.bookPreviewImage)
+        bookSavePath = findViewById(R.id.bookSavePath)
         bookTitle = findViewById(R.id.bookTitle)
         bookAuthor = findViewById(R.id.bookAuthor)
         bookCategory = findViewById(R.id.bookCategory)
@@ -163,7 +167,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
 
                         if (categoryId != null) {
                             repository.updateBookCategory(book.id, "category", categoryId)
-                        } else {
+                        } else if (name.isNotBlank()) {
                             val newId = repository.createCategory(name)
                             repository.updateBookCategory(book.id, "category", newId)
                             bookCategory?.setNewCategoryId(newId.toInt())
@@ -186,7 +190,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                     }
                     bookPreviewImage?.setImageBitmap(firstPageBitmap)
 
-
+                    bookSavePath?.text = book.location
                     overlayContainer?.visibility = View.VISIBLE
                     bookInfoOverlay?.scaleX = 0.8f
                     bookInfoOverlay?.scaleY = 0.8f
@@ -214,6 +218,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
             ?.withEndAction {
                 bookInfoOverlay?.visibility = View.GONE
                 overlayContainer?.visibility = View.GONE
+                this.refreshFilesAndUI()
             }
             ?.start()
     }

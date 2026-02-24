@@ -77,6 +77,7 @@ class RecipeBookActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
+                // Open PDF
                 val currentDocument = runCatching {
                     repository.openPdfFast(pdfFile)
                 }.getOrElse {
@@ -86,16 +87,14 @@ class RecipeBookActivity : AppCompatActivity() {
                 }
                 document = currentDocument
                 onDocumentReady(currentDocument)
-                val book = repository.getOrCreateBook(
-                    pdfFile,
-                    pdfFilePath,
-                    currentDocument,
-                    true
-                ) ?: run {
-                    Log.e(LOG_TAG, "Failed to create or fetch book")
-                    finish()
-                    return@launch
-                }
+
+                // Get or create book in DB
+                val book = repository.getOrCreateBook(pdfFile, pdfFilePath, currentDocument, true)
+                    ?: run {
+                        Log.e(LOG_TAG, "Failed to create or fetch book")
+                        finish()
+                        return@launch
+                    }
 
                 val bookId = book.id
                 if (bookId == -1L) {
@@ -103,9 +102,12 @@ class RecipeBookActivity : AppCompatActivity() {
                     finish()
                     return@launch
                 }
-                if (!book.name.equals("")) {
+
+                if (!book.name.isNullOrEmpty()) {
                     binding.toolbar.title = book.name
                 }
+
+                // Check TOC
                 if (repository.hasToc(bookId)) {
                     initializeTocFragment(bookId)
                     binding.btnTOC.visibility = View.VISIBLE
@@ -114,24 +116,30 @@ class RecipeBookActivity : AppCompatActivity() {
                     binding.horizontalLoader.visibility = View.VISIBLE
                     binding.horizontalLoader.progress = 0
 
-                    lifecycleScope.launch(Dispatchers.IO) {
-                        val success = repository.generateTocAsync(
+                    // Use IO dispatcher for heavy DB work
+                    val success = withContext(Dispatchers.IO) {
+                        repository.generateTocAsync(
                             currentDocument,
-                            bookId
-                        ) { percent ->
-                            runOnUiThread {
-                                binding.horizontalLoader.progress = percent
-                                if (percent >= 100) {
-                                    binding.horizontalLoader.visibility = View.GONE
-                                    binding.btnTOC.visibility = View.VISIBLE
+                            bookId,
+                            progressCallback = { percent: Int ->
+                                // Update UI safely on Main
+                                lifecycleScope.launch(Dispatchers.Main) {
+                                    binding.horizontalLoader.progress = percent
+                                    if (percent >= 100) {
+                                        binding.horizontalLoader.visibility = View.GONE
+                                        binding.btnTOC.visibility = View.VISIBLE
+                                    }
                                 }
                             }
-                        }
-                        if (success) {
-                            withContext(Dispatchers.Main) {
-                                initializeTocFragment(bookId)
-                                binding.btnTOC.visibility = View.VISIBLE
-                            }
+                        )
+                    }
+
+                    if (success) {
+                        // Ensure UI updates happen on Main thread
+                        withContext(Dispatchers.Main) {
+                            binding.horizontalLoader.visibility = View.GONE
+                            binding.btnTOC.visibility = View.VISIBLE
+                            initializeTocFragment(bookId)
                         }
                     }
                 }

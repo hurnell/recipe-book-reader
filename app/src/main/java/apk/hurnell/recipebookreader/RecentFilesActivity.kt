@@ -40,6 +40,10 @@ class RecentFilesActivity : BaseDrawerActivity() {
         refreshFileList()
     }
 
+    override fun refreshFilesAndUI() {
+        TODO("Not yet implemented")
+    }
+
     fun refreshFileList(){
         val recentFiles: List<RecentFile> = repository.getRecentFiles()
 
