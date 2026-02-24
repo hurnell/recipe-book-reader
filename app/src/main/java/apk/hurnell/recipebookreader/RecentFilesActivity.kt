@@ -29,7 +29,8 @@ class RecentFilesActivity : BaseDrawerActivity() {
         loadingOverlay = findViewById(R.id.loadingOverlay)
         adapter = FileAdapter(
             onClick = { file -> onFileClick(file) },
-            onLongClick = { file -> showBookInfoOverlay(file) }
+            onLongClick = { file -> showBookInfoOverlay(file) },
+            repository = repository
         )
         recyclerView.adapter = adapter
         val recentFiles: List<RecentFile> = repository.getRecentFiles()

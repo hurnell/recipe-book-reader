@@ -3,7 +3,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="40dp"
+    android:layout_height="wrap_content"
     android:paddingStart="8dp"
     android:paddingEnd="8dp">
 
@@ -19,14 +19,16 @@
 
     <TextView
         android:id="@+id/fileName"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="@string/file_name"
         android:layout_marginStart="10dp"
-        android:textSize="16sp"
         android:ellipsize="end"
         android:singleLine="true"
+        android:text="@string/file_name"
+        android:textSize="16sp"
+        android:padding="5dp"
         app:layout_constraintStart_toEndOf="@id/fileIcon"
+        app:layout_constraintEnd_toStartOf="@+id/innerCount"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent" />
 
@@ -42,6 +44,7 @@
         android:textColor="@android:color/darker_gray"
         android:textSize="14sp"
         app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/fileName"
         app:layout_constraintTop_toTopOf="parent" />
 

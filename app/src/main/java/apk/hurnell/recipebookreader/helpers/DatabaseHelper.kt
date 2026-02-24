@@ -23,6 +23,7 @@ import apk.hurnell.recipebookreader.model.RecentFile
 import com.artifex.mupdf.fitz.Matrix
 import com.artifex.mupdf.fitz.android.AndroidDrawDevice
 import androidx.core.graphics.createBitmap
+import apk.hurnell.recipebookreader.model.BookInfo
 
 
 class DatabaseHelper(private val context: Context) {
@@ -277,7 +278,7 @@ class DatabaseHelper(private val context: Context) {
                     }
                     bookId
                 } else {
-                    val sha =  file.sha256()
+                    val sha = file.sha256()
                     val values = ContentValues().apply {
                         put("name", document.getMetaData(Document.META_INFO_TITLE) ?: file.name)
                         put("location", path)
@@ -303,6 +304,7 @@ class DatabaseHelper(private val context: Context) {
                 }
             }
     }
+
     fun generateBookCoverThumbnail(
         context: Context,
         sha: String,
@@ -443,5 +445,24 @@ class DatabaseHelper(private val context: Context) {
             }
         }
         return list
+    }
+
+    fun getBookInfoForItemPath(location: String): BookInfo? {
+        val db = openDatabase()
+        return db.query(
+            "books",
+            arrayOf("sha", "name"),
+            "location = ?",
+            arrayOf(location),
+            null, null, null
+        ).use { cursor ->
+            if (cursor.moveToFirst()) {
+                val sha = cursor.getString(cursor.getColumnIndexOrThrow("sha"))
+                val name = cursor.getString(cursor.getColumnIndexOrThrow("name"))
+                BookInfo(sha, name)
+            } else {
+                null
+            }
+        }
     }
 }

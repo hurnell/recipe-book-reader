@@ -4,26 +4,19 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Environment
 import android.provider.Settings
-import android.util.Log
-import android.view.View
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.widget.Toolbar
 import androidx.core.net.toUri
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
-import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.adapters.FileAdapter
 import apk.hurnell.recipebookreader.model.FileItem
 import apk.hurnell.recipebookreader.helpers.PdfRepository
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.io.File
 
 data class LastFolderRequested(val directory: String)
@@ -52,7 +45,8 @@ class FileBrowserActivity : BaseDrawerActivity() {
         recyclerView.layoutManager = LinearLayoutManager(this)
         adapter = FileAdapter(
             onClick = { file -> onFileClick(file) },
-            onLongClick = { file -> browserShowBookInfoOverlay(file) }
+            onLongClick = { file -> browserShowBookInfoOverlay(file) },
+            repository
         )
         recyclerView.adapter = adapter
         requestStoragePermission()
@@ -95,6 +89,7 @@ class FileBrowserActivity : BaseDrawerActivity() {
         if (findViewById<DrawerLayout>(R.id.drawer_layout) != null) {
             drawerLayout.closeDrawer(GravityCompat.START, false)
         }
+        showFiles(currentDir)
     }
 
     private fun requestStoragePermission() {
@@ -114,7 +109,8 @@ class FileBrowserActivity : BaseDrawerActivity() {
             }
             ?.sortedWith(compareBy<File>({ !it.isDirectory }, { it.name.lowercase() }))
             ?.map { file ->
-                FileItem(file, file.name)
+                val bookInfo = if (!file.isDirectory) repository.getBookInfoForItemPath(file.path) else null
+                FileItem(file, file.name, bookInfo)
             } ?: emptyList()
 
         adapter.submitList(items)

@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.core.database.sqlite.transaction
 import apk.hurnell.recipebookreader.LastFolderRequested
 import apk.hurnell.recipebookreader.model.Book
+import apk.hurnell.recipebookreader.model.BookInfo
 import apk.hurnell.recipebookreader.model.Category
 import apk.hurnell.recipebookreader.model.RecentFile
 import com.artifex.mupdf.fitz.Document
@@ -178,5 +179,9 @@ class PdfRepository(
 
     fun getRecentFiles(): List<RecentFile> {
         return DatabaseHelper(context).getRecentFiles()
+    }
+
+    fun getBookInfoForItemPath(path: String): BookInfo? {
+        return DatabaseHelper(context).getBookInfoForItemPath(path)
     }
 }
