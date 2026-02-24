@@ -184,4 +184,8 @@ class PdfRepository(
     fun getBookInfoForItemPath(path: String): BookInfo? {
         return DatabaseHelper(context).getBookInfoForItemPath(path)
     }
+
+    fun getUsedCategories(): Collection<String> {
+        return DatabaseHelper(context).getUsedCategories()
+    }
 }

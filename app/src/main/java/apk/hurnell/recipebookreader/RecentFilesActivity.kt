@@ -2,6 +2,8 @@ package apk.hurnell.recipebookreader
 
 import android.os.Bundle
 import androidx.appcompat.widget.Toolbar
+import androidx.core.view.GravityCompat
+import androidx.drawerlayout.widget.DrawerLayout
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.adapters.FileAdapter
@@ -35,6 +37,12 @@ class RecentFilesActivity : BaseDrawerActivity() {
         recyclerView.adapter = adapter
         val recentFiles: List<RecentFile> = repository.getRecentFiles()
 
+        refreshFileList()
+    }
+
+    fun refreshFileList(){
+        val recentFiles: List<RecentFile> = repository.getRecentFiles()
+
         val fileItems: List<FileItem> = recentFiles.mapNotNull { recent ->
             val file = File(recent.location)
             if (file.exists()) {
@@ -53,5 +61,13 @@ class RecentFilesActivity : BaseDrawerActivity() {
     private fun onFileClick(file: File) {
         processAndOpenBook(file)
     }
+    override fun onResume() {
+        super.onResume()
+        if (findViewById<DrawerLayout>(R.id.drawer_layout) != null) {
+            drawerLayout.closeDrawer(GravityCompat.START, false)
+        }
+        refreshFileList()
+    }
+
 
 }

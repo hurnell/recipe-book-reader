@@ -1,19 +1,31 @@
 package apk.hurnell.recipebookreader
 
 import android.os.Bundle
+import android.widget.ArrayAdapter
+import android.widget.Spinner
 import androidx.appcompat.widget.Toolbar
-import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.adapters.BookShelfAdapter
+import apk.hurnell.recipebookreader.helpers.PdfRepository
 import apk.hurnell.recipebookreader.model.FileItem
 
 class BookShelfActivity : BaseDrawerActivity() {
+    private lateinit var repository: PdfRepository
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_book_shelf)
 
-        val toolbar: Toolbar = findViewById(R.id.toolbar)
+        repository = PdfRepository(this)
+        val categories = mutableListOf("All")
+        categories.addAll(repository.getUsedCategories())
+
+        val toolbar: Toolbar = findViewById(R.id.bookShelfToolbar)
+        val spinner: Spinner = findViewById(R.id.categorySpinner)
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, categories)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spinner.adapter = adapter
         setupDrawer(toolbar)
 
         val recyclerView = findViewById<RecyclerView>(R.id.shelfRecyclerView)
