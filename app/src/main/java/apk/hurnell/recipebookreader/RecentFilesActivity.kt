@@ -5,7 +5,7 @@ import androidx.appcompat.widget.Toolbar
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.adapters.FileAdapter
-import apk.hurnell.recipebookreader.adapters.FileItem
+import apk.hurnell.recipebookreader.model.FileItem
 import apk.hurnell.recipebookreader.helpers.PdfRepository
 import apk.hurnell.recipebookreader.model.RecentFile
 import java.io.File

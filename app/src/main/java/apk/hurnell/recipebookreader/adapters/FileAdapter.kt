@@ -10,11 +10,8 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import java.io.File
 import apk.hurnell.recipebookreader.R
-data class FileItem(
-    val file: File,
-    val displayName: String,
-    val opened:Boolean? = null
-)
+import apk.hurnell.recipebookreader.model.FileItem
+
 
 class FileAdapter(
     private val onClick: (File) -> Unit,

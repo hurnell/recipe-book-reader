@@ -19,7 +19,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.adapters.FileAdapter
-import apk.hurnell.recipebookreader.adapters.FileItem
+import apk.hurnell.recipebookreader.model.FileItem
 import apk.hurnell.recipebookreader.helpers.PdfRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

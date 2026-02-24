@@ -40,5 +40,10 @@
     <string name="search_chars">abcdefghijklmnopqrstuvwxyz0123456789</string>
     <string name="choose_or_type_new_category">Choose or type new category</string>
     <string name="toggle_links_button">Toggle links button</string>
+    <string name="right_hand_book_cover">Right Hand Book Cover</string>
+    <string name="center_book_cover">Center Book Cover</string>
+    <string name="left_hand_book_cover">Left Hand Book Cover</string>
+    <string name="book_cover_for_single_item">Book cover for single item</string>
+    <string name="single_book_cover">Single Book Cover</string>
 
 </resources>
