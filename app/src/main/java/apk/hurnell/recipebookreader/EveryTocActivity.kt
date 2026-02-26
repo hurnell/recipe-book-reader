@@ -19,6 +19,7 @@ import androidx.coordinatorlayout.widget.CoordinatorLayout
 import android.content.Context
 import android.view.inputmethod.InputMethodManager
 import com.google.android.material.snackbar.Snackbar
+import java.io.File
 
 class EveryTocActivity : BaseDrawerActivity() {
 
@@ -32,6 +33,8 @@ class EveryTocActivity : BaseDrawerActivity() {
         setContentView(R.layout.activity_every_toc)
         val rootLayout: CoordinatorLayout = findViewById(R.id.rootLayout)
         repository = PdfRepository(this)
+
+        loadingOverlay = findViewById(R.id.loadingOverlay)
         val toolbar: Toolbar = findViewById(R.id.everyTocToolbar)
         setupDrawer(toolbar)
 
@@ -60,11 +63,10 @@ class EveryTocActivity : BaseDrawerActivity() {
                 displayClickResult(item.title, rootLayout)
             },
             onClickTitle = { item ->
-                val location = item.bookLocation
-                displayClickResult(
-                    "${item.title} ${item.page} Should start book: ${item.bookTitle}",
-                    rootLayout
-                )
+                if (item.bookLocation != null) {
+                    val file = File(item.bookLocation)
+                    processAndOpenBook(file, item)
+                }
             },
             onClickBook = { item ->
                 displayClickResult(item.bookTitle!!, rootLayout)

@@ -26,13 +26,16 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import apk.hurnell.recipebookreader.helpers.PdfRepository
+import apk.hurnell.recipebookreader.model.TocItem
 import apk.hurnell.recipebookreader.ui.TocFragment
 import com.artifex.mupdf.fitz.Document
 import com.artifex.mupdf.fitz.Link
+import com.google.gson.Gson
 import java.io.File
 import kotlin.math.abs
 import kotlinx.coroutines.*
 import kotlin.math.floor
+import androidx.core.view.doOnNextLayout
 
 
 class RecipeBookActivity : AppCompatActivity() {
@@ -41,6 +44,7 @@ class RecipeBookActivity : AppCompatActivity() {
     private var isPortrait = true
     private var barsVisible = true
     private var linksWorking = true
+    private var totalPages = 0
     private var document: Document? = null
     private lateinit var repository: PdfRepository
 
@@ -71,6 +75,12 @@ class RecipeBookActivity : AppCompatActivity() {
             finish()
             return
         }
+        val tocJson = intent.getStringExtra("TOC_ITEM_JSON")
+        val tocItem = if (tocJson != null) {
+            Gson().fromJson(tocJson, TocItem::class.java)
+        } else {
+            null
+        }
         val pdfFile = File(pdfFilePath)
         binding.btnTOC.visibility = View.GONE
         repository = PdfRepository(this)
@@ -86,7 +96,7 @@ class RecipeBookActivity : AppCompatActivity() {
                     return@launch
                 }
                 document = currentDocument
-                onDocumentReady(currentDocument)
+                onDocumentReady(currentDocument, tocItem)
 
                 // Get or create book in DB
                 val book = repository.getOrCreateBook(pdfFile, pdfFilePath, currentDocument, true)
@@ -161,22 +171,40 @@ class RecipeBookActivity : AppCompatActivity() {
             )
             binding.drawerLayout.closeDrawer(GravityCompat.START)
             toggleBars(false)
+            updatePageText(item.page, totalPages)
         }
         supportFragmentManager.beginTransaction()
             .replace(R.id.tocFragmentContainer, tocFragment)
             .commit()
     }
 
-    private fun onDocumentReady(doc: Document) {
+    private fun onDocumentReady(doc: Document, tocItem: TocItem?) {
         val adapter = BookAdapter(doc)
         binding.bookRecyclerView.layoutManager = LinearLayoutManager(this)
         binding.bookRecyclerView.adapter = adapter
 
-        val totalPages = doc.countPages()
+        totalPages = doc.countPages()
         binding.pageSeekBar.max = if (totalPages > 0) totalPages - 1 else 0
-        updatePageText(0, totalPages)
+        var currentPage = 0
+        if (tocItem != null) {
+            currentPage = tocItem.page
+        }
+        updatePageText(currentPage, totalPages)
 
         setupRecyclerViewTouchListener()
+        if (tocItem != null) {
+            binding.bookRecyclerView.scrollToPosition(tocItem.page)
+            binding.bookRecyclerView.doOnNextLayout {
+                binding.bookRecyclerView.setScaleFactor(
+                    tocItem.scale.coerceAtMost(3.0f),
+                    tocItem.page,
+                    tocItem.translate
+                )
+                toggleBars(false)
+                updatePageText(tocItem.page, totalPages)
+            }
+        }
+
     }
 
     private fun setupRecyclerViewTouchListener() {
@@ -340,6 +368,7 @@ class RecipeBookActivity : AppCompatActivity() {
                     val zoom = (w / (w - 2 * xOffset) * 0.95f)
                     rv.setScaleFactor(zoom, page - 1, 0.5f)
                     toggleBars(false)
+                    updatePageText(page - 1, totalPages)
                 }
             }
         }
@@ -407,6 +436,7 @@ class RecipeBookActivity : AppCompatActivity() {
             val finalScale = pageCoordinates.targetScale.coerceAtMost(3.0f)
             rv.setScaleFactor(finalScale, currentPage, pageCoordinates.translatingPercentage)
             toggleBars(false)
+            updatePageText(currentPage, totalPages)
         }
         return pageCoordinates.found
     }

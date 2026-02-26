@@ -466,7 +466,7 @@ GROUP BY t.id
                         parentId = parentId,
                         title = rawTitle,        // Just the clean title
                         hierarchy = hierarchyField, // Just the parents
-                        page = page,
+                        page = page - 1,
                         level = level,
                         offset = offset,
                         scale = scale,

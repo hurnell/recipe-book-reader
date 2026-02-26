@@ -1,7 +1,6 @@
 package apk.hurnell.recipebookreader
 
 import android.content.Intent
-import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Typeface
 import android.os.Bundle
@@ -19,7 +18,6 @@ import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
-import androidx.core.graphics.createBitmap
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.lifecycleScope
@@ -27,12 +25,12 @@ import apk.hurnell.recipebookreader.helpers.PdfRepository
 import apk.hurnell.recipebookreader.model.Book
 import apk.hurnell.recipebookreader.ui.EditableCategoryView
 import apk.hurnell.recipebookreader.ui.EditableTextView
-import com.artifex.mupdf.fitz.Matrix
-import com.artifex.mupdf.fitz.android.AndroidDrawDevice
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import apk.hurnell.recipebookreader.model.TocItem
+import com.google.gson.Gson
 
 abstract class BaseDrawerActivity : AppCompatActivity() {
 
@@ -93,16 +91,20 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         spinner.adapter = adapter
     }
-    protected fun processAndOpenBook(pdfFile: File) {
+    protected fun processAndOpenBook(pdfFile: File, tocItem: TocItem? = null) {
         loadingOverlay.visibility = View.VISIBLE
 
         lifecycleScope.launch(Dispatchers.IO) {
             try {
+                val tocJson = tocItem?.let { Gson().toJson(it) }
                 withContext(Dispatchers.Main) {
                     loadingOverlay.visibility = View.GONE
                     val intent =
                         Intent(this@BaseDrawerActivity, RecipeBookActivity::class.java).apply {
                             putExtra("PDF_PATH", pdfFile.absolutePath)
+                            if (tocJson != null) {
+                                putExtra("TOC_ITEM_JSON", tocJson)
+                            }
                         }
                     startActivity(intent)
                 }
