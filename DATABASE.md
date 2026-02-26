@@ -2,9 +2,9 @@
     DROP TABLE IF EXISTS books;
     CREATE TABLE books (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        sha TEXT,
+        sha TEXT UNIQUE,
         name TEXT,
-        location TEXT,
+        location TEXT UNIQUE,
         author TEXT,
         last_opened INTEGER DEFAULT NULL,
         toc_created INTEGER,
