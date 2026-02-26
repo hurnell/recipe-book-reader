@@ -62,6 +62,8 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
     protected var bookPreviewImage: ImageView? = null
     protected var isbnNumber: EditableTextView? = null
     protected var btnSearchCovers: ImageButton? = null
+    protected var btnPickCover: ImageButton? = null
+
     protected var btnCloseGallery: ImageButton? = null
     protected var coverOptionsRecycler: RecyclerView? = null
 
@@ -152,9 +154,19 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
 
     }
 
+    fun searchFileSystemForBookCovers(book: Book){
+        var nextVisibility = View.GONE
+        if ( btnSearchCovers?.visibility == View.GONE){
+            nextVisibility = View.VISIBLE
+        }
+        btnSearchCovers?.visibility = nextVisibility
+
+
+    }
     fun showPossibleBookCovers(book: Book) {
 
         btnSearchCovers?.visibility = View.GONE
+        btnPickCover?.visibility = View.GONE
         if(book.name != null && book.author != null) {
             lifecycleScope.launch {
                 val urls = GetCoverUrlHelper().getAllAvailableCovers(book)
@@ -166,6 +178,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                     coverOptionsRecycler?.visibility = View.VISIBLE
                     btnCloseGallery?.visibility = View.VISIBLE
                     btnSearchCovers?.visibility = View.GONE
+                    btnPickCover?.visibility = View.GONE
 
                     // Set up RecyclerView
                     coverOptionsRecycler?.adapter = CoverPickerAdapter(urls) { selectedUrl ->
@@ -178,6 +191,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                         bookPreviewImage?.visibility = View.VISIBLE
                         btnCloseGallery?.visibility = View.GONE
                         btnSearchCovers?.visibility = View.VISIBLE
+                        btnPickCover?.visibility = View.VISIBLE
                         if (book.sha != null) {
                             lifecycleScope.launch(Dispatchers.IO) {
                                 val success = saveCoverAsPng(selectedUrl, book.sha)
@@ -191,6 +205,15 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                         }
 
                     }
+                } else {
+
+                    btnSearchCovers?.visibility = View.VISIBLE
+                    btnPickCover?.visibility = View.VISIBLE
+                    Toast.makeText(
+                        this@BaseDrawerActivity,
+                        "No thumbnail images found online ❌",
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
             }
 
@@ -296,15 +319,20 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                 }
                 coverOptionsRecycler = findViewById(R.id.coverOptionsRecycler)
                 btnSearchCovers = findViewById(R.id.btnSearchCovers)
+                btnPickCover = findViewById(R.id.btnPickCover)
                 btnCloseGallery = findViewById(R.id.btnCloseGallery)
                 btnSearchCovers?.setOnClickListener {
                     showPossibleBookCovers(book)
+                }
+                btnPickCover?.setOnClickListener {
+                    searchFileSystemForBookCovers(book)
                 }
                 btnCloseGallery?.setOnClickListener {
                     coverOptionsRecycler?.visibility = View.GONE
                     btnCloseGallery?.visibility = View.GONE
                     bookPreviewImage?.visibility = View.VISIBLE
                     btnSearchCovers?.visibility = View.VISIBLE
+                    btnPickCover?.visibility = View.VISIBLE
                 }
             } catch (e: Exception) {
                 Log.e("NIGEL_HURNELL", "Error opening PDF: ${e.message}", e)
