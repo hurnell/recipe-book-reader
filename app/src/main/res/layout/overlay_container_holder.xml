@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/overlayContainer"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -15,7 +16,6 @@
         android:layout_gravity="center"
         android:background="@drawable/overlay_background"
         android:clipToPadding="false"
-        android:padding="16dp"
         android:scrollbars="none"
         android:visibility="gone">
 
@@ -28,6 +28,9 @@
                 android:id="@+id/bookTitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginEnd="16dp"
                 app:bold="true"
                 app:textSize="18sp" />
 
@@ -40,6 +43,8 @@
                     android:id="@+id/bookPreviewImage"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginEnd="16dp"
                     android:contentDescription="@string/pdf_preview"
                     android:scaleType="fitCenter"
                     android:visibility="visible"
@@ -51,15 +56,17 @@
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:orientation="horizontal"
-                    android:visibility="gone"
                     app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-                    app:layout_constraintEnd_toStartOf="@+id/buttonContainer"
-                    app:layout_constraintStart_toStartOf="parent" />
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintVertical_bias="0.0" />
 
                 <LinearLayout
                     android:id="@+id/buttonContainer"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                    android:layout_height="match_parent"
+                    android:gravity="top"
                     android:orientation="vertical"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
@@ -67,16 +74,16 @@
 
                     <ImageButton
                         android:id="@+id/btnSearchCovers"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
                         android:background="?attr/selectableItemBackgroundBorderless"
                         android:contentDescription="@string/search_online"
-                        android:src="@drawable/ic_search" />
+                        android:src="@drawable/ic_online" />
 
                     <ImageButton
                         android:id="@+id/btnCloseGallery"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
                         android:background="?attr/selectableItemBackgroundBorderless"
                         android:contentDescription="@string/close_gallery"
                         android:src="@drawable/ic_close"
@@ -90,7 +97,9 @@
                 android:id="@+id/isbnNumber"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
                 android:layout_marginTop="10dp"
+                android:layout_marginEnd="16dp"
                 app:bold="false"
                 app:textSize="16sp" />
 
@@ -98,6 +107,8 @@
                 android:id="@+id/bookAuthor"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
                 app:bold="false"
                 app:textSize="16sp" />
 
@@ -105,6 +116,8 @@
                 android:id="@+id/bookCategory"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
                 app:bold="false"
                 app:textSize="16sp" />
 
@@ -112,6 +125,8 @@
                 android:id="@+id/bookSubCategory"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
                 app:bold="false"
                 app:textSize="16sp" />
 
@@ -119,7 +134,9 @@
                 android:id="@+id/bookSavePath"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
                 android:layout_marginTop="10dp"
+                android:layout_marginEnd="16dp"
                 app:textSize="12sp" />
 
         </LinearLayout>
