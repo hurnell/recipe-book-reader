@@ -3,6 +3,7 @@ package apk.hurnell.recipebookreader.model
 data class TocItem(
     val tocId:Long,
     val bookTitle: String? = null,
+    val bookLocation: String? = null,
     val parentId: Int? = null,
     val title: String,
     val hierarchy: String? = null,

@@ -405,6 +405,7 @@ WITH RECURSIVE toc_hierarchy AS (
 )
 SELECT 
     b.name AS book_name,
+    b.location AS book_location,
     t.id AS toc_id,
     t.parent_id AS parent_id,
     t.title AS toc_title,
@@ -439,6 +440,7 @@ GROUP BY t.id
 
                 // 3. Extract other fields
                 val bookTitle = cursor.getString(cursor.getColumnIndexOrThrow("book_name"))
+                val bookLocation = cursor.getString(cursor.getColumnIndexOrThrow("book_location"))
                 val tocId = cursor.getLong(cursor.getColumnIndexOrThrow("toc_id"))
                 val page = cursor.getInt(cursor.getColumnIndexOrThrow("toc_page"))
                 val level = cursor.getInt(cursor.getColumnIndexOrThrow("toc_level"))
@@ -460,6 +462,7 @@ GROUP BY t.id
                     TocItem(
                         tocId = tocId,
                         bookTitle = bookTitle,
+                        bookLocation = bookLocation,
                         parentId = parentId,
                         title = rawTitle,        // Just the clean title
                         hierarchy = hierarchyField, // Just the parents
@@ -733,7 +736,7 @@ GROUP BY t.id
     }
 
     fun getBookShelfBooks(): List<FileItem> {
-        val db = writableDatabase
+        val db = readableDatabase
         val list = mutableListOf<FileItem>()
         val sql = """
             SELECT DISTINCT b.sha AS book_sha, b.name AS book_name, c.category AS main_category, sc.category AS sub_category , b.location as book_location, b.author as author_name

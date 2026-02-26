@@ -60,6 +60,7 @@ class EveryTocActivity : BaseDrawerActivity() {
                 displayClickResult(item.title, rootLayout)
             },
             onClickTitle = { item ->
+                val location = item.bookLocation
                 displayClickResult(
                     "${item.title} ${item.page} Should start book: ${item.bookTitle}",
                     rootLayout
