@@ -84,4 +84,5 @@ dependencies {
     implementation(libs.coil)
     implementation(libs.google.gson)
     implementation(libs.okhttp)
+    implementation(libs.androidx.lifecycle.process)
 }
