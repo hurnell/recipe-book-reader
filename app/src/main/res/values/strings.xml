@@ -37,7 +37,7 @@
     <string name="search_toc">Search TOC…</string>
     <string name="toggle_toc_list_expanded">Toggle TOC list expanded</string>
     <string name="lowercase_chars">abcdefghijklmnopqrstuvwxyz</string>
-    <string name="search_chars">abcdefghijklmnopqrstuvwxyz0123456789</string>
+    <string name="search_chars">abcdefghijklmnopqrstuvwxyz0123456789 </string>
     <string name="choose_or_type_new_category">Choose or type new category</string>
     <string name="toggle_links_button">Toggle links button</string>
     <string name="right_hand_book_cover">Right Hand Book Cover</string>
@@ -53,8 +53,9 @@
     <string name="name_of_the_book">Name of the Book</string>
     <string name="indication_of_toc_item_hierarchy">Indication of TOC item Hierarchy</string>
     <string name="filter_toc_items">Filter TOC items</string>
-    <string name="zero">0</string>
+    <string name="zero"/>
     <string name="search_toc_entries">Search TOCs</string>
     <string name="button_to_begin_search_of_toc">Button to Begin Search of TOC</string>
+    <string name="button_to_clear_search_field">Button to clear search field</string>
 
 </resources>

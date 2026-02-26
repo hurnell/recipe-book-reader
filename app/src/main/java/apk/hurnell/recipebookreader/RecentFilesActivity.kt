@@ -34,8 +34,6 @@ class RecentFilesActivity : BaseDrawerActivity() {
             repository = repository
         )
         recyclerView.adapter = adapter
-        val recentFiles: List<RecentFile> = repository.getRecentFiles()
-
         refreshFileList()
     }
 

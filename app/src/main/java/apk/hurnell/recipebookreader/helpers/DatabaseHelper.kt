@@ -661,7 +661,7 @@ GROUP BY t.id
     }
 
     fun getRecentFiles(): List<RecentFile> {
-        val db = writableDatabase
+        val db = readableDatabase
         val list = mutableListOf<RecentFile>()
         val cursor = db.rawQuery(
             "SELECT location FROM books ORDER BY (last_opened IS NULL) ASC, last_opened DESC",

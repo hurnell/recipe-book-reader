@@ -46,46 +46,62 @@
                     android:id="@+id/resultCountTextView"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
                     android:layout_marginStart="5dp"
                     android:layout_marginEnd="5dp"
+                    android:layout_weight="1"
                     android:gravity="center_vertical"
                     android:text="@string/zero"
                     android:textColor="@color/black"
                     android:textSize="16sp"
+                    app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toStartOf="@+id/filterInput"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintTop_toTopOf="parent" />
 
                 <EditText
                     android:id="@+id/filterInput"
                     android:layout_width="0dp"
+                    android:layout_height="match_parent"
                     android:layout_marginStart="5dp"
                     android:layout_marginEnd="5dp"
-                    android:layout_height="match_parent"
                     android:layout_weight="1"
                     android:autofillHints="name"
+                    android:imeOptions="actionSearch"
                     android:inputType="text"
-                    app:layout_constraintStart_toEndOf="@+id/resultCountTextView"
-                    app:layout_constraintEnd_toStartOf="@+id/searchToc"
                     app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toStartOf="@+id/searchToc"
+                    app:layout_constraintStart_toEndOf="@+id/resultCountTextView"
                     app:layout_constraintTop_toTopOf="parent"
                     tools:ignore="LabelFor" />
+
+                <ImageButton
+                    android:id="@+id/clearSearch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="5dp"
+                    android:layout_marginEnd="5dp"
+                    android:layout_weight="1"
+                    android:background="@color/transparent"
+                    android:contentDescription="@string/button_to_clear_search_field"
+                    android:src="@drawable/ic_close_small"
+                    android:visibility="gone"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="@+id/filterInput"
+                    app:layout_constraintTop_toTopOf="parent" />
 
                 <ImageButton
                     android:id="@+id/searchToc"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
                     android:layout_marginStart="5dp"
                     android:layout_marginEnd="5dp"
+                    android:layout_weight="1"
                     android:background="@color/transparent"
                     android:contentDescription="@string/button_to_begin_search_of_toc"
                     android:src="@drawable/ic_search"
-                    app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"  />
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
 
             </androidx.constraintlayout.widget.ConstraintLayout>
         </com.google.android.material.appbar.AppBarLayout>
