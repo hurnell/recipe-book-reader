@@ -31,13 +31,68 @@
                 app:bold="true"
                 app:textSize="18sp" />
 
-            <ImageView
-                android:id="@+id/bookPreviewImage"
+            <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
-                android:layout_height="180dp"
-                android:layout_marginTop="8dp"
-                android:contentDescription="@string/pdf_preview"
-                android:scaleType="fitCenter" />
+                android:layout_height="220dp"
+                android:layout_marginTop="8dp">
+
+                <ImageView
+                    android:id="@+id/bookPreviewImage"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:contentDescription="@string/pdf_preview"
+                    android:scaleType="fitCenter"
+                    android:visibility="visible"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/coverOptionsRecycler"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal"
+                    android:visibility="gone"
+                    app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                    app:layout_constraintEnd_toStartOf="@+id/buttonContainer"
+                    app:layout_constraintStart_toStartOf="parent" />
+
+                <LinearLayout
+                    android:id="@+id/buttonContainer"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent">
+
+                    <ImageButton
+                        android:id="@+id/btnSearchCovers"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/search_online"
+                        android:src="@drawable/ic_search" />
+
+                    <ImageButton
+                        android:id="@+id/btnCloseGallery"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/close_gallery"
+                        android:src="@drawable/ic_close"
+                        android:visibility="gone" />
+
+                </LinearLayout>
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <apk.hurnell.recipebookreader.ui.EditableTextView
+                android:id="@+id/isbnNumber"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                app:bold="false"
+                app:textSize="16sp" />
 
             <apk.hurnell.recipebookreader.ui.EditableTextView
                 android:id="@+id/bookAuthor"

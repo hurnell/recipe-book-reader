@@ -57,5 +57,8 @@
     <string name="search_toc_entries">Search TOCs</string>
     <string name="button_to_begin_search_of_toc">Button to Begin Search of TOC</string>
     <string name="button_to_clear_search_field">Button to clear search field</string>
+    <string name="search_online">Search online</string>
+    <string name="close_gallery">Close gallery</string>
+    <string name="optional_book_cover">Optional Book Cover</string>
 
 </resources>

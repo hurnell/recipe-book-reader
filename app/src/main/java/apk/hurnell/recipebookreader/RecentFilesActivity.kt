@@ -51,7 +51,7 @@ class RecentFilesActivity : BaseDrawerActivity() {
                     file = file,
                     displayName = file.name,
                     bookInfo = repository.getBookInfoForItemPath(file.path),
-                    false
+                    System.currentTimeMillis()
                 )
             } else {
                 null

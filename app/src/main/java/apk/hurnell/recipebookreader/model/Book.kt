@@ -7,6 +7,7 @@ data class Book(
     val name: String?,
     val location: String?,
     val author: String?,
+    val isbn: String?,
     val lastOpened: Long?,
     val tocCreated: Long?,
     val tocUnavailable: Int?,

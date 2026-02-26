@@ -69,9 +69,9 @@ class PdfRepository(
         return dbHelper.updateBookCategory(bookId, bookColumn, categoryId)
     }
 
-    suspend fun getOrCreateBook(file: File, path: String, document: Document, opened: Boolean) =
+    suspend fun getOrCreateBook(file: File, path: String, document: Document) =
         withContext(Dispatchers.IO) {
-            dbHelper.getOrInsertBook(file, path, document, opened)
+            dbHelper.getOrInsertBook(file, path, document)
         }
     suspend fun getBook(location: String): Book? =
         withContext(Dispatchers.IO) {
@@ -110,5 +110,11 @@ class PdfRepository(
 
     fun getFilteredEveryToc(currentText: String, currentCategory: String): MutableList<TocItem> {
         return dbHelper.getFilteredEveryToc(currentText, currentCategory)
+    }
+
+    suspend fun updateBookIsbn(bookId: Long, foundIsbn: String) {
+        return withContext(Dispatchers.IO) {
+            DatabaseHelper(context).updateBookIsbn(bookId, foundIsbn)
+        }
     }
 }

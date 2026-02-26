@@ -85,4 +85,6 @@ dependencies {
     implementation(libs.google.gson)
     implementation(libs.okhttp)
     implementation(libs.androidx.lifecycle.process)
+    implementation(libs.glide)
+    annotationProcessor(libs.compiler)
 }

@@ -119,7 +119,8 @@ class FileAdapter(
         override fun areContentsTheSame(oldItem: FileItem, newItem: FileItem): Boolean {
             // Compare name and bookInfo.sha (or thumbnail presence)
             return oldItem.displayName == newItem.displayName &&
-                    oldItem.bookInfo?.sha == newItem.bookInfo?.sha
+                    oldItem.bookInfo?.sha == newItem.bookInfo?.sha &&
+                    oldItem.lastModified == newItem.lastModified
         }
     }
 }

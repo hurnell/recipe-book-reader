@@ -6,6 +6,7 @@
         name TEXT,
         location TEXT UNIQUE,
         author TEXT,
+        isbn TEXT DEFAULT NULL,
         last_opened INTEGER DEFAULT NULL,
         toc_created INTEGER,
         toc_unavailable INTEGER DEFAULT 0,

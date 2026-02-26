@@ -36,6 +36,7 @@ import kotlin.math.abs
 import kotlinx.coroutines.*
 import kotlin.math.floor
 import androidx.core.view.doOnNextLayout
+import apk.hurnell.recipebookreader.helpers.IsbnFinder
 
 
 class RecipeBookActivity : AppCompatActivity() {
@@ -99,7 +100,7 @@ class RecipeBookActivity : AppCompatActivity() {
                 onDocumentReady(currentDocument, tocItem)
 
                 // Get or create book in DB
-                val book = repository.getOrCreateBook(pdfFile, pdfFilePath, currentDocument, true)
+                val book = repository.getOrCreateBook(pdfFile, pdfFilePath, currentDocument)
                     ?: run {
                         Log.e(LOG_TAG, "Failed to create or fetch book")
                         finish()
@@ -128,7 +129,7 @@ class RecipeBookActivity : AppCompatActivity() {
 
                     // Use IO dispatcher for heavy DB work
                     val success = withContext(Dispatchers.IO) {
-                        repository.generateTocAsync(
+                        val tocSuccess = repository.generateTocAsync(
                             currentDocument,
                             bookId,
                             progressCallback = { percent: Int ->
@@ -142,6 +143,12 @@ class RecipeBookActivity : AppCompatActivity() {
                                 }
                             }
                         )
+                        val foundIsbn = IsbnFinder().findIsbnInDocument(currentDocument)
+                        if (foundIsbn != null) {
+                            repository.updateBookIsbn(bookId, foundIsbn)
+                            Log.d(LOG_TAG, "Found and updated ISBN: $foundIsbn")
+                        }
+                        tocSuccess
                     }
 
                     if (success) {

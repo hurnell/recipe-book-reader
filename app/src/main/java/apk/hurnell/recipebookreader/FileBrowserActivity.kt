@@ -112,7 +112,7 @@ class FileBrowserActivity : BaseDrawerActivity() {
             ?.sortedWith(compareBy<File>({ !it.isDirectory }, { it.name.lowercase() }))
             ?.map { file ->
                 val bookInfo = if (!file.isDirectory) repository.getBookInfoForItemPath(file.path) else null
-                FileItem(file, file.name, bookInfo)
+                FileItem(file, file.name, bookInfo, System.currentTimeMillis())
             } ?: emptyList()
 
         adapter.submitList(items)

@@ -121,16 +121,16 @@ class DatabaseHelper(private val context: Context) :
     suspend fun getOrInsertBook(
         file: File,
         path: String,
-        document: Document,
-        opened: Boolean
+        document: Document
     ): Book? {
-        val bookId = checkAddBookToDatabase(file, path, document, opened)
+        val bookId = checkAddBookToDatabase(file, path, document)
         val db = writableDatabase
+
 
         return db.query(
             "books",
             arrayOf(
-                "id", "sha", "name", "location", "author",
+                "id", "sha", "name", "location", "author", "isbn",
                 "last_opened", "toc_created", "toc_unavailable",
                 "category", "sub_category", "alternate_cover"
             ),
@@ -147,6 +147,7 @@ class DatabaseHelper(private val context: Context) :
                     name = cursor.getString(cursor.getColumnIndexOrThrow("name")),
                     location = cursor.getString(cursor.getColumnIndexOrThrow("location")),
                     author = cursor.getString(cursor.getColumnIndexOrThrow("author")),
+                    isbn = cursor.getString(cursor.getColumnIndexOrThrow("isbn")),
                     lastOpened = cursor.getLongOrNull(cursor.getColumnIndexOrThrow("last_opened")),
                     tocCreated = cursor.getLongOrNull(cursor.getColumnIndexOrThrow("toc_created")),
                     tocUnavailable = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("toc_unavailable")),
@@ -316,8 +317,7 @@ class DatabaseHelper(private val context: Context) :
     suspend fun checkAddBookToDatabase(
         file: File,
         path: String,
-        document: Document,
-        opened: Boolean
+        document: Document
     ): Long {
         val db = writableDatabase
 
@@ -325,14 +325,14 @@ class DatabaseHelper(private val context: Context) :
             .use { cursor ->
                 if (cursor.moveToFirst()) {
                     val bookId = cursor.getLong(0)
-                    if (opened) {
-                        val values = ContentValues().apply {
-                            put("last_opened", System.currentTimeMillis())
-                        }
-                        db.update("books", values, "id = ?", arrayOf(bookId.toString()))
+
+                    val values = ContentValues().apply {
+                        put("last_opened", System.currentTimeMillis())
                     }
+                    db.update("books", values, "id = ?", arrayOf(bookId.toString()))
                     bookId
                 } else {
+
                     val sha = file.sha256()
                     var bookAuthor: String? = null
                     var bookTitle: String? = null
@@ -349,9 +349,7 @@ class DatabaseHelper(private val context: Context) :
                         put("location", path)
                         put("sha", sha)
                         put("author", bookAuthor ?: "Unknown")
-                        if (opened) {
-                            put("last_opened", System.currentTimeMillis())
-                        }
+                        put("last_opened", System.currentTimeMillis())
                         put("toc_created", 0)
                     }
 
@@ -478,20 +476,9 @@ GROUP BY t.id
         return list
     }
 
+
     suspend fun getCoverUrl(title: String, author: String): String? {
-        val retrofit = Retrofit.Builder()
-            .baseUrl("https://openlibrary.org/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-
-        val api = retrofit.create(OpenLibraryApi::class.java)
-
-        val response = api.searchBook(title, author)
-
-        val coverId = response.docs.firstOrNull()?.cover_i
-        return coverId?.let {
-            "https://covers.openlibrary.org/b/id/${it}-L.jpg"
-        }
+        return GetCoverUrlHelper().fetchRemoteCoverUrls(title, author).firstOrNull()
     }
 
     private suspend fun downloadAndSaveCover(
@@ -685,7 +672,7 @@ GROUP BY t.id
     }
 
     fun getUsedCategories(): List<String> {
-        val db = writableDatabase
+        val db = readableDatabase
         val list = mutableListOf<String>()
         val sql = """
             SELECT c.category AS used_categories
@@ -717,7 +704,7 @@ GROUP BY t.id
     }
 
     fun getBookInfoForItemPath(location: String): BookInfo? {
-        val db = writableDatabase
+        val db = readableDatabase
         return db.query(
             "books",
             arrayOf("sha", "name"),
@@ -761,7 +748,7 @@ GROUP BY t.id
                 val author = cursor.getString(cursor.getColumnIndexOrThrow("author_name"))
                 val file = File(location)
                 val bookInfo = BookInfo(sha, name, mainCategory, subCategory, author)
-                list.add(FileItem(file, file.name, bookInfo))
+                list.add(FileItem(file, file.name, bookInfo, System.currentTimeMillis()))
             }
         }
         return list
@@ -871,11 +858,11 @@ GROUP BY t.id
     }
 
     fun getBook(location: String): Book? {
-        val db = writableDatabase
+        val db = readableDatabase
         return db.query(
             "books",
             arrayOf(
-                "id", "sha", "name", "location", "author",
+                "id", "sha", "name", "location", "author", "isbn",
                 "last_opened", "toc_created", "toc_unavailable",
                 "category", "sub_category", "alternate_cover"
             ),
@@ -892,6 +879,7 @@ GROUP BY t.id
                     name = cursor.getString(cursor.getColumnIndexOrThrow("name")),
                     location = cursor.getString(cursor.getColumnIndexOrThrow("location")),
                     author = cursor.getString(cursor.getColumnIndexOrThrow("author")),
+                    isbn = cursor.getString(cursor.getColumnIndexOrThrow("isbn")),
                     lastOpened = cursor.getLongOrNull(cursor.getColumnIndexOrThrow("last_opened")),
                     tocCreated = cursor.getLongOrNull(cursor.getColumnIndexOrThrow("toc_created")),
                     tocUnavailable = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("toc_unavailable")),
@@ -901,5 +889,13 @@ GROUP BY t.id
                 )
             } else null
         }
+    }
+
+    fun updateBookIsbn(bookId: Long, foundIsbn: String) {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put("isbn", foundIsbn)
+        }
+        db.update("books", values, "id = ?", arrayOf(bookId.toString()))
     }
 }
