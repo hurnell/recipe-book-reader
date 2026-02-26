@@ -24,7 +24,6 @@ data class LastFolderRequested(val directory: String)
 class FileBrowserActivity : BaseDrawerActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: FileAdapter
-    private lateinit var repository: PdfRepository
     private lateinit var breadcrumbLayout: LinearLayout
     private lateinit var breadcrumbScroll: HorizontalScrollView
     private val rootDir = Environment.getExternalStorageDirectory()

@@ -8,6 +8,7 @@ import apk.hurnell.recipebookreader.model.BookInfo
 import apk.hurnell.recipebookreader.model.Category
 import apk.hurnell.recipebookreader.model.FileItem
 import apk.hurnell.recipebookreader.model.RecentFile
+import apk.hurnell.recipebookreader.model.TocItem
 import com.artifex.mupdf.fitz.Document
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -69,7 +70,13 @@ class PdfRepository(
     }
 
     suspend fun getOrCreateBook(file: File, path: String, document: Document, opened: Boolean) =
-        withContext(Dispatchers.IO) { dbHelper.getOrInsertBook(file, path, document, opened) }
+        withContext(Dispatchers.IO) {
+            dbHelper.getOrInsertBook(file, path, document, opened)
+        }
+    suspend fun getBook(location: String): Book? =
+        withContext(Dispatchers.IO) {
+            dbHelper.getBook(location)
+        }
 
     suspend fun hasToc(bookId: Long): Boolean =
         withContext(Dispatchers.IO) {
@@ -99,5 +106,9 @@ class PdfRepository(
 
     fun getBookShelfBooks(): List<FileItem> {
         return dbHelper.getBookShelfBooks()
+    }
+
+    fun getFilteredEveryToc(currentText: String, currentCategory: String): MutableList<TocItem> {
+        return dbHelper.getFilteredEveryToc(currentText, currentCategory)
     }
 }

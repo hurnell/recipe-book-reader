@@ -32,15 +32,16 @@ class BookShelfAdapter(
     override fun onBindViewHolder(holder: RowViewHolder, position: Int) {
         val rowItems = rows[position]
 
-        bindBook(holder.book1Cover, rowItems.getOrNull(0), onClick, onLongClick)
+        bindBook(holder.book1Cover,holder.book1Warning, rowItems.getOrNull(0), onClick, onLongClick)
 
-        bindBook(holder.book2Cover, rowItems.getOrNull(1), onClick, onLongClick)
+        bindBook(holder.book2Cover, holder.book2Warning,rowItems.getOrNull(1), onClick, onLongClick)
 
-        bindBook(holder.book3Cover, rowItems.getOrNull(2), onClick, onLongClick)
+        bindBook(holder.book3Cover, holder.book3Warning,rowItems.getOrNull(2), onClick, onLongClick)
     }
 
     private fun bindBook(
         imageView: ImageView,
+        warningView: ImageView,
         item: FileItem?,
         onClick: (File) -> Unit,
         onLongClick: ((File) -> Unit)?
@@ -51,10 +52,16 @@ class BookShelfAdapter(
         if (item != null && item.bookInfo != null) {
             thumbnailFile = File(imageView.context.filesDir, "${item.bookInfo.sha}.png")
         }
+
         if (item != null && thumbnailFile != null && thumbnailFile.exists()) {
             val bitmap = BitmapFactory.decodeFile(thumbnailFile.absolutePath)
 
             imageView.setImageBitmap(bitmap)
+            if (item.bookInfo?.mainCategory == null || item.bookInfo?.subCategory == null) {
+                warningView.visibility = View.VISIBLE
+            } else {
+                warningView.visibility = View.INVISIBLE
+            }
             imageView.visibility = View.VISIBLE
             imageView.setOnClickListener { onClick(item.file) }
             imageView.setOnLongClickListener {
@@ -67,6 +74,7 @@ class BookShelfAdapter(
             imageView.visibility = View.INVISIBLE // keeps spacing; use GONE if you want collapse
             imageView.setOnClickListener(null)
             cardContainer.visibility = View.INVISIBLE
+            warningView.visibility = View.INVISIBLE
 
             imageView.setOnLongClickListener(null)
 
@@ -83,5 +91,8 @@ class BookShelfAdapter(
         val book1Cover: ImageView = view.findViewById<View>(R.id.book1).findViewById(R.id.bookCover)
         val book2Cover: ImageView = view.findViewById<View>(R.id.book2).findViewById(R.id.bookCover)
         val book3Cover: ImageView = view.findViewById<View>(R.id.book3).findViewById(R.id.bookCover)
+        val book1Warning: ImageView = view.findViewById<View>(R.id.book1).findViewById(R.id.bookWarning)
+        val book2Warning: ImageView = view.findViewById<View>(R.id.book2).findViewById(R.id.bookWarning)
+        val book3Warning: ImageView = view.findViewById<View>(R.id.book3).findViewById(R.id.bookWarning)
     }
 }

@@ -79,6 +79,9 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
-
+    implementation(libs.retrofit)
+    implementation(libs.converter.gson)
+    implementation(libs.coil)
     implementation(libs.google.gson)
+    implementation(libs.okhttp)
 }

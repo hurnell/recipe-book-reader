@@ -46,5 +46,15 @@
     <string name="book_cover_for_single_item">Book cover for single item</string>
     <string name="single_book_cover">Single Book Cover</string>
     <string name="the_image_of_the_book_cover_on_the_book_shelf">The image of the book cover on the book shelf</string>
+    <string name="warning_that_the_categories_are_not_set_for_this_book">Warning that the categories are not set for this book</string>
+    <string name="search_tables_of_contents">Search Tables of Contents</string>
+    <string name="bookmarks">Bookmarks</string>
+    <string name="table_of_contents_text">Table of Contents Text</string>
+    <string name="name_of_the_book">Name of the Book</string>
+    <string name="indication_of_toc_item_hierarchy">Indication of TOC item Hierarchy</string>
+    <string name="filter_toc_items">Filter TOC items</string>
+    <string name="zero">0</string>
+    <string name="search_toc_entries">Search TOCs</string>
+    <string name="button_to_begin_search_of_toc">Button to Begin Search of TOC</string>
 
 </resources>

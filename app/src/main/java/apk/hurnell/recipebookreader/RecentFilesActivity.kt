@@ -14,7 +14,6 @@ import java.io.File
 
 class RecentFilesActivity : BaseDrawerActivity() {
 
-    private lateinit var repository: PdfRepository
     private lateinit var adapter: FileAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,7 +40,7 @@ class RecentFilesActivity : BaseDrawerActivity() {
     }
 
     override fun refreshFilesAndUI() {
-        TODO("Not yet implemented")
+
     }
 
     fun refreshFileList(){
@@ -53,7 +52,8 @@ class RecentFilesActivity : BaseDrawerActivity() {
                 FileItem(
                     file = file,
                     displayName = file.name,
-                    opened = recent.lastOpened != null
+                    bookInfo = repository.getBookInfoForItemPath(file.path),
+                    false
                 )
             } else {
                 null

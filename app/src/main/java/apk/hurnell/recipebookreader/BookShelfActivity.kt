@@ -15,11 +15,7 @@ import apk.hurnell.recipebookreader.model.FileItem
 import java.io.File
 
 class BookShelfActivity : BaseDrawerActivity() {
-    private lateinit var repository: PdfRepository
     private lateinit var bookRowAdapter: BookShelfAdapter
-    private lateinit var spinner: Spinner
-    private var categories =  mutableListOf("All")
-    private var currentCategory = "All"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,20 +57,6 @@ class BookShelfActivity : BaseDrawerActivity() {
         recyclerView.adapter = bookRowAdapter
 
         populateShelf("All")
-    }
-
-    fun refreshCategories() {
-        val usedCategories = repository.getUsedCategories()
-
-        val set = LinkedHashSet<String>()
-        set.add("All") // always first
-        usedCategories.forEach { if (it.isNotBlank()) set.add(it) }
-
-        categories = set.toMutableList()
-
-        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, categories)
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        spinner.adapter = adapter
     }
 
     override fun refreshFilesAndUI() {

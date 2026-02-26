@@ -19,7 +19,9 @@ data class PageCoordinates(
     var leftOffset: Float = 0.0f,
     var targetScale: Float = 0.0f,
     var translatingPercentage: Float = 0.0f,
-    var found: Boolean = false
+    var found: Boolean = false,
+    var hasImages: Boolean = false,
+    var imageIsFullPage: Boolean = false
 
 ) {
     fun populate() {
@@ -39,6 +41,17 @@ data class PageCoordinates(
         }
     }
 
+    fun isFullPage(bbox: Rect): Boolean {
+        if (imageIsFullPage) {
+            return true
+        }
+        val imageWidth = bbox.x1 - bbox.x0
+        val imageHeight = bbox.y1 - bbox.y0
+        val wGreater = width * 0.9f < imageWidth
+        val hGreater = height * 0.9f < imageHeight
+        return wGreater && hGreater
+    }
+
     fun intercept(offset: Float?, scale: Float?, percentage: Float?) {
         offset?.let { leftOffset = it }
         scale?.let { targetScale = it }
@@ -47,6 +60,7 @@ data class PageCoordinates(
 }
 
 class FunctionalStructuredTextWalker {
+
 
     fun getPageCoordinates(
         document: Document,
@@ -67,6 +81,8 @@ class FunctionalStructuredTextWalker {
                 pageCoordinates.minX = min(pageCoordinates.minX, bbox.x0)
                 pageCoordinates.maxX = max(pageCoordinates.maxX, bbox.x1)
                 pageCoordinates.found = true
+                pageCoordinates.hasImages = true
+                pageCoordinates.imageIsFullPage = pageCoordinates.isFullPage(bbox)
             }
 
             override fun beginTextBlock(bbox: Rect) {

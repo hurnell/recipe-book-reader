@@ -5,6 +5,8 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
 import android.util.Log
 import androidx.core.database.getIntOrNull
 import androidx.core.database.getLongOrNull
@@ -21,10 +23,18 @@ import apk.hurnell.recipebookreader.model.Book
 import apk.hurnell.recipebookreader.model.Category
 import apk.hurnell.recipebookreader.model.RecentFile
 import com.artifex.mupdf.fitz.Matrix
+import android.graphics.Matrix as GraphicsMatrix
 import com.artifex.mupdf.fitz.android.AndroidDrawDevice
 import apk.hurnell.recipebookreader.model.BookInfo
 import apk.hurnell.recipebookreader.model.FileItem
 import androidx.core.graphics.createBitmap
+import apk.hurnell.recipebookreader.model.TocItem
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 
 class DatabaseHelper(private val context: Context) :
@@ -35,8 +45,6 @@ class DatabaseHelper(private val context: Context) :
         private val gson = Gson()
         private const val LOG_TAG = "NIGEL_HURNELL"
     }
-
-    private val appContext = context.applicationContext
 
     override fun onCreate(db: SQLiteDatabase) {
         // Not used because we copy prebuilt DB from assets
@@ -98,11 +106,11 @@ class DatabaseHelper(private val context: Context) :
                 LOG_TAG,
                 "Database not found, copying from assets..."
             )
-            dbFile.parentFile?. let { parent -> if (!parent.exists()) parent.mkdirs() }
+            dbFile.parentFile?.let { parent -> if (!parent.exists()) parent.mkdirs() }
             try {
                 context.assets.open(DB_NAME)
                     .use { input -> FileOutputStream(dbFile).use { output -> input.copyTo(output) } }
-                Log.d (LOG_TAG, "Database copied successfully.")
+                Log.d(LOG_TAG, "Database copied successfully.")
             } catch (e: IOException) {
                 Log.e(LOG_TAG, "FAILED to copy database: ${e.message}")
                 throw e
@@ -110,7 +118,12 @@ class DatabaseHelper(private val context: Context) :
         }
     }
 
-    fun getOrInsertBook(file: File, path: String, document: Document, opened: Boolean): Book? {
+    suspend fun getOrInsertBook(
+        file: File,
+        path: String,
+        document: Document,
+        opened: Boolean
+    ): Book? {
         val bookId = checkAddBookToDatabase(file, path, document, opened)
         val db = writableDatabase
 
@@ -257,7 +270,50 @@ class DatabaseHelper(private val context: Context) :
         }
     }
 
-    fun checkAddBookToDatabase(
+    fun getKeywordCategories(keywords: String?): Pair<Int?, Int?> {
+
+        val db = writableDatabase
+        var mainCategoryId: Int? = null
+        var subCategoryId: Int? = null
+
+        if (!keywords.isNullOrBlank()) {
+            // Split by comma into key=value pairs
+            val pairs = keywords.split(",")
+            for (pair in pairs) {
+                val keyValue = pair.split("=").map { it.trim() }
+                if (keyValue.size == 2) {
+                    val key = keyValue[0]
+                    val value = keyValue[1]
+
+                    // Prepare query
+                    val query = "SELECT id FROM categories WHERE category=?"
+
+                    when (key) {
+                        "main_category" -> {
+                            db.rawQuery(query, arrayOf(value)).use { cursor ->
+                                if (cursor.moveToFirst()) {
+                                    mainCategoryId = cursor.getInt(0)
+                                }
+                            }
+                        }
+
+                        "sub_category" -> {
+                            db.rawQuery(query, arrayOf(value)).use { cursor ->
+                                if (cursor.moveToFirst()) {
+                                    subCategoryId = cursor.getInt(0)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return Pair(mainCategoryId, subCategoryId)
+    }
+
+
+    suspend fun checkAddBookToDatabase(
         file: File,
         path: String,
         document: Document,
@@ -278,11 +334,21 @@ class DatabaseHelper(private val context: Context) :
                     bookId
                 } else {
                     val sha = file.sha256()
+                    var bookAuthor: String? = null
+                    var bookTitle: String? = null
                     val values = ContentValues().apply {
-                        put("name", document.getMetaData(Document.META_INFO_TITLE) ?: file.name)
+                        bookTitle = document.getMetaData(Document.META_INFO_TITLE)
+                        bookAuthor = document.getMetaData(Document.META_INFO_AUTHOR)
+                        val keywords = document.getMetaData(Document.META_INFO_KEYWORDS)
+
+                        val (mainId, subId) = getKeywordCategories(keywords)
+
+                        put("name", bookTitle ?: file.name)
+                        put("category", mainId)
+                        put("sub_category", subId)
                         put("location", path)
                         put("sha", sha)
-                        put("author", document.getMetaData(Document.META_INFO_AUTHOR) ?: "Unknown")
+                        put("author", bookAuthor ?: "Unknown")
                         if (opened) {
                             put("last_opened", System.currentTimeMillis())
                         }
@@ -297,24 +363,182 @@ class DatabaseHelper(private val context: Context) :
                             "Failed to insert book! Check for column name mismatches."
                         )
                     } else {
-                        generateBookCoverThumbnail(sha, document)
+                        generateBookCoverThumbnail(sha, document, bookTitle, bookAuthor)
                     }
                     newId
                 }
             }
     }
 
-    private fun generateBookCoverThumbnail(
-        sha: String,
-        document: Document,
-        targetWidth: Int = 200,
-        targetHeight: Int = 300
+    fun getFilteredEveryToc(currentText: String, currentCategory: String): MutableList<TocItem> {
+        val db = readableDatabase
+        val selectionArgs = if (currentCategory == "All") {
+            arrayOf("%$currentText%")
+        } else {
+            arrayOf("%$currentText%", currentCategory)
+        }
+        val categoryFilter = if (currentCategory == "All") "" else "AND c.category = ?"
+        val list = mutableListOf<TocItem>()
+
+        val sql = """
+WITH RECURSIVE toc_hierarchy AS (
+    SELECT 
+        id, 
+        parent_id, 
+        title,
+        CAST('' AS TEXT) AS parent_path
+    FROM toc
+    WHERE parent_id IS NULL OR parent_id = 0
+    
+    UNION ALL
+    
+    SELECT 
+        t.id, 
+        t.parent_id, 
+        t.title,
+        CASE 
+            WHEN th.parent_path = '' THEN th.title 
+            ELSE th.parent_path || ' > ' || th.title 
+        END
+    FROM toc t
+    JOIN toc_hierarchy th ON t.parent_id = th.id
+)
+SELECT 
+    b.name AS book_name,
+    t.id AS toc_id,
+    t.parent_id AS parent_id,
+    t.title AS toc_title,
+    h.parent_path AS breadcrumbs, 
+    t.page AS toc_page,
+    t.level AS toc_level,
+    t.`offset` AS toc_offset,
+    t.scale AS toc_scale,
+    t.translate AS toc_translate
+FROM books AS b 
+LEFT JOIN toc AS t ON b.id = t.book_id_fk 
+LEFT JOIN toc_hierarchy h ON t.id = h.id
+LEFT JOIN categories AS c ON b.category = c.id OR b.sub_category = c.id
+WHERE t.title LIKE ? 
+$categoryFilter
+GROUP BY t.id
+""".trimIndent()
+
+        val cursor = db.rawQuery(sql, selectionArgs)
+
+        cursor.use { cursor ->
+            while (cursor.moveToNext()) {
+                // 1. Check for null title first
+                val titleIndex = cursor.getColumnIndexOrThrow("toc_title")
+                if (cursor.isNull(titleIndex)) continue
+
+                val rawTitle = cursor.getString(titleIndex)
+
+                // 2. Fix the breadcrumbs/hierarchy logic
+                val breadcrumbs = cursor.getString(cursor.getColumnIndexOrThrow("breadcrumbs"))
+                val hierarchyField = if (breadcrumbs.isNullOrBlank()) null else breadcrumbs
+
+                // 3. Extract other fields
+                val bookTitle = cursor.getString(cursor.getColumnIndexOrThrow("book_name"))
+                val tocId = cursor.getLong(cursor.getColumnIndexOrThrow("toc_id"))
+                val page = cursor.getInt(cursor.getColumnIndexOrThrow("toc_page"))
+                val level = cursor.getInt(cursor.getColumnIndexOrThrow("toc_level"))
+
+                val parentId = if (cursor.isNull(cursor.getColumnIndexOrThrow("parent_id")))
+                    null else cursor.getInt(cursor.getColumnIndexOrThrow("parent_id"))
+
+                val offset = if (cursor.isNull(cursor.getColumnIndexOrThrow("toc_offset")))
+                    0f else cursor.getFloat(cursor.getColumnIndexOrThrow("toc_offset"))
+
+                val scale = if (cursor.isNull(cursor.getColumnIndexOrThrow("toc_scale")))
+                    1f else cursor.getFloat(cursor.getColumnIndexOrThrow("toc_scale"))
+
+                val translate = if (cursor.isNull(cursor.getColumnIndexOrThrow("toc_translate")))
+                    0f else cursor.getFloat(cursor.getColumnIndexOrThrow("toc_translate"))
+
+                // 4. Build the Item
+                list.add(
+                    TocItem(
+                        tocId = tocId,
+                        bookTitle = bookTitle,
+                        parentId = parentId,
+                        title = rawTitle,        // Just the clean title
+                        hierarchy = hierarchyField, // Just the parents
+                        page = page,
+                        level = level,
+                        offset = offset,
+                        scale = scale,
+                        translate = translate
+                    )
+                )
+            }
+        }
+        return list
+    }
+
+    suspend fun getCoverUrl(title: String, author: String): String? {
+        val retrofit = Retrofit.Builder()
+            .baseUrl("https://openlibrary.org/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+
+        val api = retrofit.create(OpenLibraryApi::class.java)
+
+        val response = api.searchBook(title, author)
+
+        val coverId = response.docs.firstOrNull()?.cover_i
+        return coverId?.let {
+            "https://covers.openlibrary.org/b/id/${it}-L.jpg"
+        }
+    }
+
+    private suspend fun downloadAndSaveCover(
+        title: String,
+        author: String,
+        thumbnailFile: File,
+        targetWidth: Int,
+        targetHeight: Int
     ): Boolean {
         return try {
-            val hashName = "${sha}.png"
-            val thumbnailFile = File(this.context.filesDir, hashName)  // <--- use 'this.context'
-            if (thumbnailFile.exists()) return true
+            val coverUrl = getCoverUrl(title, author) ?: return false
 
+            val client = OkHttpClient()
+            val request = Request.Builder().url(coverUrl).build()
+
+            val response = client.newCall(request).execute()
+            if (!response.isSuccessful) return false
+            val originalBitmap = BitmapFactory.decodeStream(response.body.byteStream())
+            val resultBitmap = createBitmap(targetWidth, targetHeight)
+            val canvas = Canvas(resultBitmap)
+
+            val matrix: GraphicsMatrix = GraphicsMatrix().apply {
+                postScale(
+                    targetWidth / originalBitmap.width.toFloat(),
+                    targetHeight / originalBitmap.height.toFloat()
+                )
+            }
+            canvas.drawBitmap(originalBitmap, matrix, null)
+
+            withContext(Dispatchers.IO) {
+                FileOutputStream(thumbnailFile).use { out ->
+                    resultBitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+                }
+            }
+
+
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    private fun generateBookCoverFromFirstPage(
+        thumbnailFile: File,
+        document: Document,
+        targetWidth: Int,
+        targetHeight: Int
+    ): Boolean {
+        return try {
             val page = document.loadPage(0)
             val bounds = page.bounds
             val pageWidth = bounds.x1 - bounds.x0
@@ -322,12 +546,11 @@ class DatabaseHelper(private val context: Context) :
 
             val scaleX = targetWidth / pageWidth
             val scaleY = targetHeight / pageHeight
-            val scale = minOf(scaleX, scaleY)
 
-            val bitmap = createBitmap((pageWidth * scale).toInt(), (pageHeight * scale).toInt())
+            val bitmap = createBitmap(targetWidth, targetHeight)
 
             val device = AndroidDrawDevice(bitmap, 0, 0)
-            page.run(device, Matrix(scale, scale), null)
+            page.run(device, Matrix(scaleX, scaleY), null)
 
             device.close()
             device.destroy()
@@ -337,6 +560,46 @@ class DatabaseHelper(private val context: Context) :
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
             }
             true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    private suspend fun generateBookCoverThumbnail(
+        sha: String,
+        document: Document,
+        bookTitle: String?,
+        bookAuthor: String?,
+        targetWidth: Int = 200,
+        targetHeight: Int = 300
+    ): Boolean {
+        return try {
+            val hashName = "${sha}.png"
+            val thumbnailFile = File(this.context.filesDir, hashName)  // <--- use 'this.context'
+            if (thumbnailFile.exists()) return true
+
+            val firstPage = FunctionalStructuredTextWalker().getPageCoordinates(document, 0)
+            val generated = if (firstPage.imageIsFullPage) {
+                generateBookCoverFromFirstPage(
+                    thumbnailFile,
+                    document,
+                    targetWidth,
+                    targetHeight
+                )
+            } else if (bookTitle != null && bookAuthor != null) {
+                downloadAndSaveCover(
+                    bookTitle,
+                    bookAuthor,
+                    thumbnailFile,
+                    targetWidth,
+                    targetHeight
+                )
+            } else {
+                false
+            }
+            generated
+
         } catch (e: Exception) {
             e.printStackTrace()
             false
@@ -473,13 +736,13 @@ class DatabaseHelper(private val context: Context) :
         val db = writableDatabase
         val list = mutableListOf<FileItem>()
         val sql = """
-            SELECT DISTINCT b.sha AS book_sha, b.name AS book_name, c.category AS main_category, sc.category AS sub_category , b.location as book_location
+            SELECT DISTINCT b.sha AS book_sha, b.name AS book_name, c.category AS main_category, sc.category AS sub_category , b.location as book_location, b.author as author_name
             FROM  books AS b
             LEFT JOIN  categories AS c
             ON c.id = b.category
             LEFT JOIN  categories AS sc
             ON sc.id = b.sub_category
-            ORDER BY (b.sub_category IS NULL) ASC, b.sub_category ASC, (b.category  IS NULL) ASC, b.category  ASC;
+            ORDER BY (b.sub_category IS NULL) ASC, b.sub_category ASC, (b.category  IS NULL) ASC, b.category  ASC, b.author;
         """.trimIndent()
         val cursor = db.rawQuery(
             sql,
@@ -492,8 +755,9 @@ class DatabaseHelper(private val context: Context) :
                 val mainCategory = cursor.getString(cursor.getColumnIndexOrThrow("main_category"))
                 val subCategory = cursor.getString(cursor.getColumnIndexOrThrow("sub_category"))
                 val location = cursor.getString(cursor.getColumnIndexOrThrow("book_location"))
+                val author = cursor.getString(cursor.getColumnIndexOrThrow("author_name"))
                 val file = File(location)
-                val bookInfo = BookInfo(sha, name, mainCategory, subCategory)
+                val bookInfo = BookInfo(sha, name, mainCategory, subCategory, author)
                 list.add(FileItem(file, file.name, bookInfo))
             }
         }
@@ -601,5 +865,38 @@ class DatabaseHelper(private val context: Context) :
         }
         recurse(outline)
         return result
+    }
+
+    fun getBook(location: String): Book? {
+        val db = writableDatabase
+        return db.query(
+            "books",
+            arrayOf(
+                "id", "sha", "name", "location", "author",
+                "last_opened", "toc_created", "toc_unavailable",
+                "category", "sub_category", "alternate_cover"
+            ),
+            "location = ?",
+            arrayOf(location),
+            null,
+            null,
+            null
+        ).use { cursor ->
+            if (cursor.moveToFirst()) {
+                Book(
+                    id = cursor.getLong(cursor.getColumnIndexOrThrow("id")),
+                    sha = cursor.getString(cursor.getColumnIndexOrThrow("sha")),
+                    name = cursor.getString(cursor.getColumnIndexOrThrow("name")),
+                    location = cursor.getString(cursor.getColumnIndexOrThrow("location")),
+                    author = cursor.getString(cursor.getColumnIndexOrThrow("author")),
+                    lastOpened = cursor.getLongOrNull(cursor.getColumnIndexOrThrow("last_opened")),
+                    tocCreated = cursor.getLongOrNull(cursor.getColumnIndexOrThrow("toc_created")),
+                    tocUnavailable = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("toc_unavailable")),
+                    category = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("category")),
+                    subCategory = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("sub_category")),
+                    alternateCover = cursor.getString(cursor.getColumnIndexOrThrow("alternate_cover"))
+                )
+            } else null
+        }
     }
 }

@@ -103,7 +103,9 @@ class FileAdapter(
 
             itemView.setOnClickListener { onClick(item.file) }
             itemView.setOnLongClickListener {
-                onLongClick?.invoke(item.file)
+                if (item.bookInfo != null){
+                    onLongClick?.invoke(item.file)
+                }
                 true
             }
         }

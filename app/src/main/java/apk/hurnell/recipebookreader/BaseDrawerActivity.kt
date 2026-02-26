@@ -2,14 +2,17 @@ package apk.hurnell.recipebookreader
 
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Typeface
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.widget.ArrayAdapter
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
+import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
@@ -21,6 +24,7 @@ import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.lifecycleScope
 import apk.hurnell.recipebookreader.helpers.PdfRepository
+import apk.hurnell.recipebookreader.model.Book
 import apk.hurnell.recipebookreader.ui.EditableCategoryView
 import apk.hurnell.recipebookreader.ui.EditableTextView
 import com.artifex.mupdf.fitz.Matrix
@@ -34,6 +38,11 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
 
     lateinit var drawerLayout: DrawerLayout
     private lateinit var toggle: ActionBarDrawerToggle
+
+    protected lateinit var repository: PdfRepository
+    protected var categories = mutableListOf("All")
+    protected var currentCategory = "All"
+    protected lateinit var spinner: Spinner
 
 
     protected lateinit var loadingOverlay: LinearLayout
@@ -64,13 +73,26 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         onBackPressedDispatcher.addCallback(this, drawerBackCallback)
     }
+
     abstract fun refreshFilesAndUI()
 
     override fun setContentView(layoutResID: Int) {
         super.setContentView(layoutResID)
         initBaseViews()
     }
+    protected  fun refreshCategories() {
+        val usedCategories = repository.getUsedCategories()
 
+        val set = LinkedHashSet<String>()
+        set.add("All") // always first
+        usedCategories.forEach { if (it.isNotBlank()) set.add(it) }
+
+        categories = set.toMutableList()
+
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, categories)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spinner.adapter = adapter
+    }
     protected fun processAndOpenBook(pdfFile: File) {
         loadingOverlay.visibility = View.VISIBLE
 
@@ -120,39 +142,23 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val repository = PdfRepository(this@BaseDrawerActivity)
-                val currentDocument = runCatching {
-                    repository.openPdfFast(pdfFile)
-                }.getOrElse {
-                    Log.e(LOG_TAG, "Failed to open document", it)
-                    finish()
-                    return@launch
-                }
-                val book = repository.getOrCreateBook(
-                    pdfFile,
-                    pdfFile.absolutePath,
-                    currentDocument,
-                    false
+                val book: Book = repository.getBook(
+                    pdfFile.absolutePath
                 ) ?: run {
-                    Log.e(LOG_TAG, "Failed to create or fetch book")
+                    Log.e(LOG_TAG, "Failed to get book")
                     finish()
                     return@launch
                 }
-                val firstPageBitmap: Bitmap? = try {
-                    val page = currentDocument.loadPage(0)
-                    val width = 600
-
-                    val pageWidth = page.bounds.x1 - page.bounds.x0
-                    val pageHeight = page.bounds.y1 - page.bounds.y0
-                    val scale = width / pageWidth
-                    val height = (width.toFloat() / pageWidth * pageHeight).toInt()
-                    val bitmap = createBitmap(width, height)
-                    val device = AndroidDrawDevice(bitmap, 0, 0)
-                    page.run(device, Matrix(scale, scale), null)
-                    bitmap
-                } catch (e: Exception) {
-                    Log.e("NIGEL_HURNELL", "Failed to render first page: ${e.message}", e)
-                    null
+                val previewImage = bookPreviewImage ?: run {
+                    finish()
+                    return@launch
                 }
+
+                val thumbnailFile = File(
+                    previewImage.context.filesDir,
+                    "${book.sha}.png"
+                )
+
                 withContext(Dispatchers.Main) {
                     bookTitle?.setParams(book.name ?: pdfFile.name, "Title", Typeface.BOLD)
                     bookTitle?.onAccept { newText ->
@@ -182,13 +188,16 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
 
                         if (categoryId != null) {
                             repository.updateBookCategory(book.id, "sub_category", categoryId)
-                        } else {
+                        } else if (name.isNotBlank()) {
                             val newId = repository.createCategory(name)
                             repository.updateBookCategory(book.id, "sub_category", newId)
                             bookSubCategory?.setNewCategoryId(newId.toInt())
                         }
                     }
-                    bookPreviewImage?.setImageBitmap(firstPageBitmap)
+                    val bitmap = BitmapFactory.decodeFile(thumbnailFile.absolutePath)
+
+                    previewImage.setImageBitmap(bitmap)
+                    bookPreviewImage?.setImageBitmap(bitmap)
 
                     bookSavePath?.text = book.location
                     overlayContainer?.visibility = View.VISIBLE

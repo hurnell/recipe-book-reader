@@ -11,6 +11,8 @@ import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
 import apk.hurnell.recipebookreader.BaseDrawerActivity
 import apk.hurnell.recipebookreader.BookShelfActivity
+import apk.hurnell.recipebookreader.BookmarksActivity
+import apk.hurnell.recipebookreader.EveryTocActivity
 import apk.hurnell.recipebookreader.FileBrowserActivity
 import apk.hurnell.recipebookreader.R
 import apk.hurnell.recipebookreader.RecentFilesActivity
@@ -31,6 +33,8 @@ class ControlFragment : Fragment() {
         val btnRecentBooks = view.findViewById<Button>(R.id.btnRecentBooks)
         val btnBookShelf = view.findViewById<Button>(R.id.btnBookShelf)
         val btnBrowseFiles = view.findViewById<Button>(R.id.btnBrowseFiles)
+        val btnSearchEveryToc = view.findViewById<Button>(R.id.btnSearchEveryToc)
+        val btnBookmarks = view.findViewById<Button>(R.id.btnBookmarks)
 
         btnRecentBooks.setOnClickListener {
             navigateTo(RecentFilesActivity::class.java)
@@ -54,13 +58,25 @@ class ControlFragment : Fragment() {
                         drawer.removeDrawerListener(this)
 
                         val intent = Intent(requireContext(), FileBrowserActivity::class.java)
-                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                        intent.flags =
+                            Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                         startActivity(intent)
-                        current.overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+                        current.overridePendingTransition(
+                            android.R.anim.fade_in,
+                            android.R.anim.fade_out
+                        )
                         current.finish()
                     }
                 })
             }
+        }
+
+        btnSearchEveryToc.setOnClickListener {
+            navigateTo(EveryTocActivity::class.java)
+        }
+        btnBookmarks.setOnClickListener {
+            navigateTo(BookmarksActivity::class.java)
+
         }
     }
 
@@ -83,7 +99,10 @@ class ControlFragment : Fragment() {
 
                 startActivity(intent)
 
-                currentActivity.overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+                currentActivity.overridePendingTransition(
+                    android.R.anim.fade_in,
+                    android.R.anim.fade_out
+                )
 
                 if (currentActivity !is FileBrowserActivity) {
                     currentActivity.finish()

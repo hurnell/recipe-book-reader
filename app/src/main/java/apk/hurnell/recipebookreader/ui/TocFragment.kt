@@ -170,6 +170,7 @@ class TocFragment : Fragment() {
         fun build(parentId: Long?): List<TocItem> {
             return childrenMap[parentId]?.map { row ->
                 TocItem(
+                    tocId = row.id,
                     title = row.title,
                     page = row.page,
                     level = row.level,
