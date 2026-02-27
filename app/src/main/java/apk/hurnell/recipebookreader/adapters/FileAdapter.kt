@@ -21,7 +21,7 @@ class FileAdapter(
     private val onClick: (File) -> Unit,
     private val onLongClick: ((File) -> Unit)? = null,
     private val repository: PdfRepository,
-    private val onlyPdf: Boolean = true
+    private val pdfOnly: Boolean = true
 ) : ListAdapter<FileItem, FileAdapter.FileViewHolder>(DiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FileViewHolder {
@@ -31,7 +31,7 @@ class FileAdapter(
     }
 
     override fun onBindViewHolder(holder: FileViewHolder, position: Int) {
-        holder.bind(getItem(position), onClick, onLongClick, repository, onlyPdf)
+        holder.bind(getItem(position), onClick, onLongClick, repository, pdfOnly)
     }
 
     class FileViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -54,9 +54,9 @@ class FileAdapter(
             fileIcon.layoutParams = layoutParams
         }
 
-        fun isFileType(extension: String, onlyPdf: Boolean): Boolean {
+        fun isFileType(extension: String, pdfOnly: Boolean): Boolean {
             val isPdf = extension.equals("pdf", true)
-            if (onlyPdf) {
+            if (pdfOnly) {
                 return isPdf
             }
             val isPng = extension.equals("png", true)
@@ -81,13 +81,13 @@ class FileAdapter(
             onClick: (File) -> Unit,
             onLongClick: ((File) -> Unit)?,
             repository: PdfRepository,
-            onlyPdf: Boolean
+            pdfOnly: Boolean
         ) {
             fileName.text = item.displayName
 
             val countText = if (item.file.isDirectory) {
                 val children = item.file.listFiles()?.filter { child ->
-                    child.canRead() && (child.isDirectory || isFileType(child.extension, onlyPdf))
+                    child.canRead() && (child.isDirectory || isFileType(child.extension, pdfOnly))
                 } ?: emptyList()
 
                 "(${children.size})"
@@ -143,7 +143,6 @@ class FileAdapter(
         }
 
         override fun areContentsTheSame(oldItem: FileItem, newItem: FileItem): Boolean {
-            // Compare name and bookInfo.sha (or thumbnail presence)
             return oldItem.displayName == newItem.displayName &&
                     oldItem.bookInfo?.sha == newItem.bookInfo?.sha &&
                     oldItem.lastModified == newItem.lastModified

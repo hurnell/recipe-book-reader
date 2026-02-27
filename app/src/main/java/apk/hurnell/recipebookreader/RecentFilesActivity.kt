@@ -31,7 +31,8 @@ class RecentFilesActivity : BaseDrawerActivity() {
         adapter = FileAdapter(
             onClick = { file -> onFileClick(file) },
             onLongClick = { file -> showBookInfoOverlay(file) },
-            repository = repository
+            repository = repository,
+            true
         )
         recyclerView.adapter = adapter
         refreshFileList()

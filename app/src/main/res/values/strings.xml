@@ -60,5 +60,8 @@
     <string name="search_online">Search online</string>
     <string name="close_gallery">Close gallery</string>
     <string name="optional_book_cover">Optional Book Cover</string>
+    <string name="cancel_cover_creation">Cancel</string>
+    <string name="accept_cover_creation">Accept</string>
+    <string name="preview_image_of_possible_new_book_cover">Preview Image Of Possible New Book COver</string>
 
 </resources>

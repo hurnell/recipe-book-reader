@@ -17,6 +17,7 @@ import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
@@ -154,23 +155,30 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
 
     }
 
-    fun searchFileSystemForBookCovers(book: Book){
-        var nextVisibility = View.GONE
-        if ( btnSearchCovers?.visibility == View.GONE){
-            nextVisibility = View.VISIBLE
+    private val fileBrowserLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val updatedSha = result.data?.getStringExtra("updated_sha")
+            refreshCoverForSha(updatedSha)
         }
-        btnSearchCovers?.visibility = nextVisibility
-
-
     }
-    fun showPossibleBookCovers(book: Book) {
 
+    fun searchFileSystemForBookCovers(book: Book) {
+        val intent = Intent(this@BaseDrawerActivity, FileBrowserActivity::class.java).apply {
+            putExtra(FileBrowserActivity.EXTRA_PDF_ONLY, false)
+            putExtra(FileBrowserActivity.EXTRA_TARGET_SHA, book.sha)
+        }
+        fileBrowserLauncher.launch(intent)
+    }
+
+    fun showPossibleBookCovers(book: Book) {
         btnSearchCovers?.visibility = View.GONE
         btnPickCover?.visibility = View.GONE
-        if(book.name != null && book.author != null) {
+        if (book.name != null && book.author != null) {
             lifecycleScope.launch {
                 val urls = GetCoverUrlHelper().getAllAvailableCovers(book)
-                for (url in urls){
+                for (url in urls) {
                     Log.e("A", url)
                 }
                 if (urls.isNotEmpty()) {
@@ -180,7 +188,6 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                     btnSearchCovers?.visibility = View.GONE
                     btnPickCover?.visibility = View.GONE
 
-                    // Set up RecyclerView
                     coverOptionsRecycler?.adapter = CoverPickerAdapter(urls) { selectedUrl ->
                         // User picked one!
                         // 1. Load it into the main preview
@@ -219,6 +226,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
 
         }
     }
+
     private fun saveCoverAsPng(url: String, sha: String): Boolean {
         return try {
             // 1. Fetch the bitmap from Glide synchronously (must be on IO thread)
@@ -228,21 +236,31 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                 .submit()
                 .get() // This waits for the download to finish
 
-            // 2. Prepare the destination file
-            val hashName = "${sha}.png"
-            val thumbnailFile = File(this.filesDir, hashName)
-
-            // 3. Save as PNG
-            FileOutputStream(thumbnailFile).use { out ->
-                bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
-                out.flush()
-            }
+            saveBitmapAsCover(bitmap, sha)
             true
         } catch (e: Exception) {
             Log.e("SAVE_COVER", "Error saving PNG for $sha", e)
             false
         }
     }
+
+    protected fun saveBitmapAsCover(bitmap: Bitmap, sha: String): Boolean {
+        return try {
+            val hashName = "${sha}.png"
+            val thumbnailFile = File(this.filesDir, hashName)
+
+            FileOutputStream(thumbnailFile).use { out ->
+                // Use 100 quality for PNG (though quality is ignored for PNG as it is lossless)
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+                out.flush()
+            }
+            true
+        } catch (e: Exception) {
+            Log.e("SAVE_COVER", "Error writing bitmap to disk for $sha", e)
+            false
+        }
+    }
+
     protected fun showBookInfoOverlay(
         pdfFile: File
     ) {
@@ -340,7 +358,13 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         }
     }
 
-    private fun setResetPreviewImage(sha: String, previewImage:ImageView){
+    protected fun refreshCoverForSha(updatedSha: String?) {
+        if (updatedSha != null && bookPreviewImage != null) {
+            setResetPreviewImage(updatedSha, bookPreviewImage!!)
+        }
+    }
+
+    private fun setResetPreviewImage(sha: String, previewImage: ImageView) {
         val thumbnailFile = File(
             previewImage.context.filesDir,
             "${sha}.png"
@@ -350,6 +374,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         previewImage.setImageBitmap(bitmap)
         bookPreviewImage?.setImageBitmap(bitmap)
     }
+
     protected fun hideBookInfoOverlay() {
         bookInfoOverlay?.animate()
             ?.alpha(0f)
