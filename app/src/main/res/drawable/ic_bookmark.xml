@@ -2,11 +2,19 @@
     android:width="24dp"
     android:height="24dp"
     android:tint="@color/dark_gray"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
+    android:viewportWidth="960"
+    android:viewportHeight="960">
 
     <path
-        android:fillColor="@android:color/white"
+        android:fillColor="#55FFFFFF"
         android:pathData="M17,3H7c-1.1,0 -1.99,0.9 -1.99,2L5,21l7,-3 7,3V5c0,-1.1 -0.9,-2 -2,-2z" />
-
+    <group
+        android:scaleX="40"
+        android:scaleY="40"
+        android:translateX="288"
+        android:translateY="72">
+        <path
+            android:fillColor="@color/white"
+            android:pathData="M8,16.584 L7.199,15.783 C5.851,14.435 3.98,14.603 2.879,15.705 L2,16.584 L2,3 C2,2.448 2.448,2 3,2 L7,2 C7.552,2 8,2.448 8,3 L8,16.584 Z M8,0 L2,0 C0.895,0 0,0.896 0,2 L0,18.998 C0,19.887 1.076,20.336 1.707,19.705 L4.293,17.12 C4.683,16.729 5.317,16.729 5.707,17.12 L8.293,19.705 C8.924,20.336 10,19.887 10,18.998 L10,2 C10,0.896 9.105,0 8,0 L8,0 Z" />
+    </group>
 </vector>
