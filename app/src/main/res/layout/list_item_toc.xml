@@ -5,13 +5,14 @@
     android:background="?attr/selectableItemBackground"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingHorizontal="16dp"
+    android:paddingHorizontal="4dp"
     android:paddingVertical="8dp">
 
     <ImageView
         android:id="@+id/ivArrow"
         android:layout_width="32dp"
         android:layout_height="32dp"
+        android:layout_marginStart="-4dp"
         android:contentDescription="@string/expand"
         android:padding="8dp"
         android:src="@drawable/ic_chevron_right" />
@@ -23,6 +24,7 @@
         android:ellipsize="end"
         android:padding="5dp"
         android:maxLines="1"
+        android:layout_marginStart="-4dp"
         android:textColor="@android:color/black"
         android:textSize="16sp" />
 </LinearLayout>
