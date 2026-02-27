@@ -53,7 +53,7 @@
             android:padding="2dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/generic_editable_text_view_edit_button"
-            android:src="@drawable/ic_edit" />
+            android:src="@android:drawable/ic_menu_rotate" />
 
         <ImageButton
             android:id="@+id/cancelButton"
