@@ -16,21 +16,22 @@
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         app:layout_constraintTop_toTopOf="parent"
+        android:paddingStart="0dp"
+        android:paddingEnd="16dp"
         app:navigationIcon="?attr/homeAsUpIndicator"
         android:background="@color/pastel_blue"
-        app:title="Table of Contents" />
+        app:title="TOC" />
 
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/tocRecyclerView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginStart="16dp"
         android:layout_weight="1"
         android:clipToPadding="false" />
 
     <LinearLayout
-        android:id="@+id/controlBar"
+        android:id="@+id/tocSearchBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="#F5F5F5"
