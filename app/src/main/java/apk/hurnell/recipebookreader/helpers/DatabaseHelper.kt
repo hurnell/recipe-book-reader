@@ -898,4 +898,37 @@ GROUP BY t.id
         }
         db.update("books", values, "id = ?", arrayOf(bookId.toString()))
     }
+
+    fun currentQuery(currentText: String, currentCategory: String): Long {
+        val db = readableDatabase
+        val selectionArgs = if (currentCategory == "All") {
+            arrayOf("%$currentText%")
+        } else {
+            arrayOf("%$currentText%", currentCategory)
+        }
+        val categoryFilter = if (currentCategory == "All") "" else "AND c.category = ?"
+
+        // We wrap the core logic in a COUNT(*) to let SQLite do the heavy lifting
+        val sql = """
+        SELECT COUNT(*) FROM (
+            WITH RECURSIVE toc_hierarchy AS (
+                SELECT id, parent_id FROM toc WHERE parent_id IS NULL OR parent_id = 0
+                UNION ALL
+                SELECT t.id, t.parent_id FROM toc t JOIN toc_hierarchy th ON t.parent_id = th.id
+            )
+            SELECT t.id
+            FROM books AS b 
+            LEFT JOIN toc AS t ON b.id = t.book_id_fk 
+            LEFT JOIN categories AS c ON b.category = c.id OR b.sub_category = c.id
+            WHERE t.title LIKE ? 
+            $categoryFilter
+            GROUP BY t.id
+        )
+    """.trimIndent()
+
+        return db.compileStatement(sql).run {
+            bindAllArgsAsStrings(selectionArgs)
+            simpleQueryForLong() // Returns the first column of the first row
+        }
+    }
 }

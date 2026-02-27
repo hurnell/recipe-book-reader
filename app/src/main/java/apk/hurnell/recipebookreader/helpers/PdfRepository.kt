@@ -117,4 +117,8 @@ class PdfRepository(
             DatabaseHelper(context).updateBookIsbn(bookId, foundIsbn)
         }
     }
+
+    fun searchBooks(currentText: String, currentCategory: String): Long {
+        return dbHelper.currentQuery(currentText, currentCategory)
+    }
 }

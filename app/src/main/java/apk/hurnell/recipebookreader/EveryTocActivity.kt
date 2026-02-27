@@ -1,5 +1,6 @@
 package apk.hurnell.recipebookreader
 
+import android.R.attr.delay
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -18,15 +19,22 @@ import apk.hurnell.recipebookreader.model.TocItem
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import android.content.Context
 import android.view.inputmethod.InputMethodManager
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.snackbar.Snackbar
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 
 class EveryTocActivity : BaseDrawerActivity() {
-
+    private var searchJob: Job? = null
     private lateinit var adapter: EveryTocAdapter
     private lateinit var filterInput: EditText
     private lateinit var resultCountTextView: TextView
     private lateinit var clearSearch: ImageButton
+    private lateinit var searchToc: ImageButton
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -80,7 +88,7 @@ class EveryTocActivity : BaseDrawerActivity() {
 
         filterInput = findViewById(R.id.filterInput)
 
-        val searchToc: ImageButton = findViewById(R.id.searchToc)
+        searchToc = findViewById(R.id.searchToc)
         searchToc.setOnClickListener {
             it.hideKeyboard()
             applyChosenTextAndCategory()
@@ -102,6 +110,7 @@ class EveryTocActivity : BaseDrawerActivity() {
             it.hideKeyboard()
             filterInput.text.clear()
             clearSearch.visibility = View.GONE
+            searchToc.visibility = View.GONE
             resultCountTextView.text = ""
             adapter.submitList(null)
         }
@@ -110,11 +119,11 @@ class EveryTocActivity : BaseDrawerActivity() {
     }
 
     fun applyChosenTextAndCategory() {
-        val currentText = filterInput.text.toString()
+        val currentText = filterInput.text.toString().trim()
 
         if (currentText != "") {
             val everyToc: List<TocItem> =
-                repository.getFilteredEveryToc(currentText.trim(), currentCategory)
+                repository.getFilteredEveryToc(currentText, currentCategory)
             resultCountTextView.text = "${everyToc.size}"
             adapter.submitList(everyToc)
         } else {
@@ -152,8 +161,23 @@ class EveryTocActivity : BaseDrawerActivity() {
                     filterInput.setSelection(selection.coerceAtMost(filtered.length))
                     isUpdating = false
                 }
-                clearSearch.visibility =
-                    if (filterInput.text.toString().isEmpty()) View.GONE else View.VISIBLE
+                val bv = if (filterInput.text.toString().isEmpty()) View.INVISIBLE else View.VISIBLE
+                clearSearch.visibility = bv
+                searchToc.visibility = bv
+                searchJob?.cancel() // Cancel the previous search if user typed again
+                searchJob = lifecycleScope.launch {
+                    delay(300)
+                    val currentText = filterInput.text.toString().trim()
+                    var display = ""
+                    if (currentText.isNotEmpty()){
+                        val count = withContext(Dispatchers.IO) {
+                            repository.searchBooks(currentText, currentCategory) // Your DB call here
+                        }
+                        display= "$count"
+                    }
+                    resultCountTextView.text = display
+
+                }
             }
         })
     }

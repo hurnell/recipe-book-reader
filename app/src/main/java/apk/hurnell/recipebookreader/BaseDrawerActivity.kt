@@ -21,6 +21,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.lifecycleScope
@@ -102,8 +103,8 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
 
         categories = set.toMutableList()
 
-        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, categories)
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        val adapter = ArrayAdapter(this, R.layout.spinner_item, categories)
+        adapter.setDropDownViewResource(R.layout.spinner_item)
         spinner.adapter = adapter
     }
 
@@ -397,13 +398,13 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
     protected fun setupDrawer(toolbar: Toolbar) {
         drawerLayout = findViewById(R.id.drawer_layout)
         setSupportActionBar(toolbar)
-
         window.statusBarColor = getColor(R.color.pastel_blue)
 
         toggle = ActionBarDrawerToggle(
             this, drawerLayout, toolbar,
             R.string.navigation_drawer_open, R.string.navigation_drawer_close
         )
+        toggle.drawerArrowDrawable.color = ContextCompat.getColor(this, R.color.dark_gray)
         drawerLayout.addDrawerListener(toggle)
         toggle.syncState()
     }

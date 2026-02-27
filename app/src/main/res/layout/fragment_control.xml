@@ -57,7 +57,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="start|center_vertical"
                 android:text="@string/recent_books"
-                android:textColor="@color/black"
+                android:textColor="@color/dark_gray"
                 android:textAllCaps="false" />
         </LinearLayout>
 
@@ -86,7 +86,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="start|center_vertical"
                 android:text="@string/book_shelf"
-                android:textColor="@color/black"
+                android:textColor="@color/dark_gray"
                 android:textAllCaps="false" />
         </LinearLayout>
 
@@ -115,7 +115,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="start|center_vertical"
                 android:text="@string/browse_files"
-                android:textColor="@color/black"
+                android:textColor="@color/dark_gray"
                 android:textAllCaps="false" />
         </LinearLayout>
 
@@ -144,7 +144,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="start|center_vertical"
                 android:text="@string/search_tables_of_contents"
-                android:textColor="@color/black"
+                android:textColor="@color/dark_gray"
                 android:textAllCaps="false" />
         </LinearLayout>
         <View
@@ -172,7 +172,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="start|center_vertical"
                 android:text="@string/bookmarks"
-                android:textColor="@color/black"
+                android:textColor="@color/dark_gray"
                 android:textAllCaps="false" />
         </LinearLayout>
 
