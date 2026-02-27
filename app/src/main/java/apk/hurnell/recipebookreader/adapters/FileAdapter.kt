@@ -14,12 +14,14 @@ import apk.hurnell.recipebookreader.R
 import apk.hurnell.recipebookreader.helpers.PdfRepository
 import apk.hurnell.recipebookreader.model.BookInfo
 import apk.hurnell.recipebookreader.model.FileItem
+import kotlin.io.extension
 
 
 class FileAdapter(
     private val onClick: (File) -> Unit,
     private val onLongClick: ((File) -> Unit)? = null,
-    private val repository: PdfRepository
+    private val repository: PdfRepository,
+    private val onlyPdf: Boolean = true
 ) : ListAdapter<FileItem, FileAdapter.FileViewHolder>(DiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FileViewHolder {
@@ -29,7 +31,7 @@ class FileAdapter(
     }
 
     override fun onBindViewHolder(holder: FileViewHolder, position: Int) {
-        holder.bind(getItem(position), onClick, onLongClick, repository)
+        holder.bind(getItem(position), onClick, onLongClick, repository, onlyPdf)
     }
 
     class FileViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -52,17 +54,40 @@ class FileAdapter(
             fileIcon.layoutParams = layoutParams
         }
 
+        fun isFileType(extension: String, onlyPdf: Boolean): Boolean {
+            val isPdf = extension.equals("pdf", true)
+            if (onlyPdf) {
+                return isPdf
+            }
+            val isPng = extension.equals("png", true)
+            val isJpg = extension.equals("jpg", true)
+            val isJpeg = extension.equals("jpeg", true)
+            return isJpg || isPng || isJpeg
+        }
+
+        fun getIconResource(file: File): Int {
+            val extension = file.extension
+            if (extension == "pdf") {
+                return R.drawable.ic_pdf_file
+            }
+            if (extension == "png"){
+                return R.drawable.ic_png_file
+            }
+            return R.drawable.ic_jpg_file
+        }
+
         fun bind(
             item: FileItem,
             onClick: (File) -> Unit,
             onLongClick: ((File) -> Unit)?,
-            repository: PdfRepository
+            repository: PdfRepository,
+            onlyPdf: Boolean
         ) {
             fileName.text = item.displayName
 
             val countText = if (item.file.isDirectory) {
                 val children = item.file.listFiles()?.filter { child ->
-                    child.canRead() && (child.isDirectory || child.extension.equals("pdf", true))
+                    child.canRead() && (child.isDirectory || isFileType(child.extension, onlyPdf))
                 } ?: emptyList()
 
                 "(${children.size})"
@@ -79,7 +104,8 @@ class FileAdapter(
                 fileIcon.setImageResource(R.drawable.ic_folder)
             } else if (bookInfo == null) {
                 updateIconLayout(fileIcon, false)
-                fileIcon.setImageResource(R.drawable.ic_pdf_file)
+
+                fileIcon.setImageResource(getIconResource(item.file))
             } else {
                 fileName.text = bookInfo.name
                 bookInfo.let { info ->

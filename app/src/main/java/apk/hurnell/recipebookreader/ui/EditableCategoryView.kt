@@ -54,6 +54,7 @@ class EditableCategoryView @JvmOverloads constructor(
         attrs?.let {
             val ta = context.obtainStyledAttributes(it, R.styleable.EditableCategoryView)
             try {
+
                 val defaultSizePx = resources.getDimension(R.dimen.default_category_text_size)
                 val sizeInPx = ta.getDimension(
                     R.styleable.EditableCategoryView_categoryTextSize,
