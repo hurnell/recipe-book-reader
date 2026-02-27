@@ -47,9 +47,11 @@ class EditableTextView @JvmOverloads constructor(
         attrs?.let {
             val ta = context.obtainStyledAttributes(it, R.styleable.EditableTextView)
             try {
-                val sizeInPx = ta.getDimension(R.styleable.EditableTextView_textSize, 18f)
+                val defaultSizePx = resources.getDimension(R.dimen.default_category_text_size)
+
+                val sizeInPx = ta.getDimension(R.styleable.EditableTextView_textSize, defaultSizePx)
                 context.withStyledAttributes(it, R.styleable.EditableTextView) {
-                    textView.textSize = getDimension(R.styleable.EditableTextView_textSize, 18f)
+                    textView.textSize = getDimension(R.styleable.EditableTextView_textSize, defaultSizePx)
                     textView.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, sizeInPx)
                     editText.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, sizeInPx)
                     if (ta.getBoolean(R.styleable.EditableTextView_bold, false)) {
