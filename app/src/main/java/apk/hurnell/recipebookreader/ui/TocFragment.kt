@@ -4,13 +4,11 @@ import android.content.Context
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
-import android.util.TypedValue
 import android.view.*
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.LinearLayout
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -21,8 +19,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import apk.hurnell.recipebookreader.model.TocItem
+import com.google.android.material.appbar.MaterialToolbar
 
 class TocFragment : Fragment() {
+    private lateinit var tocRecyclerView: RecyclerView
+    private lateinit var tocSearchBar: LinearLayout
+    private lateinit var toolbar: MaterialToolbar
 
     private var bookId: Int = -1
     private var onPageSelected: ((TocItem) -> Unit)? = null
@@ -39,15 +41,40 @@ class TocFragment : Fragment() {
         }
     }
 
+    private fun toggleVisibleChoices(showToc: Boolean) {
+
+        val tocItem = toolbar.menu.findItem(R.id.action_show_toc)!!
+        val bookmarkItem = toolbar.menu.findItem(R.id.action_show_bookmarks)!!
+        tocItem.isVisible = !showToc
+        bookmarkItem.isVisible = showToc
+        tocSearchBar.visibility = if (showToc) View.VISIBLE else View.GONE
+        tocRecyclerView.visibility = if (showToc) View.VISIBLE else View.GONE
+        toolbar.title = if (showToc) "TOC" else "Bookmarks"
+    }
+
+    private fun setupToolbar(view: View) {
+        toolbar = view.findViewById(R.id.tocToolbar)
+        toolbar.inflateMenu(R.menu.toc_toolbar_menu)
+        toolbar.setNavigationOnClickListener {
+            requireActivity().onBackPressedDispatcher.onBackPressed()
+        }
+        toolbar.setOnMenuItemClickListener { item ->
+            toggleVisibleChoices(
+                item.itemId == R.id.action_show_toc
+            )
+            true
+        }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
         val view = inflater.inflate(R.layout.fragment_toc, container, false)
-
-        val root = view.findViewById<LinearLayout>(R.id.tocRoot)
-        val tocRecyclerView = view.findViewById<RecyclerView>(R.id.tocRecyclerView)
+        setupToolbar(view)
+        tocRecyclerView = view.findViewById(R.id.tocRecyclerView)
+        tocSearchBar = view.findViewById(R.id.tocSearchBar)
         val searchField = view.findViewById<EditText>(R.id.searchField)
         val btnClear = view.findViewById<ImageButton>(R.id.btnClear)
         val btnToggle = view.findViewById<ImageButton>(R.id.btnToggle)
@@ -79,37 +106,26 @@ class TocFragment : Fragment() {
             hideKeyboard()
             searchField.clearFocus()
         }
-
-        ViewCompat.setOnApplyWindowInsetsListener(root) { _, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
-
-            val toolbar = view.findViewById<View>(R.id.tocToolbar)
-            toolbar.setPadding(0, systemBars.top, 0, 0)
-            val params = toolbar.layoutParams
-            params.height = TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP,
-                56f,
-                resources.displayMetrics
-            ).toInt() + systemBars.top
-            toolbar.layoutParams = params
-
-            val bottomInset = systemBars.bottom.coerceAtLeast(imeInsets.bottom)
-            root.setPadding(0, 0, 0, bottomInset)
-
-            insets
-        }
-
         return view
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        adapter = TocAdapter(tocData) { item ->
-            onPageSelected?.invoke(item)
-            hideKeyboard()
-        }
+        adapter = TocAdapter(
+            tocData,
+            onClick = { item ->
+                onPageSelected?.invoke(item)
+                hideKeyboard()
+            },
+            onLongClick = { item ->
+                Toast.makeText(
+                    context,
+                    "Please add  ${item.title} to bookmarks",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        )
 
         val tocRecyclerView = view.findViewById<RecyclerView>(R.id.tocRecyclerView)
         tocRecyclerView.adapter = adapter
@@ -195,5 +211,9 @@ class TocFragment : Fragment() {
         val imm =
             requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
         view?.let { imm.hideSoftInputFromWindow(it.windowToken, 0) }
+    }
+
+    fun setShowingToc(tocShowing: Boolean) {
+        toggleVisibleChoices(tocShowing)
     }
 }

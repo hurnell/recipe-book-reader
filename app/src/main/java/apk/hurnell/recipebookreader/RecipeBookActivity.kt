@@ -42,6 +42,7 @@ import apk.hurnell.recipebookreader.helpers.IsbnFinder
 class RecipeBookActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityRecipeBookBinding
+    private lateinit var tocFragment: TocFragment
     private var isPortrait = true
     private var barsVisible = true
     private var linksWorking = true
@@ -83,7 +84,7 @@ class RecipeBookActivity : AppCompatActivity() {
             null
         }
         val pdfFile = File(pdfFilePath)
-        binding.btnTOC.visibility = View.GONE
+        binding.btnShowToc.visibility = View.GONE
         repository = PdfRepository(this)
 
         lifecycleScope.launch {
@@ -121,7 +122,7 @@ class RecipeBookActivity : AppCompatActivity() {
                 // Check TOC
                 if (repository.hasToc(bookId)) {
                     initializeTocFragment(bookId)
-                    binding.btnTOC.visibility = View.VISIBLE
+                    binding.btnShowToc.visibility = View.VISIBLE
                 } else {
                     Log.d(LOG_TAG, "Generating TOC in background...")
                     binding.horizontalLoader.visibility = View.VISIBLE
@@ -138,7 +139,7 @@ class RecipeBookActivity : AppCompatActivity() {
                                     binding.horizontalLoader.progress = percent
                                     if (percent >= 100) {
                                         binding.horizontalLoader.visibility = View.GONE
-                                        binding.btnTOC.visibility = View.VISIBLE
+                                        binding.btnShowToc.visibility = View.VISIBLE
                                     }
                                 }
                             }
@@ -155,7 +156,7 @@ class RecipeBookActivity : AppCompatActivity() {
                         // Ensure UI updates happen on Main thread
                         withContext(Dispatchers.Main) {
                             binding.horizontalLoader.visibility = View.GONE
-                            binding.btnTOC.visibility = View.VISIBLE
+                            binding.btnShowToc.visibility = View.VISIBLE
                             initializeTocFragment(bookId)
                         }
                     }
@@ -169,7 +170,7 @@ class RecipeBookActivity : AppCompatActivity() {
     }
 
     private fun initializeTocFragment(id: Long) {
-        val tocFragment = TocFragment.newInstance(id.toInt()) { item ->
+        tocFragment = TocFragment.newInstance(id.toInt()) { item ->
             binding.bookRecyclerView.scrollToPosition(item.page)
             binding.bookRecyclerView.setScaleFactor(
                 item.scale.coerceAtMost(3.0f),
@@ -297,8 +298,13 @@ class RecipeBookActivity : AppCompatActivity() {
                 ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         }
 
-        binding.btnTOC.setOnClickListener {
+        binding.btnShowToc.setOnClickListener {
             binding.drawerLayout.openDrawer(GravityCompat.START)
+            tocFragment.setShowingToc(true)
+        }
+        binding.btnShowBookmarks.setOnClickListener {
+            binding.drawerLayout.openDrawer(GravityCompat.START)
+            tocFragment.setShowingToc(false)
         }
 
         binding.zoomIt.setOnClickListener {

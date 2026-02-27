@@ -11,7 +11,8 @@ import apk.hurnell.recipebookreader.model.TocItem
 
 class TocAdapter(
     private var fullList: List<TocItem>,
-    private val onClick: (TocItem) -> Unit
+    private val onClick: (TocItem) -> Unit,
+    private val onLongClick: (TocItem) -> Unit
 ) : RecyclerView.Adapter<TocAdapter.TocViewHolder>() {
 
     private val visibleItems = mutableListOf<TocItem>()
@@ -74,8 +75,9 @@ class TocAdapter(
 
         val density = holder.itemView.resources.displayMetrics.density
         val level = if (currentQuery.isEmpty()) item.level else 0
-        val indent = (level * 24 * density).toInt()
-        holder.itemView.setPadding(indent + (16 * density).toInt(), 0, 0, 0)
+        val indent = (level * 6 * density).toInt()
+        val left = indent + (2 * density).toInt()
+        holder.itemView.setPadding(left, 0, 0, 0)
 
         if (item.children.isEmpty() || currentQuery.isNotEmpty()) {
             holder.ivArrow.visibility = View.INVISIBLE
@@ -91,6 +93,10 @@ class TocAdapter(
         }
 
         holder.tvTitle.setOnClickListener { onClick(item) }
+        holder.tvTitle.setOnLongClickListener {
+            onLongClick.invoke(item)
+            true
+        }
     }
 
     override fun getItemCount() = visibleItems.size
