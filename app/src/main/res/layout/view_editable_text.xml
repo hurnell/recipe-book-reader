@@ -13,9 +13,8 @@
         android:text="@string/label_for_editable_widget"
         android:textSize="12sp"
         android:textColor="@color/grey"
-        android:paddingTop="3dp"
+        android:paddingTop="6dp"
         android:visibility="visible"
-        android:paddingBottom="4dp"
         android:textStyle="italic" />
 
     <!-- Row with TextView/EditText + buttons -->
@@ -32,6 +31,7 @@
                 android:layout_weight="1"
                 android:text="@string/general_title"
                 android:textSize="18sp"
+                android:padding="0dp"
                 android:textStyle="bold" />
 
         <EditText
