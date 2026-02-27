@@ -5,6 +5,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.R
 import apk.hurnell.recipebookreader.model.FileItem // Adjust based on your package
@@ -14,14 +16,8 @@ import java.io.File
 class BookShelfAdapter(
     private val onClick: (File) -> Unit,
     private val onLongClick: ((File) -> Unit)? = null
-) : RecyclerView.Adapter<BookShelfAdapter.RowViewHolder>() {
+) : ListAdapter<List<FileItem?>, BookShelfAdapter.RowViewHolder>(RowDiffCallback()) {
 
-    private var rows: List<List<FileItem?>> = emptyList()
-
-    fun setRows(allFiles: List<FileItem?>) {
-        this.rows = allFiles.chunked(3)
-        notifyDataSetChanged()
-    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RowViewHolder {
         val view = LayoutInflater.from(parent.context)
@@ -30,13 +26,12 @@ class BookShelfAdapter(
     }
 
     override fun onBindViewHolder(holder: RowViewHolder, position: Int) {
-        val rowItems = rows[position]
+        // 3. Use getItem(position) provided by ListAdapter
+        val rowItems = getItem(position)
 
-        bindBook(holder.book1Cover,holder.book1Warning, rowItems.getOrNull(0), onClick, onLongClick)
-
-        bindBook(holder.book2Cover, holder.book2Warning,rowItems.getOrNull(1), onClick, onLongClick)
-
-        bindBook(holder.book3Cover, holder.book3Warning,rowItems.getOrNull(2), onClick, onLongClick)
+        bindBook(holder.book1Cover, holder.book1Warning, rowItems.getOrNull(0), onClick, onLongClick)
+        bindBook(holder.book2Cover, holder.book2Warning, rowItems.getOrNull(1), onClick, onLongClick)
+        bindBook(holder.book3Cover, holder.book3Warning, rowItems.getOrNull(2), onClick, onLongClick)
     }
 
     private fun bindBook(
@@ -57,7 +52,7 @@ class BookShelfAdapter(
             val bitmap = BitmapFactory.decodeFile(thumbnailFile.absolutePath)
 
             imageView.setImageBitmap(bitmap)
-            if (item.bookInfo?.mainCategory == null || item.bookInfo?.subCategory == null) {
+            if (item.bookInfo?.mainCategory == null || item.bookInfo.subCategory == null) {
                 warningView.visibility = View.VISIBLE
             } else {
                 warningView.visibility = View.INVISIBLE
@@ -85,7 +80,19 @@ class BookShelfAdapter(
         }
     }
 
-    override fun getItemCount(): Int = rows.size
+    class RowDiffCallback : DiffUtil.ItemCallback<List<FileItem?>>() {
+        override fun areItemsTheSame(oldItem: List<FileItem?>, newItem: List<FileItem?>): Boolean {
+            val oldId = oldItem.map { it?.file?.absolutePath }.joinToString()
+            val newId = newItem.map { it?.file?.absolutePath }.joinToString()
+            return oldId == newId
+        }
+
+        override fun areContentsTheSame(oldItem: List<FileItem?>, newItem: List<FileItem?>): Boolean {
+            val oldId = oldItem.map { it?.file?.absolutePath }.joinToString()
+            val newId = newItem.map { it?.file?.absolutePath }.joinToString()
+            return oldId == newId
+        }
+    }
 
     class RowViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val book1Cover: ImageView = view.findViewById<View>(R.id.book1).findViewById(R.id.bookCover)

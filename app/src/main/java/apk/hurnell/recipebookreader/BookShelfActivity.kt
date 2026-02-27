@@ -4,8 +4,6 @@ import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.AdapterView
-import android.widget.ArrayAdapter
-import android.widget.Spinner
 import androidx.appcompat.widget.Toolbar
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -16,6 +14,7 @@ import java.io.File
 
 class BookShelfActivity : BaseDrawerActivity() {
     private lateinit var bookRowAdapter: BookShelfAdapter
+    private lateinit var recyclerView: RecyclerView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,9 +46,9 @@ class BookShelfActivity : BaseDrawerActivity() {
         refreshCategories()
         setupDrawer(toolbar)
 
-        val recyclerView = findViewById<RecyclerView>(R.id.shelfRecyclerView)
+        recyclerView = findViewById<RecyclerView>(R.id.shelfRecyclerView)
         recyclerView.layoutManager = LinearLayoutManager(this)
-
+        recyclerView.itemAnimator = null
         bookRowAdapter = BookShelfAdapter(
             onClick = { file -> onBookClicked(file) },
             onLongClick = { file -> shelfShowBookInfoOverlay(file) }
@@ -111,8 +110,12 @@ class BookShelfActivity : BaseDrawerActivity() {
         repeat(totalSlotsNeeded - displayList.size) {
             displayList.add(null)
         }
+        val chunkedList = displayList.chunked(3)
 
-        bookRowAdapter.setRows(displayList)
+        bookRowAdapter.submitList(chunkedList) {
+            recyclerView.scrollToPosition(0)
+        }
+
     }
 
     private fun shelfShowBookInfoOverlay(pdfFile: File) {
