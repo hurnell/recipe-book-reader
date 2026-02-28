@@ -2,7 +2,6 @@ package apk.hurnell.recipebookreader.helpers
 
 import android.content.Context
 import android.util.Log
-import apk.hurnell.recipebookreader.LastFolderRequested
 import apk.hurnell.recipebookreader.model.Book
 import apk.hurnell.recipebookreader.model.BookInfo
 import apk.hurnell.recipebookreader.model.BookmarkItem
@@ -50,13 +49,8 @@ class PdfRepository(
         dbHelper.saveConfiguration(key, json)
     }
 
-    fun getLastDirectory(pdfOnly: Boolean): File? {
-        val key = if (pdfOnly) "FileBrowserActivityDirectory" else "ImageBrowserActivityDirectory"
-        val saved = dbHelper.getConfiguration(
-            key,
-            LastFolderRequested::class.java
-        )
-        return saved?.let { File(it.directory) }
+    fun <T> getConfiguration(key: String, clazz: Class<T>): T? {
+        return dbHelper.getConfiguration(key, clazz)
     }
 
     fun loadCategories(): List<Category> = dbHelper.loadCategories()

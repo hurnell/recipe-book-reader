@@ -11,7 +11,6 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.widget.Toolbar
 import androidx.core.net.toUri
 import androidx.core.view.GravityCompat
@@ -24,7 +23,12 @@ import apk.hurnell.recipebookreader.helpers.PdfRepository
 import java.io.File
 import androidx.core.graphics.scale
 
-data class LastFolderRequested(val directory: String)
+data class LastFolderRequested(
+    val directory: String,
+    val lastScrollPosition: Int,
+    val lastScrollOffset: Int
+)
+
 
 class FileBrowserActivity : BaseDrawerActivity() {
     private var pdfOnly: Boolean = false
@@ -35,6 +39,8 @@ class FileBrowserActivity : BaseDrawerActivity() {
     private lateinit var breadcrumbScroll: HorizontalScrollView
     private val rootDir = Environment.getExternalStorageDirectory()
     private var currentDir: File = File(rootDir, "Documents")
+    private var lastScrollPosition: Int = 0
+    private var lastScrollOffset: Int = 0
 
     companion object {
         const val EXTRA_PDF_ONLY = "extra_pdf_only"
@@ -63,6 +69,12 @@ class FileBrowserActivity : BaseDrawerActivity() {
             pdfOnly
         )
         recyclerView.adapter = adapter
+        recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+                trackRecyclerViewOffset()
+            }
+        })
         requestStoragePermission()
         navigateToSavedDirectory()
 
@@ -80,14 +92,36 @@ class FileBrowserActivity : BaseDrawerActivity() {
 
     }
 
+    private fun trackRecyclerViewOffset() {
+        val layoutManager = recyclerView.layoutManager as? LinearLayoutManager ?: return
+        val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
+        val firstVisibleView = layoutManager.findViewByPosition(firstVisibleItemPosition)
+        val offset = firstVisibleView?.top ?: 0
+        lastScrollPosition = firstVisibleItemPosition
+        lastScrollOffset = offset
+        saveConfiguration()
+    }
+
+    fun getSavedParameters(pdfOnly: Boolean): LastFolderRequested? {
+        val key = if (pdfOnly) "FileBrowserActivityDirectory" else "ImageBrowserActivityDirectory"
+        return repository.getConfiguration(
+            key,
+            LastFolderRequested::class.java
+        )
+    }
+
     private fun navigateToSavedDirectory() {
-        val savedDir = repository.getLastDirectory(pdfOnly)
+        val saved = getSavedParameters(pdfOnly)
+        val savedDir = saved?.let { File(it.directory) }
+        var ignoreSavedPosition: Boolean
         currentDir = if (savedDir != null && savedDir.exists()) {
+            ignoreSavedPosition = false
             savedDir
         } else {
+            ignoreSavedPosition = true
             File(rootDir, "Documents")
         }
-        showFiles(currentDir)
+        showFiles(currentDir, ignoreSavedPosition, saved)
     }
 
     private fun browserShowBookInfoOverlay(file: File) {
@@ -173,7 +207,11 @@ class FileBrowserActivity : BaseDrawerActivity() {
         return isJpg || isPng || isJpeg
     }
 
-    private fun showFiles(dir: File) {
+    private fun showFiles(
+        dir: File,
+        ignoreSavedPosition: Boolean = true,
+        saved: LastFolderRequested? = null
+    ) {
         currentDir = dir
         val items = dir.listFiles()
             ?.filter {
@@ -185,15 +223,27 @@ class FileBrowserActivity : BaseDrawerActivity() {
                     if (!file.isDirectory) repository.getBookInfoForItemPath(file.path) else null
                 FileItem(file, file.name, bookInfo, System.currentTimeMillis())
             } ?: emptyList()
-
-        adapter.submitList(items)
-        updateBreadcrumb(currentDir)
-        val configData = LastFolderRequested(dir.absolutePath)
-        if (pdfOnly) {
-            repository.saveConfiguration("FileBrowserActivityDirectory", configData)
+        if (ignoreSavedPosition) {
+            adapter.submitList(items)
         } else {
-            repository.saveConfiguration("ImageBrowserActivityDirectory", configData)
+            val ensuredSaved = saved!!
+            adapter.submitList(items) {
+                val layoutManager = recyclerView.layoutManager as? LinearLayoutManager
+                layoutManager?.scrollToPositionWithOffset(ensuredSaved.lastScrollPosition, ensuredSaved.lastScrollOffset)
+            }
         }
+        updateBreadcrumb(currentDir)
+        saveConfiguration()
+    }
+
+    private fun saveConfiguration() {
+        val configData = LastFolderRequested(
+            currentDir.absolutePath,
+            lastScrollPosition,
+            lastScrollOffset
+        )
+        val key = if (pdfOnly) "FileBrowserActivityDirectory" else "ImageBrowserActivityDirectory"
+        repository.saveConfiguration(key, configData)
     }
 
     private fun onFileClick(file: File) {
