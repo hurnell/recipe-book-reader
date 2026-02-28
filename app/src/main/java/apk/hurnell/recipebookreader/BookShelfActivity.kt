@@ -42,7 +42,6 @@ class BookShelfActivity : BaseDrawerActivity() {
         currentCategory = saved?.category ?: "All"
         lastScrollPosition = saved?.lastScrollPosition ?: 0
         lastScrollOffset = saved?.lastScrollOffset ?: 0
-
         spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(
                 parent: AdapterView<*>,
@@ -64,6 +63,8 @@ class BookShelfActivity : BaseDrawerActivity() {
         }
 
         refreshCategories()
+        val position = categories.indexOf(currentCategory)
+        spinner.setSelection(position)
         setupDrawer(toolbar)
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.itemAnimator = null
