@@ -47,12 +47,13 @@ class PdfRepository(
     }
 
     fun saveConfiguration(key: String, json: Any) {
-        dbHelper.saveConfiguration("FileBrowserActivityDirectory", json)
+        dbHelper.saveConfiguration(key, json)
     }
 
-    fun getLastDirectory(): File? {
+    fun getLastDirectory(pdfOnly: Boolean): File? {
+        val key = if (pdfOnly) "FileBrowserActivityDirectory" else "ImageBrowserActivityDirectory"
         val saved = dbHelper.getConfiguration(
-            "FileBrowserActivityDirectory",
+            key,
             LastFolderRequested::class.java
         )
         return saved?.let { File(it.directory) }
@@ -75,6 +76,7 @@ class PdfRepository(
         withContext(Dispatchers.IO) {
             dbHelper.getOrInsertBook(file, path, document)
         }
+
     suspend fun getBook(location: String): Book? =
         withContext(Dispatchers.IO) {
             dbHelper.getBook(location)
@@ -131,6 +133,7 @@ class PdfRepository(
     fun createBookmark(item: BookmarkItem): Boolean {
         return dbHelper.createBookmark(item)
     }
+
     fun deleteBookmark(item: BookmarkItem): Boolean {
         return dbHelper.deleteBookmark(item)
     }

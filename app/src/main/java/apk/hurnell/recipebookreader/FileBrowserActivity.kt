@@ -81,7 +81,7 @@ class FileBrowserActivity : BaseDrawerActivity() {
     }
 
     private fun navigateToSavedDirectory() {
-        val savedDir = repository.getLastDirectory()
+        val savedDir = repository.getLastDirectory(pdfOnly)
         currentDir = if (savedDir != null && savedDir.exists()) {
             savedDir
         } else {
@@ -189,7 +189,11 @@ class FileBrowserActivity : BaseDrawerActivity() {
         adapter.submitList(items)
         updateBreadcrumb(currentDir)
         val configData = LastFolderRequested(dir.absolutePath)
-        repository.saveConfiguration("FileBrowserActivityDirectory", configData)
+        if (pdfOnly) {
+            repository.saveConfiguration("FileBrowserActivityDirectory", configData)
+        } else {
+            repository.saveConfiguration("ImageBrowserActivityDirectory", configData)
+        }
     }
 
     private fun onFileClick(file: File) {
