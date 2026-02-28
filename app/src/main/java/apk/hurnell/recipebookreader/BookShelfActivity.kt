@@ -15,6 +15,8 @@ import java.io.File
 class BookShelfActivity : BaseDrawerActivity() {
     private lateinit var bookRowAdapter: BookShelfAdapter
     private lateinit var recyclerView: RecyclerView
+    private var lastScrollPosition = 0
+    private var lastScrollOffset = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,6 +51,12 @@ class BookShelfActivity : BaseDrawerActivity() {
         recyclerView = findViewById<RecyclerView>(R.id.shelfRecyclerView)
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.itemAnimator = null
+        recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+                trackRecyclerViewOffset()
+            }
+        })
         bookRowAdapter = BookShelfAdapter(
             onClick = { file -> onBookClicked(file) },
             onLongClick = { file -> shelfShowBookInfoOverlay(file) }
@@ -64,6 +72,16 @@ class BookShelfActivity : BaseDrawerActivity() {
         refreshCategories()
     }
 
+    private fun trackRecyclerViewOffset() {
+        val layoutManager = recyclerView.layoutManager as? LinearLayoutManager ?: return
+        val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
+        val firstVisibleView = layoutManager.findViewByPosition(firstVisibleItemPosition)
+        val offset = firstVisibleView?.top ?: 0
+
+        lastScrollPosition = firstVisibleItemPosition
+        lastScrollOffset = offset
+    }
+
     private fun onBookClicked(file: File) {
         if (file.extension.equals("pdf", ignoreCase = true)) {
             processAndOpenBook(file)
@@ -71,6 +89,7 @@ class BookShelfActivity : BaseDrawerActivity() {
     }
 
     private fun populateShelf(category: String) {
+        val categoryChanged =  currentCategory != category
         currentCategory = category
         val allBooks: List<FileItem> = getBookShelfBooks()
 
@@ -112,10 +131,17 @@ class BookShelfActivity : BaseDrawerActivity() {
         }
         val chunkedList = displayList.chunked(3)
 
-        bookRowAdapter.submitList(chunkedList) {
-            recyclerView.scrollToPosition(0)
-        }
 
+        if (categoryChanged) {
+            bookRowAdapter.submitList(chunkedList) {
+                recyclerView.scrollToPosition(0)
+            }
+        } else {
+            bookRowAdapter.submitList(chunkedList) {
+                val layoutManager = recyclerView.layoutManager as? LinearLayoutManager
+                layoutManager?.scrollToPositionWithOffset(lastScrollPosition, lastScrollOffset)
+            }
+        }
     }
 
     private fun shelfShowBookInfoOverlay(pdfFile: File) {
