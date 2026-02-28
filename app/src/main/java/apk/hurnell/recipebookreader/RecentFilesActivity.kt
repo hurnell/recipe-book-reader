@@ -12,9 +12,19 @@ import apk.hurnell.recipebookreader.helpers.PdfRepository
 import apk.hurnell.recipebookreader.model.RecentFile
 import java.io.File
 
+data class RecentFilesPosition(
+    val lastScrollPosition: Int,
+    val lastScrollOffset: Int
+)
+
 class RecentFilesActivity : BaseDrawerActivity() {
 
     private lateinit var adapter: FileAdapter
+    private lateinit var recyclerView: RecyclerView
+    private var lastScrollPosition = 0
+    private var lastScrollOffset = 0
+    private var justStarted: Boolean = true
+    private val configurationKey = "RecentFilesConfiguration"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -22,11 +32,21 @@ class RecentFilesActivity : BaseDrawerActivity() {
 
         val toolbar: Toolbar = findViewById(R.id.toolbar)
         setupDrawer(toolbar)
-
-        val recyclerView = findViewById<RecyclerView>(R.id.recentRecyclerView)
-        recyclerView.layoutManager = LinearLayoutManager(this)
         repository = PdfRepository(this)
-
+        val saved = getSavedParameters()
+        lastScrollPosition = saved?.lastScrollPosition ?: 0
+        lastScrollOffset = saved?.lastScrollOffset ?: 0
+        recyclerView = findViewById<RecyclerView>(R.id.recentRecyclerView)
+        recyclerView.layoutManager = LinearLayoutManager(this)
+        recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+                if (!justStarted) {
+                    trackRecyclerViewOffset()
+                }
+                justStarted = false
+            }
+        })
         loadingOverlay = findViewById(R.id.loadingOverlay)
         adapter = FileAdapter(
             onClick = { file -> onFileClick(file) },
@@ -38,6 +58,33 @@ class RecentFilesActivity : BaseDrawerActivity() {
         refreshFileList()
     }
 
+    fun getSavedParameters(): RecentFilesPosition? {
+        val params = repository.getConfiguration(
+            configurationKey,
+            RecentFilesPosition::class.java
+        )
+        return params
+    }
+    private fun trackRecyclerViewOffset() {
+        val layoutManager = recyclerView.layoutManager as? LinearLayoutManager ?: return
+        val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
+        val firstVisibleView = layoutManager.findViewByPosition(firstVisibleItemPosition)
+        val offset = firstVisibleView?.top ?: 0
+
+        lastScrollPosition = firstVisibleItemPosition
+        lastScrollOffset = offset
+        saveRecentFilesConfiguration()
+    }
+    private fun saveRecentFilesConfiguration() {
+        val configData = RecentFilesPosition(
+            lastScrollPosition,
+            lastScrollOffset
+        )
+        if (!justStarted) {
+            repository.saveConfiguration(configurationKey, configData)
+        }
+        justStarted = false
+    }
     override fun refreshFilesAndUI() {
 
     }
@@ -58,7 +105,10 @@ class RecentFilesActivity : BaseDrawerActivity() {
                 null
             }
         }
-        adapter.submitList(fileItems)
+        adapter.submitList(fileItems){
+            val layoutManager = recyclerView.layoutManager as? LinearLayoutManager
+            layoutManager?.scrollToPositionWithOffset(lastScrollPosition, lastScrollOffset)
+        }
     }
 
     private fun onFileClick(file: File) {
