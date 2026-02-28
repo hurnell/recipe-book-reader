@@ -23,7 +23,7 @@ import apk.hurnell.recipebookreader.helpers.PdfRepository
 import java.io.File
 import androidx.core.graphics.scale
 
-data class LastFolderRequested(
+data class LastFolderAndScrollPosition(
     val directory: String,
     val lastScrollPosition: Int,
     val lastScrollOffset: Int
@@ -102,11 +102,11 @@ class FileBrowserActivity : BaseDrawerActivity() {
         saveConfiguration()
     }
 
-    fun getSavedParameters(pdfOnly: Boolean): LastFolderRequested? {
+    fun getSavedParameters(pdfOnly: Boolean): LastFolderAndScrollPosition? {
         val key = if (pdfOnly) "FileBrowserActivityDirectory" else "ImageBrowserActivityDirectory"
         return repository.getConfiguration(
             key,
-            LastFolderRequested::class.java
+            LastFolderAndScrollPosition::class.java
         )
     }
 
@@ -210,7 +210,7 @@ class FileBrowserActivity : BaseDrawerActivity() {
     private fun showFiles(
         dir: File,
         ignoreSavedPosition: Boolean = true,
-        saved: LastFolderRequested? = null
+        saved: LastFolderAndScrollPosition? = null
     ) {
         currentDir = dir
         val items = dir.listFiles()
@@ -237,7 +237,7 @@ class FileBrowserActivity : BaseDrawerActivity() {
     }
 
     private fun saveConfiguration() {
-        val configData = LastFolderRequested(
+        val configData = LastFolderAndScrollPosition(
             currentDir.absolutePath,
             lastScrollPosition,
             lastScrollOffset
