@@ -1,7 +1,6 @@
 package apk.hurnell.recipebookreader
 
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.widget.AdapterView
 import androidx.appcompat.widget.Toolbar
@@ -12,11 +11,19 @@ import apk.hurnell.recipebookreader.helpers.PdfRepository
 import apk.hurnell.recipebookreader.model.FileItem
 import java.io.File
 
+data class BookShelfPositionAndCategory(
+    val category: String,
+    val lastScrollPosition: Int,
+    val lastScrollOffset: Int
+)
+
 class BookShelfActivity : BaseDrawerActivity() {
     private lateinit var bookRowAdapter: BookShelfAdapter
     private lateinit var recyclerView: RecyclerView
     private var lastScrollPosition = 0
     private var lastScrollOffset = 0
+    private val configurationKey = "BookShelfConfiguration"
+    private var justStarted: Boolean = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,6 +36,13 @@ class BookShelfActivity : BaseDrawerActivity() {
         val toolbar: Toolbar = findViewById(R.id.bookShelfToolbar)
         spinner = findViewById(R.id.categorySpinner)
 
+
+        recyclerView = findViewById(R.id.shelfRecyclerView)
+        val saved = getSavedParameters()
+        currentCategory = saved?.category ?: "All"
+        lastScrollPosition = saved?.lastScrollPosition ?: 0
+        lastScrollOffset = saved?.lastScrollOffset ?: 0
+
         spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(
                 parent: AdapterView<*>,
@@ -36,8 +50,12 @@ class BookShelfActivity : BaseDrawerActivity() {
                 position: Int,
                 id: Long
             ) {
-                val selectedCategory = parent.getItemAtPosition(position) as String
-                populateShelf(selectedCategory)
+                if (!justStarted) {
+                    val selectedCategory = parent.getItemAtPosition(position) as String
+                    populateShelf(selectedCategory)
+                }
+
+                justStarted = false
             }
 
             override fun onNothingSelected(parent: AdapterView<*>) {
@@ -47,14 +65,14 @@ class BookShelfActivity : BaseDrawerActivity() {
 
         refreshCategories()
         setupDrawer(toolbar)
-
-        recyclerView = findViewById<RecyclerView>(R.id.shelfRecyclerView)
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.itemAnimator = null
         recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 super.onScrolled(recyclerView, dx, dy)
-                trackRecyclerViewOffset()
+                if (!justStarted) {
+                    trackRecyclerViewOffset()
+                }
             }
         })
         bookRowAdapter = BookShelfAdapter(
@@ -62,8 +80,15 @@ class BookShelfActivity : BaseDrawerActivity() {
             onLongClick = { file -> shelfShowBookInfoOverlay(file) }
         )
         recyclerView.adapter = bookRowAdapter
+        populateShelf(currentCategory, saved == null)
+    }
 
-        populateShelf("All")
+    fun getSavedParameters(): BookShelfPositionAndCategory? {
+        val params = repository.getConfiguration(
+            configurationKey,
+            BookShelfPositionAndCategory::class.java
+        )
+        return params
     }
 
     override fun refreshFilesAndUI() {
@@ -80,6 +105,19 @@ class BookShelfActivity : BaseDrawerActivity() {
 
         lastScrollPosition = firstVisibleItemPosition
         lastScrollOffset = offset
+        saveShelfConfiguration()
+    }
+
+    private fun saveShelfConfiguration() {
+        val configData = BookShelfPositionAndCategory(
+            currentCategory,
+            lastScrollPosition,
+            lastScrollOffset
+        )
+        if (!justStarted) {
+            repository.saveConfiguration(configurationKey, configData)
+        }
+        justStarted = false
     }
 
     private fun onBookClicked(file: File) {
@@ -88,8 +126,8 @@ class BookShelfActivity : BaseDrawerActivity() {
         }
     }
 
-    private fun populateShelf(category: String) {
-        val categoryChanged =  currentCategory != category
+    private fun populateShelf(category: String, acceptZero: Boolean = true) {
+        val categoryChanged = currentCategory != category
         currentCategory = category
         val allBooks: List<FileItem> = getBookShelfBooks()
 
@@ -110,11 +148,6 @@ class BookShelfActivity : BaseDrawerActivity() {
             // If subcategory is same, sort by main category
             it.bookInfo?.mainCategory ?: ""
         })
-        filteredBooks.forEach { item ->
-            val main = item.bookInfo?.mainCategory ?: "null"
-            val sub = item.bookInfo?.subCategory ?: "null"
-            Log.i("BookShelfSort", "Book: , MainCategory: $main, SubCategory: $sub")
-        }
         val minSlots = filteredBooks.size.coerceAtLeast(15)
 
         // Round up to nearest multiple of 3
@@ -132,15 +165,18 @@ class BookShelfActivity : BaseDrawerActivity() {
         val chunkedList = displayList.chunked(3)
 
 
-        if (categoryChanged) {
-            bookRowAdapter.submitList(chunkedList) {
-                recyclerView.scrollToPosition(0)
-            }
-        } else {
+        if (!categoryChanged || !acceptZero) {
             bookRowAdapter.submitList(chunkedList) {
                 val layoutManager = recyclerView.layoutManager as? LinearLayoutManager
                 layoutManager?.scrollToPositionWithOffset(lastScrollPosition, lastScrollOffset)
             }
+        } else {
+            bookRowAdapter.submitList(chunkedList) {
+                recyclerView.scrollToPosition(0)
+            }
+            lastScrollPosition = 0
+            lastScrollOffset = 0
+            saveShelfConfiguration()
         }
     }
 
