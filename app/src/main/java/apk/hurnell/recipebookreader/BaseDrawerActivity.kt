@@ -175,6 +175,8 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
 
     fun showPossibleBookCovers(book: Book) {
         btnSearchCovers?.visibility = View.GONE
+        toggleOtherButtons(null, false)
+
         btnPickCover?.visibility = View.GONE
         if (book.name != null && book.author != null) {
             lifecycleScope.launch {
@@ -187,6 +189,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                     coverOptionsRecycler?.visibility = View.VISIBLE
                     btnCloseGallery?.visibility = View.VISIBLE
                     btnSearchCovers?.visibility = View.GONE
+                    toggleOtherButtons(null, false)
                     btnPickCover?.visibility = View.GONE
 
                     coverOptionsRecycler?.adapter = CoverPickerAdapter(urls) { selectedUrl ->
@@ -199,6 +202,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                         bookPreviewImage?.visibility = View.VISIBLE
                         btnCloseGallery?.visibility = View.GONE
                         btnSearchCovers?.visibility = View.VISIBLE
+                        toggleOtherButtons(null, true)
                         btnPickCover?.visibility = View.VISIBLE
                         if (book.sha != null) {
                             lifecycleScope.launch(Dispatchers.IO) {
@@ -217,6 +221,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
 
                     btnSearchCovers?.visibility = View.VISIBLE
                     btnPickCover?.visibility = View.VISIBLE
+                    toggleOtherButtons(null, true)
                     Toast.makeText(
                         this@BaseDrawerActivity,
                         "No thumbnail images found online ❌",
@@ -262,6 +267,17 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         }
     }
 
+    private fun toggleOtherButtons(activeView: Any?, show: Boolean) {
+        btnSearchCovers?.visibility = if (show) View.VISIBLE else View.GONE
+        btnPickCover?.visibility = if (show) View.VISIBLE else View.GONE
+        val buttons = listOf(bookTitle, bookAuthor, isbnNumber, bookCategory, bookSubCategory)
+        buttons.forEach { btn ->
+            if (btn != activeView) {
+                btn?.toggleEditButton(show)
+            }
+        }
+    }
+
     protected fun showBookInfoOverlay(
         pdfFile: File
     ) {
@@ -284,43 +300,67 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
 
 
                 withContext(Dispatchers.Main) {
-                    bookTitle?.setParams(book.name ?: pdfFile.name, "Title", Typeface.BOLD)
-                    bookTitle?.onAccept { newText ->
-                        repository.updateBookStringParam(book.id, "name", newText)
+                    bookTitle?.setParams(book.id, book.name ?: pdfFile.name, "Title", Typeface.BOLD)
+                    bookTitle?.onAccept { currentBookId, newText ->
+                        if (currentBookId == book.id) {
+                            repository.updateBookStringParam(book.id, "name", newText)
+                        }
                     }
-                    bookAuthor?.setParams(book.author?.ifBlank { "" } ?: "", "Author")
-                    bookAuthor?.onAccept { newText ->
-                        repository.updateBookStringParam(book.id, "author", newText)
+                    bookAuthor?.setParams(book.id, book.author?.ifBlank { "" } ?: "", "Author")
+                    bookAuthor?.onAccept { currentBookId, newText ->
+                        if (currentBookId == book.id) {
+                            repository.updateBookStringParam(book.id, "author", newText)
+                        }
                     }
-                    isbnNumber?.setParams(book.isbn?.ifBlank { "" } ?: "", "ISBN")
-                    isbnNumber?.onAccept { newText ->
-                        repository.updateBookStringParam(book.id, "isbn", newText)
+                    isbnNumber?.setParams(book.id, book.isbn?.ifBlank { "" } ?: "", "ISBN")
+                    isbnNumber?.onAccept { currentBookId, newText ->
+                        if (currentBookId == book.id) {
+                            repository.updateBookStringParam(book.id, "isbn", newText)
+                        }
                     }
-                    bookCategory?.setParams(repository, book.category, "Category")
-                    bookCategory?.onAccept { name, categoryId ->
-
-                        if (categoryId != null) {
-                            repository.updateBookCategory(book.id, "category", categoryId)
-                        } else if (name.isNotBlank()) {
-                            val newId = repository.createCategory(name)
-                            repository.updateBookCategory(book.id, "category", newId)
-                            bookCategory?.setNewCategoryId(newId.toInt())
+                    bookCategory?.setParams(book.id, repository, book.category, "Category")
+                    bookCategory?.onAccept { currentBookId, name, categoryId ->
+                        if (currentBookId == book.id) {
+                            if (categoryId != null) {
+                                repository.updateBookCategory(book.id, "category", categoryId)
+                            } else if (name.isNotBlank()) {
+                                val newId = repository.createCategory(name)
+                                repository.updateBookCategory(book.id, "category", newId)
+                                bookCategory?.setNewCategoryId(newId.toInt())
+                            }
                         }
                     }
                     bookSubCategory?.setParams(
+                        book.id,
                         repository,
                         book.subCategory,
                         "Sub Category"
                     )
-                    bookSubCategory?.onAccept { name, categoryId ->
-
-                        if (categoryId != null) {
-                            repository.updateBookCategory(book.id, "sub_category", categoryId)
-                        } else if (name.isNotBlank()) {
-                            val newId = repository.createCategory(name)
-                            repository.updateBookCategory(book.id, "sub_category", newId)
-                            bookSubCategory?.setNewCategoryId(newId.toInt())
+                    bookSubCategory?.onAccept { currentBookId, name, categoryId ->
+                        if (currentBookId == book.id) {
+                            if (categoryId != null) {
+                                repository.updateBookCategory(book.id, "sub_category", categoryId)
+                            } else if (name.isNotBlank()) {
+                                val newId = repository.createCategory(name)
+                                repository.updateBookCategory(book.id, "sub_category", newId)
+                                bookSubCategory?.setNewCategoryId(newId.toInt())
+                            }
                         }
+                    }
+                    bookTitle?.onEditingChanged = { view, isEditing ->
+                        toggleOtherButtons(view, !isEditing)
+                    }
+                    bookAuthor?.onEditingChanged = { view, isEditing ->
+                        toggleOtherButtons(view, !isEditing)
+                    }
+                    isbnNumber?.onEditingChanged = { view, isEditing ->
+                        toggleOtherButtons(view, !isEditing)
+                    }
+                    bookCategory?.onEditingChanged = { view, isEditing ->
+                        toggleOtherButtons(view, !isEditing)
+                    }
+                    bookSubCategory?.onEditingChanged = { view, isEditing ->
+                        toggleOtherButtons(view, !isEditing)
                     }
                     setResetPreviewImage(book.sha!!, previewImage)
                     bookSavePath?.text = book.location
@@ -351,6 +391,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                     btnCloseGallery?.visibility = View.GONE
                     bookPreviewImage?.visibility = View.VISIBLE
                     btnSearchCovers?.visibility = View.VISIBLE
+                    toggleOtherButtons(null, true)
                     btnPickCover?.visibility = View.VISIBLE
                 }
             } catch (e: Exception) {
@@ -390,6 +431,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                 bookPreviewImage?.visibility = View.VISIBLE
                 btnCloseGallery?.visibility = View.GONE
                 btnSearchCovers?.visibility = View.VISIBLE
+                toggleOtherButtons(null, true)
                 this.refreshFilesAndUI()
             }
             ?.start()

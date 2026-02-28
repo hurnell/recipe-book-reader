@@ -5,9 +5,11 @@ import android.util.Log
 import apk.hurnell.recipebookreader.LastFolderRequested
 import apk.hurnell.recipebookreader.model.Book
 import apk.hurnell.recipebookreader.model.BookInfo
+import apk.hurnell.recipebookreader.model.BookmarkItem
 import apk.hurnell.recipebookreader.model.Category
 import apk.hurnell.recipebookreader.model.FileItem
 import apk.hurnell.recipebookreader.model.RecentFile
+import apk.hurnell.recipebookreader.model.Row
 import apk.hurnell.recipebookreader.model.TocItem
 import com.artifex.mupdf.fitz.Document
 import kotlinx.coroutines.Dispatchers
@@ -120,5 +122,16 @@ class PdfRepository(
 
     fun searchBooks(currentText: String, currentCategory: String): Long {
         return dbHelper.currentQuery(currentText, currentCategory)
+    }
+
+    fun getTocRows(bookId: Int): List<Row> {
+        return dbHelper.getTocRows(bookId)
+    }
+
+    fun createBookmark(item: BookmarkItem): Boolean {
+        return dbHelper.createBookmark(item)
+    }
+    fun deleteBookmark(item: BookmarkItem): Boolean {
+        return dbHelper.deleteBookmark(item)
     }
 }

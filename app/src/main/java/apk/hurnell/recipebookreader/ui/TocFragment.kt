@@ -1,5 +1,6 @@
 package apk.hurnell.recipebookreader.ui
 
+import android.app.AlertDialog
 import android.content.Context
 import android.os.Bundle
 import android.text.Editable
@@ -15,6 +16,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.R
 import apk.hurnell.recipebookreader.adapters.TocAdapter
+import apk.hurnell.recipebookreader.helpers.PdfRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -25,7 +27,7 @@ class TocFragment : Fragment() {
     private lateinit var tocRecyclerView: RecyclerView
     private lateinit var tocSearchBar: LinearLayout
     private lateinit var toolbar: MaterialToolbar
-
+    private lateinit var repository: PdfRepository
     private var bookId: Int = -1
     private var onPageSelected: ((TocItem) -> Unit)? = null
     private var tocData: List<TocItem> = emptyList()
@@ -109,9 +111,30 @@ class TocFragment : Fragment() {
         return view
     }
 
+    private fun getExpandedStateMap(items: List<TocItem>): Map<Long, Boolean> {
+        val map = mutableMapOf<Long, Boolean>()
+        fun traverse(itemList: List<TocItem>) {
+            for (item in itemList) {
+                map[item.tocId] = item.isExpanded
+                traverse(item.children)
+            }
+        }
+        traverse(items)
+        return map
+    }
+
+    private fun reloadAndShowToast(toastText: String){
+        loadTocAsync()
+        Toast.makeText(
+            context,
+            toastText,
+            Toast.LENGTH_SHORT
+        ).show()
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
+        repository = PdfRepository(requireContext())
         adapter = TocAdapter(
             tocData,
             onClick = { item ->
@@ -119,11 +142,31 @@ class TocFragment : Fragment() {
                 hideKeyboard()
             },
             onLongClick = { item ->
-                Toast.makeText(
-                    context,
-                    "Please add  ${item.title} to bookmarks",
-                    Toast.LENGTH_SHORT
-                ).show()
+                var createDeleteSuccess = false
+                if (item.bookmarkId == null) {
+                    createDeleteSuccess = repository.createBookmark(item.toBookmarkItem())
+                    if (createDeleteSuccess) {
+                        val toastText =
+                            "✅Bookmark with title ${item.title} for book ${item.bookTitle} to bookmarks"
+                        reloadAndShowToast(toastText)
+                    }
+                } else {
+                    AlertDialog.Builder(requireContext())
+                        .setTitle("Already Bookmarked")
+                        .setMessage("This item is already bookmarked do want to delete the bookmark.")
+                        .setPositiveButton("Delete") { dialog, _ ->
+                            createDeleteSuccess = repository.deleteBookmark(item.toBookmarkItem())
+                            if (createDeleteSuccess) {
+                                val toastText =  "❌ Bookmark with title ${item.title} deleted"
+                                reloadAndShowToast(toastText)
+                            }
+                            dialog.dismiss()
+                        }
+                        .setNegativeButton("Cancel") { dialog, _ ->
+                            dialog.dismiss()
+                        }
+                        .show()
+                }
             }
         )
 
@@ -135,68 +178,41 @@ class TocFragment : Fragment() {
 
     private fun loadTocAsync() {
         viewLifecycleOwner.lifecycleScope.launch {
+            val expandedMap = getExpandedStateMap(tocData)
             val list = withContext(Dispatchers.IO) {
-                context?.let { ctx -> loadTocFromDatabase(ctx, bookId) } ?: emptyList()
+                context?.let { loadTocFromDatabase(bookId, expandedMap) } ?: emptyList()
             }
             tocData = list
             adapter?.updateData(tocData)
         }
     }
 
-    private fun loadTocFromDatabase(context: Context, bookId: Int): List<TocItem> {
-        val db = context.openOrCreateDatabase("recipe-reader.db", 0, null)
-        val cursor = db.rawQuery(
-            """
-            SELECT id, parent_id, title, page, level, `offset`, scale, translate
-            FROM toc
-            WHERE book_id_fk = ?
-            ORDER BY id
-        """.trimIndent(), arrayOf(bookId.toString())
-        )
-
-        data class Row(
-            val id: Long,
-            val parentId: Long?,
-            val title: String,
-            val page: Int,
-            val level: Int,
-            val offset: Float,
-            val scale: Float,
-            val translate: Float
-        )
-
-        val rows = mutableListOf<Row>()
-        while (cursor.moveToNext()) {
-            rows.add(
-                Row(
-                    id = cursor.getLong(0),
-                    parentId = if (cursor.isNull(1)) null else cursor.getLong(1),
-                    title = cursor.getString(2),
-                    page = cursor.getInt(3) - 1,
-                    level = cursor.getInt(4),
-                    offset = cursor.getFloat(5),
-                    scale = cursor.getFloat(6),
-                    translate = cursor.getFloat(7)
-                )
-            )
-        }
-        cursor.close()
-        db.close()
+    private fun loadTocFromDatabase(
+        bookId: Int,
+        expandedMap: Map<Long, Boolean> = emptyMap()
+    ): List<TocItem> {
+        val rows = repository.getTocRows(bookId)
         val childrenMap = rows.groupBy { it.parentId }
+
         fun build(parentId: Long?): List<TocItem> {
             return childrenMap[parentId]?.map { row ->
                 TocItem(
                     tocId = row.id,
+                    bookId = row.bookId,
+                    bookTitle = row.bookTitle,
                     title = row.title,
+                    bookmarkId = row.bookmarkId,
                     page = row.page,
                     level = row.level,
                     offset = row.offset,
                     scale = row.scale,
                     translate = row.translate,
-                    children = build(row.id)
+                    children = build(row.id),
+                    isExpanded = expandedMap[row.id] ?: false  // Restore state here
                 )
             } ?: emptyList()
         }
+
         return build(null)
     }
 

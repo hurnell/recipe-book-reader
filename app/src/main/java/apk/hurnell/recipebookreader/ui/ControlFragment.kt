@@ -29,7 +29,6 @@ class ControlFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
         val btnRecentBooks = view.findViewById<Button>(R.id.btnRecentBooks)
         val btnBookShelf = view.findViewById<Button>(R.id.btnBookShelf)
         val btnBrowseFiles = view.findViewById<Button>(R.id.btnBrowseFiles)

@@ -292,10 +292,16 @@ class RecipeBookActivity : AppCompatActivity() {
 
         binding.btnRotate.setOnClickListener {
             isPortrait = !isPortrait
-            requestedOrientation = if (isPortrait)
+            requestedOrientation = if (isPortrait) {
                 ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-            else
+            }else {
                 ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+            }
+            if (isPortrait) {
+                binding.btnRotate.setImageResource(R.drawable.ic_to_landscape)
+            } else {
+                binding.btnRotate.setImageResource(R.drawable.ic_to_portrait)
+            }
         }
 
         binding.btnShowToc.setOnClickListener {

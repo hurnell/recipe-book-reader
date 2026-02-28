@@ -1,6 +1,7 @@
 package apk.hurnell.recipebookreader
 
 import android.R.attr.delay
+import android.app.AlertDialog
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -82,7 +83,24 @@ class EveryTocActivity : BaseDrawerActivity() {
             },
             onClickHierarchy = { item ->
                 displayClickResult(item.hierarchy!!, rootLayout)
-            }
+            },
+            onClickBookmark = { item ->
+                if (item.bookmarkId != null) {
+                    val success = repository.createBookmark(item.toBookmarkItem())
+                } else {
+                    AlertDialog.Builder(this)
+                        .setTitle("Already Bookmarked")
+                        .setMessage("This item is already bookmarked do want to delete the bookmark.")
+                        .setPositiveButton("Delete") { dialog, _ ->
+                            val success = repository.deleteBookmark(item.toBookmarkItem())
+                            dialog.dismiss()
+                        }
+                        .setNegativeButton("Cancel") { dialog, _ ->
+                            dialog.dismiss()
+                        }
+                        .show()
+                }
+            },
         )
         recyclerView.adapter = adapter
 

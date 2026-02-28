@@ -78,7 +78,7 @@ class GetCoverUrlHelper {
             } as HttpURLConnection
             val responseJson = connection.inputStream.bufferedReader().readText()
 
-            val googleResponse = Gson().fromJson(responseJson, GoogleBooksResponse::class.java)
+                val googleResponse = Gson().fromJson(responseJson, GoogleBooksResponse::class.java)
 
 
             googleResponse.items?.mapNotNull { item ->

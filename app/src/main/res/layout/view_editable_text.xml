@@ -48,17 +48,17 @@
 
         <ImageButton
             android:id="@+id/editButton"
-            android:layout_width="16dp"
-            android:layout_height="16dp"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:padding="2dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/generic_editable_text_view_edit_button"
-            android:src="@android:drawable/ic_menu_rotate" />
+            android:src="@drawable/ic_edit" />
 
         <ImageButton
             android:id="@+id/cancelButton"
-            android:layout_width="16dp"
-            android:layout_height="16dp"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:padding="2dp"
             android:layout_marginStart="4dp"
             android:background="?attr/selectableItemBackgroundBorderless"

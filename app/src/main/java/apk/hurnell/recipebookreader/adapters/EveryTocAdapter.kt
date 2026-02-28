@@ -3,6 +3,7 @@ package apk.hurnell.recipebookreader.adapters
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -23,7 +24,8 @@ class EveryTocAdapter(
     private val onLongClickTitle: (TocItem) -> Unit,
     private val onClickTitle: (TocItem) -> Unit,
     private val onClickBook: (TocItem) -> Unit,
-    private val onClickHierarchy: (TocItem) -> Unit
+    private val onClickHierarchy: (TocItem) -> Unit,
+    private val onClickBookmark: (TocItem) -> Unit,
 ) : ListAdapter<TocItem, EveryTocAdapter.TocViewHolder>(DiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TocViewHolder {
@@ -33,20 +35,22 @@ class EveryTocAdapter(
     }
 
     override fun onBindViewHolder(holder: TocViewHolder, position: Int) {
-        holder.bind(getItem(position), onClickTitle, onClickBook, onClickHierarchy, onLongClickTitle)
+        holder.bind(getItem(position), onClickTitle, onClickBook, onClickHierarchy, onLongClickTitle, onClickBookmark)
     }
 
     class TocViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val tocText: TextView = itemView.findViewById(R.id.tocText)
         private val bookName: TextView = itemView.findViewById(R.id.bookName)
         private val hierarchy: TextView = itemView.findViewById(R.id.hierarchy)
+        private val hasBookmark: ImageView = itemView.findViewById(R.id.hasBookmark)
 
         fun bind(
             item: TocItem,
             onClickTitle: (TocItem) -> Unit,
             onClickBook: (TocItem) -> Unit,
             onClickHierarchy: (TocItem) -> Unit,
-            onLongClickTitle: (TocItem) -> Unit
+            onLongClickTitle: (TocItem) -> Unit,
+            onClickBookmark: (TocItem) -> Unit,
         ) {
             tocText.text = item.title
             bookName.text = item.bookTitle ?: ""
@@ -75,6 +79,14 @@ class EveryTocAdapter(
 
             hierarchy.setOnClickListener {
                 if (hierarchy.isEllipsized()) onClickHierarchy(item)
+            }
+            hasBookmark.setOnClickListener {
+                onClickBookmark(item)
+            }
+            if (item.bookmarkId != null) {
+                hasBookmark.setImageResource(R.drawable.ic_bookmark_closed)
+            }else {
+                hasBookmark.setImageResource(R.drawable.ic_bookmark_open)
             }
         }
     }

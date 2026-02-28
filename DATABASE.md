@@ -76,20 +76,22 @@ ON t.book_id_fk = b.id;
         page INTEGER,
         offset REAL DEFAULT NULL,
         scale REAL DEFAULT NULL,
-        translate REAL DEFAULT NULL      
+        translate REAL DEFAULT NULL,
+        bookmark_id INTEGER DEFAULT NULL      
     );
 ```
 ```sqldelight
-    DROP TABLE IF EXISTS bookmarks;
-    CREATE TABLE bookmarks (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        book_id_fk INTEGER,
-        title TEXT,
-        page INTEGER,
-        offset REAL,
-        scale REAL,
-        translate REAL
-    );
+   DROP TABLE IF EXISTS bookmarks;
+   CREATE TABLE bookmarks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    book_id_fk INTEGER DEFAULT NULL,
+    title TEXT NOT NULL,
+    page INTEGER NOT NULL,
+    offset REAL NOT NULL,
+    scale REAL NOT NULL,
+    translate REAL NOT NULL,
+    unique_key TEXT UNIQUE
+);
 ```
 
 ```sqldelight

@@ -22,7 +22,7 @@ class EditableCategoryView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
-) : LinearLayout(context, attrs, defStyleAttr) {
+) : LinearLayout(context, attrs, defStyleAttr), EditableView {
 
     private val textView: TextView
     private val labelView: TextView
@@ -35,9 +35,11 @@ class EditableCategoryView @JvmOverloads constructor(
     private val cancelButton: ImageButton
     private var hasLabel = false
     private var repository: PdfRepository? = null
+    var onEditingChanged: ((view: Any, isEditing: Boolean) -> Unit)? = null
+    private var currentBookId: Long = -1L
 
     private var isEditing = false
-    var onAccept: ((String, Long?) -> Unit)? = null
+    var onAccept: ((Long, String, Long?) -> Unit)? = null
 
     init {
         orientation = HORIZONTAL
@@ -80,7 +82,7 @@ class EditableCategoryView @JvmOverloads constructor(
     }
 
 
-    fun onAccept(listener: (String, Long?) -> Unit): EditableCategoryView {
+    fun onAccept(listener: (Long, String, Long?) -> Unit): EditableCategoryView {
         this.onAccept = listener
         return this
     }
@@ -112,6 +114,7 @@ class EditableCategoryView @JvmOverloads constructor(
     private fun toggleEditMode(forceClosed: Boolean = false) {
         if (forceClosed || isEditing) {
             isEditing = false
+            onEditingChanged?.invoke(this, false)
             if (hasLabel) {
                 labelView.visibility = VISIBLE
             }
@@ -125,10 +128,10 @@ class EditableCategoryView @JvmOverloads constructor(
                 val newCategory = categories.find { it.category.equals(newText, false) }
                 originalText = newText
                 if (newCategory != null) {
-                    onAccept?.invoke(newCategory.category, newCategory.id)
+                    onAccept?.invoke(currentBookId, newCategory.category, newCategory.id)
                     selectedCategoryId = newCategory.id.toInt()
                 } else {
-                    onAccept?.invoke(newText, null)
+                    onAccept?.invoke(currentBookId, newText, null)
                 }
             }
 
@@ -140,6 +143,7 @@ class EditableCategoryView @JvmOverloads constructor(
             imm.hideSoftInputFromWindow(editText.windowToken, 0)
         } else {
             isEditing = true
+            onEditingChanged?.invoke(this, true)
             editWrapper.visibility = VISIBLE
             editText.setText(textView.text)
             textView.visibility = GONE
@@ -162,6 +166,7 @@ class EditableCategoryView @JvmOverloads constructor(
 
     private fun cancelEdit() {
         isEditing = false
+        onEditingChanged?.invoke(this, false)
         editWrapper.visibility = GONE
         if (hasLabel) {
             textView.visibility = VISIBLE
@@ -186,11 +191,12 @@ class EditableCategoryView @JvmOverloads constructor(
 
 
     fun setParams(
+        bookId: Long,
         currentRepository: PdfRepository,
         categoryId: Int?,
         label: String? = null
     ) {
-
+        currentBookId = bookId
         if (label != null) {
             setLabel(label)
         }
@@ -212,5 +218,9 @@ class EditableCategoryView @JvmOverloads constructor(
 
         textView.setTypeface(textView.typeface, Typeface.NORMAL)
 
+    }
+
+    override fun toggleEditButton(show: Boolean) {
+        editButton.visibility = if (show) VISIBLE else GONE
     }
 }

@@ -65,5 +65,6 @@
     <string name="preview_image_of_possible_new_book_cover">Preview Image Of Possible New Book COver</string>
     <string name="table_of_contents">Show Table of Contents</string>
     <string name="show_bookmarks">Show Bookmarks</string>
+    <string name="bookmark_id_or_null_if_not_bookmarked">The bookmark id of the saved toc item</string>
 
 </resources>

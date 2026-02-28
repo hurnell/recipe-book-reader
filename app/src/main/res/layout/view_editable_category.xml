@@ -61,8 +61,8 @@
         <!-- Buttons stay at the end of the row -->
         <ImageButton
             android:id="@+id/categoryEditButton"
-            android:layout_width="16dp"
-            android:layout_height="16dp"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:layout_marginStart="8dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/generic_editable_text_view_edit_button"
@@ -71,8 +71,8 @@
 
         <ImageButton
             android:id="@+id/categoryCancelButton"
-            android:layout_width="16dp"
-            android:layout_height="16dp"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:layout_marginStart="4dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/generic_editable_text_view_cancel_button"

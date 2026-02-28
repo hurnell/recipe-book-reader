@@ -1,0 +1,15 @@
+package apk.hurnell.recipebookreader.model
+
+data class Row(
+    val id: Long,
+    val bookId: Long,
+    val bookTitle: String,
+    val parentId: Long?,
+    val title: String,
+    val bookmarkId: Int?,
+    val page: Int,
+    val level: Int,
+    val offset: Float,
+    val scale: Float,
+    val translate: Float
+)

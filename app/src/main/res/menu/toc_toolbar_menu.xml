@@ -11,7 +11,7 @@
 
     <item
         android:id="@+id/action_show_bookmarks"
-        android:icon="@drawable/ic_bookmark_svg"
+        android:icon="@drawable/ic_bookmark_open"
         android:title="@string/show_bookmarks"
         app:showAsAction="ifRoom" />
 

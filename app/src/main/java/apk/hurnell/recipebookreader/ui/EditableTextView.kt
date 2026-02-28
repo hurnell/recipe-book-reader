@@ -18,7 +18,7 @@ class EditableTextView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
-) : LinearLayout(context, attrs, defStyleAttr) {
+) : LinearLayout(context, attrs, defStyleAttr), EditableView {
 
     private val textView: TextView
     private val labelView: TextView
@@ -30,7 +30,9 @@ class EditableTextView @JvmOverloads constructor(
     private var lowercaseChars: String = ""
 
     private var isEditing = false
-    var onAccept: ((String) -> Unit)? = null
+    var onEditingChanged: ((view: Any, isEditing: Boolean) -> Unit)? = null
+    var onAccept: ((Long, String) -> Unit)? = null
+    private var currentBookId: Long = -1L
 
     init {
         orientation = HORIZONTAL
@@ -70,27 +72,18 @@ class EditableTextView @JvmOverloads constructor(
         cancelButton.setOnClickListener { cancelEdit() }
     }
 
-    fun onAccept(listener: (String) -> Unit): EditableTextView {
+    fun onAccept(listener: (Long, String) -> Unit): EditableTextView {
         this.onAccept = listener
         return this
     }
+    override fun toggleEditButton(show: Boolean) {
+        editButton.visibility = if (show) VISIBLE else GONE
+    }
 
-    private fun toggleEditMode() {
-        if (!isEditing) {
-            isEditing = true
-            editText.setText(textView.text)
-            editText.visibility = VISIBLE
-            textView.visibility = GONE
-            if (hasLabel) {
-                labelView.visibility = VISIBLE
-            }
-            editButton.setImageResource(R.drawable.ic_save)
-            cancelButton.visibility = VISIBLE
-            editText.requestFocus()
-            val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-            imm.showSoftInput(editText, InputMethodManager.SHOW_IMPLICIT)
-        } else {
+    private fun toggleEditMode(forceClosed: Boolean = false) {
+        if (forceClosed || isEditing) {
             isEditing = false
+            onEditingChanged?.invoke(this, false)
             if (hasLabel) {
                 labelView.visibility = VISIBLE
             }
@@ -102,15 +95,30 @@ class EditableTextView @JvmOverloads constructor(
             val newText = textView.text.toString()
             if (newText != originalText) {
                 originalText = newText
-                onAccept?.invoke(newText)
+                onAccept?.invoke(currentBookId, newText)
             }
             val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
             imm.hideSoftInputFromWindow(editText.windowToken, 0)
+        } else {
+            isEditing = true
+            onEditingChanged?.invoke(this, true)
+            editText.setText(textView.text)
+            editText.visibility = VISIBLE
+            textView.visibility = GONE
+            if (hasLabel) {
+                labelView.visibility = VISIBLE
+            }
+            editButton.setImageResource(R.drawable.ic_save)
+            cancelButton.visibility = VISIBLE
+            editText.requestFocus()
+            val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.showSoftInput(editText, InputMethodManager.SHOW_IMPLICIT)
         }
     }
 
     private fun cancelEdit() {
         isEditing = false
+        onEditingChanged?.invoke(this, false)
         editText.visibility = GONE
         if (hasLabel) {
             textView.visibility = VISIBLE
@@ -133,11 +141,13 @@ class EditableTextView @JvmOverloads constructor(
     }
 
     fun setParams(
+        bookId: Long,
         text: String,
         label: String? = null,
         style: Int = Typeface.NORMAL,
         lowercase: Boolean? = false
     ) {
+        currentBookId = bookId
         setText(text)
         textView.setTypeface(textView.typeface, style)
         if (label != null) {
@@ -149,10 +159,13 @@ class EditableTextView @JvmOverloads constructor(
     }
 
     fun setParams(
+        bookId: Long,
         text: String,
         label: String? = null,
         lowercase: Boolean? = false
     ) {
+        toggleEditMode(true)
+        currentBookId = bookId
         setText(text)
         textView.setTypeface(textView.typeface, Typeface.NORMAL)
         if (label != null) {

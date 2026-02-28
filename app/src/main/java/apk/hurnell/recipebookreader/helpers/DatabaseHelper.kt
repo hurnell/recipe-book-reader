@@ -28,13 +28,13 @@ import com.artifex.mupdf.fitz.android.AndroidDrawDevice
 import apk.hurnell.recipebookreader.model.BookInfo
 import apk.hurnell.recipebookreader.model.FileItem
 import androidx.core.graphics.createBitmap
+import apk.hurnell.recipebookreader.model.BookmarkItem
+import apk.hurnell.recipebookreader.model.Row
 import apk.hurnell.recipebookreader.model.TocItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 
 
 class DatabaseHelper(private val context: Context) :
@@ -84,11 +84,7 @@ class DatabaseHelper(private val context: Context) :
     fun <T> getConfiguration(key: String, clazz: Class<T>): T? {
         val db = writableDatabase
         db.query(
-            "configuration",
-            arrayOf("json"),
-            "key = ?",
-            arrayOf(key),
-            null, null, null
+            "configuration", arrayOf("json"), "key = ?", arrayOf(key), null, null, null
         ).use { cursor ->
             if (cursor.moveToFirst()) {
                 val json = cursor.getString(0)
@@ -103,8 +99,7 @@ class DatabaseHelper(private val context: Context) :
         val dbFile: File = context.getDatabasePath(DB_NAME)
         if (!dbFile.exists()) {
             Log.d(
-                LOG_TAG,
-                "Database not found, copying from assets..."
+                LOG_TAG, "Database not found, copying from assets..."
             )
             dbFile.parentFile?.let { parent -> if (!parent.exists()) parent.mkdirs() }
             try {
@@ -119,26 +114,27 @@ class DatabaseHelper(private val context: Context) :
     }
 
     suspend fun getOrInsertBook(
-        file: File,
-        path: String,
-        document: Document
+        file: File, path: String, document: Document
     ): Book? {
         val bookId = checkAddBookToDatabase(file, path, document)
         val db = writableDatabase
 
 
         return db.query(
-            "books",
-            arrayOf(
-                "id", "sha", "name", "location", "author", "isbn",
-                "last_opened", "toc_created", "toc_unavailable",
-                "category", "sub_category", "alternate_cover"
-            ),
-            "id = ?",
-            arrayOf(bookId.toString()),
-            null,
-            null,
-            null
+            "books", arrayOf(
+                "id",
+                "sha",
+                "name",
+                "location",
+                "author",
+                "isbn",
+                "last_opened",
+                "toc_created",
+                "toc_unavailable",
+                "category",
+                "sub_category",
+                "alternate_cover"
+            ), "id = ?", arrayOf(bookId.toString()), null, null, null
         ).use { cursor ->
             if (cursor.moveToFirst()) {
                 Book(
@@ -257,11 +253,7 @@ class DatabaseHelper(private val context: Context) :
     fun hasTableOfContents(bookId: Long): Boolean {
         val db = writableDatabase
         return db.query(
-            "books",
-            arrayOf("toc_created"),
-            "id = ?",
-            arrayOf(bookId.toString()),
-            null, null, null
+            "books", arrayOf("toc_created"), "id = ?", arrayOf(bookId.toString()), null, null, null
         ).use { cursor ->
             if (cursor.moveToFirst()) {
                 cursor.getInt(0) == 1
@@ -315,9 +307,7 @@ class DatabaseHelper(private val context: Context) :
 
 
     suspend fun checkAddBookToDatabase(
-        file: File,
-        path: String,
-        document: Document
+        file: File, path: String, document: Document
     ): Long {
         val db = writableDatabase
 
@@ -357,8 +347,7 @@ class DatabaseHelper(private val context: Context) :
 
                     if (newId == -1L) {
                         Log.e(
-                            LOG_TAG,
-                            "Failed to insert book! Check for column name mismatches."
+                            LOG_TAG, "Failed to insert book! Check for column name mismatches."
                         )
                     } else {
                         generateBookCoverThumbnail(sha, document, bookTitle, bookAuthor)
@@ -407,6 +396,7 @@ SELECT
     t.id AS toc_id,
     t.parent_id AS parent_id,
     t.title AS toc_title,
+    t.bookmark_is AS toc_bookmarked,
     h.parent_path AS breadcrumbs, 
     t.page AS toc_page,
     t.level AS toc_level,
@@ -443,17 +433,28 @@ GROUP BY t.id
                 val page = cursor.getInt(cursor.getColumnIndexOrThrow("toc_page"))
                 val level = cursor.getInt(cursor.getColumnIndexOrThrow("toc_level"))
 
-                val parentId = if (cursor.isNull(cursor.getColumnIndexOrThrow("parent_id")))
-                    null else cursor.getInt(cursor.getColumnIndexOrThrow("parent_id"))
+                val parentId =
+                    if (cursor.isNull(cursor.getColumnIndexOrThrow("parent_id"))) null else cursor.getInt(
+                        cursor.getColumnIndexOrThrow("parent_id")
+                    )
 
-                val offset = if (cursor.isNull(cursor.getColumnIndexOrThrow("toc_offset")))
-                    0f else cursor.getFloat(cursor.getColumnIndexOrThrow("toc_offset"))
+                val offset =
+                    if (cursor.isNull(cursor.getColumnIndexOrThrow("toc_offset"))) 0f else cursor.getFloat(
+                        cursor.getColumnIndexOrThrow("toc_offset")
+                    )
 
-                val scale = if (cursor.isNull(cursor.getColumnIndexOrThrow("toc_scale")))
-                    1f else cursor.getFloat(cursor.getColumnIndexOrThrow("toc_scale"))
+                val scale =
+                    if (cursor.isNull(cursor.getColumnIndexOrThrow("toc_scale"))) 1f else cursor.getFloat(
+                        cursor.getColumnIndexOrThrow("toc_scale")
+                    )
 
-                val translate = if (cursor.isNull(cursor.getColumnIndexOrThrow("toc_translate")))
-                    0f else cursor.getFloat(cursor.getColumnIndexOrThrow("toc_translate"))
+                val translate =
+                    if (cursor.isNull(cursor.getColumnIndexOrThrow("toc_translate"))) 0f else cursor.getFloat(
+                        cursor.getColumnIndexOrThrow("toc_translate")
+                    )
+                val isBookmarked = cursor.getInt(
+                    cursor.getColumnIndexOrThrow("toc_bookmarked")
+                )
 
                 // 4. Build the Item
                 list.add(
@@ -466,6 +467,7 @@ GROUP BY t.id
                         hierarchy = hierarchyField, // Just the parents
                         page = page - 1,
                         level = level,
+                        bookmarkId = isBookmarked,
                         offset = offset,
                         scale = scale,
                         translate = translate
@@ -482,11 +484,7 @@ GROUP BY t.id
     }
 
     private suspend fun downloadAndSaveCover(
-        title: String,
-        author: String,
-        thumbnailFile: File,
-        targetWidth: Int,
-        targetHeight: Int
+        title: String, author: String, thumbnailFile: File, targetWidth: Int, targetHeight: Int
     ): Boolean {
         return try {
             val coverUrl = getCoverUrl(title, author) ?: return false
@@ -523,10 +521,7 @@ GROUP BY t.id
     }
 
     private fun generateBookCoverFromFirstPage(
-        thumbnailFile: File,
-        document: Document,
-        targetWidth: Int,
-        targetHeight: Int
+        thumbnailFile: File, document: Document, targetWidth: Int, targetHeight: Int
     ): Boolean {
         return try {
             val page = document.loadPage(0)
@@ -572,18 +567,11 @@ GROUP BY t.id
             val firstPage = FunctionalStructuredTextWalker().getPageCoordinates(document, 0)
             val generated = if (firstPage.imageIsFullPage) {
                 generateBookCoverFromFirstPage(
-                    thumbnailFile,
-                    document,
-                    targetWidth,
-                    targetHeight
+                    thumbnailFile, document, targetWidth, targetHeight
                 )
             } else if (bookTitle != null && bookAuthor != null) {
                 downloadAndSaveCover(
-                    bookTitle,
-                    bookAuthor,
-                    thumbnailFile,
-                    targetWidth,
-                    targetHeight
+                    bookTitle, bookAuthor, thumbnailFile, targetWidth, targetHeight
                 )
             } else {
                 false
@@ -612,16 +600,14 @@ GROUP BY t.id
         val list = mutableListOf<Category>()
         val db = writableDatabase
         val cursor = db.rawQuery(
-            "SELECT id, category FROM categories ORDER BY category",
-            null
+            "SELECT id, category FROM categories ORDER BY category", null
         )
 
         cursor.use {
             while (it.moveToNext()) {
                 list.add(
                     Category(
-                        id = it.getLong(0),
-                        category = it.getString(1)
+                        id = it.getLong(0), category = it.getString(1)
                     )
                 )
             }
@@ -654,16 +640,14 @@ GROUP BY t.id
         val db = readableDatabase
         val list = mutableListOf<RecentFile>()
         val cursor = db.rawQuery(
-            "SELECT location FROM books ORDER BY (last_opened IS NULL) ASC, last_opened DESC",
-            null
+            "SELECT location FROM books ORDER BY (last_opened IS NULL) ASC, last_opened DESC", null
         )
 
         cursor.use {
             while (it.moveToNext()) {
                 list.add(
                     RecentFile(
-                        location = it.getString(0),
-                        lastOpened = it.getLongOrNull(1)
+                        location = it.getString(0), lastOpened = it.getLongOrNull(1)
                     )
                 )
             }
@@ -692,8 +676,7 @@ GROUP BY t.id
             ORDER BY used_categories
         """.trimIndent()
         val cursor = db.rawQuery(
-            sql,
-            null
+            sql, null
         )
         cursor.use {
             while (it.moveToNext()) {
@@ -706,11 +689,7 @@ GROUP BY t.id
     fun getBookInfoForItemPath(location: String): BookInfo? {
         val db = readableDatabase
         return db.query(
-            "books",
-            arrayOf("sha", "name"),
-            "location = ?",
-            arrayOf(location),
-            null, null, null
+            "books", arrayOf("sha", "name"), "location = ?", arrayOf(location), null, null, null
         ).use { cursor ->
             if (cursor.moveToFirst()) {
                 val sha = cursor.getString(cursor.getColumnIndexOrThrow("sha"))
@@ -735,8 +714,7 @@ GROUP BY t.id
             ORDER BY (b.sub_category IS NULL) ASC, b.sub_category ASC, (b.category  IS NULL) ASC, b.category  ASC, b.author;
         """.trimIndent()
         val cursor = db.rawQuery(
-            sql,
-            null
+            sql, null
         )
         cursor.use { cursor ->
             while (cursor.moveToNext()) {
@@ -773,9 +751,7 @@ GROUP BY t.id
             var processed = 0
 
             fun insertWithProgress(
-                entries: List<Outline>,
-                parentId: Long?,
-                level: Int
+                entries: List<Outline>, parentId: Long?, level: Int
             ) {
                 val stmt = db.compileStatement(
                     """
@@ -787,9 +763,7 @@ GROUP BY t.id
                 entries.forEach { entry ->
                     val page = extractPageFromUri(entry.uri)
                     val pageCoordinates = FunctionalStructuredTextWalker().getPageCoordinates(
-                        document,
-                        page - 1,
-                        ignoreTocParams
+                        document, page - 1, ignoreTocParams
                     )
 
                     if (!ignoreTocParams) {
@@ -797,14 +771,11 @@ GROUP BY t.id
                             ?: pageCoordinates.leftOffset
                         ignoredScale = ignoredScale?.let { minOf(it, pageCoordinates.targetScale) }
                             ?: pageCoordinates.targetScale
-                        ignoredTranslate =
-                            ignoredTranslate?.let {
-                                minOf(
-                                    it,
-                                    pageCoordinates.translatingPercentage
-                                )
-                            }
-                                ?: pageCoordinates.translatingPercentage
+                        ignoredTranslate = ignoredTranslate?.let {
+                            minOf(
+                                it, pageCoordinates.translatingPercentage
+                            )
+                        } ?: pageCoordinates.translatingPercentage
                     } else {
                         pageCoordinates.intercept(ignoredOffset, ignoredScale, ignoredTranslate)
                     }
@@ -860,17 +831,20 @@ GROUP BY t.id
     fun getBook(location: String): Book? {
         val db = readableDatabase
         return db.query(
-            "books",
-            arrayOf(
-                "id", "sha", "name", "location", "author", "isbn",
-                "last_opened", "toc_created", "toc_unavailable",
-                "category", "sub_category", "alternate_cover"
-            ),
-            "location = ?",
-            arrayOf(location),
-            null,
-            null,
-            null
+            "books", arrayOf(
+                "id",
+                "sha",
+                "name",
+                "location",
+                "author",
+                "isbn",
+                "last_opened",
+                "toc_created",
+                "toc_unavailable",
+                "category",
+                "sub_category",
+                "alternate_cover"
+            ), "location = ?", arrayOf(location), null, null, null
         ).use { cursor ->
             if (cursor.moveToFirst()) {
                 Book(
@@ -929,6 +903,114 @@ GROUP BY t.id
         return db.compileStatement(sql).run {
             bindAllArgsAsStrings(selectionArgs)
             simpleQueryForLong() // Returns the first column of the first row
+        }
+    }
+
+    fun getTocRows(bookId: Int): List<Row> {
+        val db = readableDatabase
+        val cursor = db.rawQuery(
+            """
+            SELECT 
+                t.id AS toc_id,
+                t.parent_id AS parent_id, 
+                t.title AS toc_title, 
+                t.page AS page_title, 
+                t.level AS TOC_LEVEL, 
+                t.bookmark_id AS bookmark_id,
+                t.`offset` AS TOC_OFFSET, 
+                t.scale AS toc_scale, 
+                translate AS toc_translate,
+                b.name AS book_tite
+            FROM toc AS t
+            LEFT JOIN books AS  b
+            ON t.book_id_fk = b.id
+            WHERE t.book_id_fk = ?
+            ORDER BY t.id
+        """.trimIndent(), arrayOf(bookId.toString())
+        )
+
+
+        val rows = mutableListOf<Row>()
+        while (cursor.moveToNext()) {
+            rows.add(
+                Row(
+                    id = cursor.getLong(0),
+                    bookId = bookId.toLong(),
+                    bookTitle = cursor.getString(9),
+                    parentId = if (cursor.isNull(1)) null else cursor.getLong(1),
+                    title = cursor.getString(2),
+                    page = cursor.getInt(3) - 1,
+                    level = cursor.getInt(4),
+                    bookmarkId = if (cursor.isNull(5)) null else cursor.getInt(5),
+                    offset = cursor.getFloat(6),
+                    scale = cursor.getFloat(7),
+                    translate = cursor.getFloat(8),
+                )
+            )
+        }
+        return rows
+    }
+
+    fun createBookmark(item: BookmarkItem): Boolean {
+        val db = writableDatabase
+        val bookIdStr = item.bookId?.toString() ?: "NULL"
+        val uniqueKey = "$bookIdStr|${item.title}|${item.page}|${item.offset}"
+        // Check if duplicate exists first
+        val insertSql = """
+        INSERT OR IGNORE INTO bookmarks 
+        (book_id_fk, title, page, `offset`, scale, translate, unique_key)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """.trimIndent()
+
+        val rowId = db.compileStatement(insertSql).use { stmt ->
+            if (item.bookId != null) stmt.bindLong(1, item.bookId) else stmt.bindNull(1)
+            stmt.bindString(2, item.title)
+            stmt.bindLong(3, item.page.toLong())
+            stmt.bindDouble(4, item.offset.toDouble())
+            stmt.bindDouble(5, item.scale.toDouble())
+            stmt.bindDouble(6, item.translate.toDouble())
+            stmt.bindString(7, uniqueKey)
+
+            stmt.executeInsert()
+        }
+        val success = rowId != -1L
+        if (success) {
+            val values = ContentValues().apply {
+                put("bookmark_id", rowId)
+            }
+            db.update("toc", values, "id = ?", arrayOf(item.tocId.toString()))
+        }
+        return success
+    }
+
+    fun deleteBookmark(item: BookmarkItem): Boolean {
+        val db = writableDatabase
+        db.beginTransaction()
+
+        return try {
+            val deletedRows = db.delete(
+                "bookmarks",
+                "id = ?",
+                arrayOf(item.bookmarkId.toString())
+            )
+
+            if (deletedRows > 0) {
+                // 2️⃣ Update toc to remove reference
+                db.execSQL(
+                    "UPDATE toc SET bookmark_id = NULL WHERE id = ?",
+                    arrayOf(item.tocId)
+                )
+
+                db.setTransactionSuccessful()
+                true
+            } else {
+                false
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        } finally {
+            db.endTransaction()
         }
     }
 }
