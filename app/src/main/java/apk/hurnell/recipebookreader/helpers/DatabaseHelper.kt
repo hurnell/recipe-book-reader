@@ -396,7 +396,7 @@ SELECT
     t.id AS toc_id,
     t.parent_id AS parent_id,
     t.title AS toc_title,
-    t.bookmark_is AS toc_bookmarked,
+    t.bookmark_id AS toc_bookmark_id,
     h.parent_path AS breadcrumbs, 
     t.page AS toc_page,
     t.level AS toc_level,
@@ -452,8 +452,8 @@ GROUP BY t.id
                     if (cursor.isNull(cursor.getColumnIndexOrThrow("toc_translate"))) 0f else cursor.getFloat(
                         cursor.getColumnIndexOrThrow("toc_translate")
                     )
-                val isBookmarked = cursor.getInt(
-                    cursor.getColumnIndexOrThrow("toc_bookmarked")
+                val bookmarkId = if (cursor.isNull(cursor.getColumnIndexOrThrow("toc_bookmark_id"))) null else cursor.getInt(
+                    cursor.getColumnIndexOrThrow("toc_bookmark_id")
                 )
 
                 // 4. Build the Item
@@ -467,7 +467,7 @@ GROUP BY t.id
                         hierarchy = hierarchyField, // Just the parents
                         page = page - 1,
                         level = level,
-                        bookmarkId = isBookmarked,
+                        bookmarkId = bookmarkId,
                         offset = offset,
                         scale = scale,
                         translate = translate
