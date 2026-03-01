@@ -123,6 +123,7 @@
                     android:id="@+id/btnShowBookmarks"
                     android:layout_width="24dp"
                     android:layout_height="24dp"
+                    android:visibility="gone"
                     android:layout_marginStart="16dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:contentDescription="@string/show_table_of_contents"

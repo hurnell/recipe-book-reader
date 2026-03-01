@@ -452,9 +452,10 @@ GROUP BY t.id
                     if (cursor.isNull(cursor.getColumnIndexOrThrow("toc_translate"))) 0f else cursor.getFloat(
                         cursor.getColumnIndexOrThrow("toc_translate")
                     )
-                val bookmarkId = if (cursor.isNull(cursor.getColumnIndexOrThrow("toc_bookmark_id"))) null else cursor.getInt(
-                    cursor.getColumnIndexOrThrow("toc_bookmark_id")
-                )
+                val bookmarkId =
+                    if (cursor.isNull(cursor.getColumnIndexOrThrow("toc_bookmark_id"))) null else cursor.getInt(
+                        cursor.getColumnIndexOrThrow("toc_bookmark_id")
+                    )
 
                 // 4. Build the Item
                 list.add(
@@ -931,22 +932,24 @@ GROUP BY t.id
 
 
         val rows = mutableListOf<Row>()
-        while (cursor.moveToNext()) {
-            rows.add(
-                Row(
-                    id = cursor.getLong(0),
-                    bookId = bookId.toLong(),
-                    bookTitle = cursor.getString(9),
-                    parentId = if (cursor.isNull(1)) null else cursor.getLong(1),
-                    title = cursor.getString(2),
-                    page = cursor.getInt(3) - 1,
-                    level = cursor.getInt(4),
-                    bookmarkId = if (cursor.isNull(5)) null else cursor.getInt(5),
-                    offset = cursor.getFloat(6),
-                    scale = cursor.getFloat(7),
-                    translate = cursor.getFloat(8),
+        cursor.use {
+            while (cursor.moveToNext()) {
+                rows.add(
+                    Row(
+                        id = cursor.getLong(0),
+                        bookId = bookId.toLong(),
+                        bookTitle = cursor.getString(9),
+                        parentId = if (cursor.isNull(1)) null else cursor.getLong(1),
+                        title = cursor.getString(2),
+                        page = cursor.getInt(3) - 1,
+                        level = cursor.getInt(4),
+                        bookmarkId = if (cursor.isNull(5)) null else cursor.getInt(5),
+                        offset = cursor.getFloat(6),
+                        scale = cursor.getFloat(7),
+                        translate = cursor.getFloat(8),
+                    )
                 )
-            )
+            }
         }
         return rows
     }
@@ -1012,5 +1015,85 @@ GROUP BY t.id
         } finally {
             db.endTransaction()
         }
+    }
+
+    fun getAllBookmarks(): List<BookmarkItem> {
+        val db = readableDatabase
+        val cursor = db.rawQuery(
+            """
+            SELECT 
+                m.id AS bookmark_id,
+                m.book_id_fk AS book_id, 
+                m.title AS bookmark_title, 
+                m.page AS bookmark_page, 
+                m.`offset` AS bookmark_offset, 
+                m.scale AS bookmark_scale, 
+                m.translate AS bookmark_translate,
+                b.name AS book_tite
+            FROM bookmarks AS m
+            LEFT JOIN books AS  b
+            ON m.book_id_fk = b.id
+            ORDER BY m.page
+        """.trimIndent(), null)
+        val bookmarks = mutableListOf<BookmarkItem>()
+        cursor.use { cursor ->
+            while (cursor.moveToNext()) {
+                bookmarks.add(
+                    BookmarkItem(
+                        tocId = null,
+                        bookmarkId = if (cursor.isNull(0)) null else cursor.getLong(0),
+                        title = cursor.getString(2),
+                        bookTitle = cursor.getString(7),
+                        bookId = if (cursor.isNull(1)) null else cursor.getLong(1),
+                        page = cursor.getInt(3),
+                        offset = cursor.getFloat(4),
+                        scale = cursor.getFloat(5),
+                        translate = cursor.getFloat(6)
+                    )
+                )
+            }
+        }
+        return bookmarks
+    }
+
+    fun getBookmarksForBook(bookId: Int): List<BookmarkItem> {
+        val db = readableDatabase
+        val cursor = db.rawQuery(
+            """
+            SELECT 
+                m.id AS bookmark_id,
+                m.book_id_fk AS book_id, 
+                m.title AS bookmark_title, 
+                m.page AS bookmark_page, 
+                m.`offset` AS bookmark_offset, 
+                m.scale AS bookmark_scale, 
+                m.translate AS bookmark_translate,
+                b.name AS book_tite
+            FROM bookmarks AS m
+            LEFT JOIN books AS  b
+            ON m.book_id_fk = b.id
+            WHERE m.book_id_fk = ?
+            ORDER BY m.page
+        """.trimIndent(), arrayOf(bookId.toString())
+        )
+        val bookmarks = mutableListOf<BookmarkItem>()
+        cursor.use { cursor ->
+            while (cursor.moveToNext()) {
+                bookmarks.add(
+                    BookmarkItem(
+                        tocId = null,
+                        bookmarkId = if (cursor.isNull(0)) null else cursor.getLong(0),
+                        title = cursor.getString(2),
+                        bookTitle = cursor.getString(7),
+                        bookId = if (cursor.isNull(1)) null else cursor.getLong(1),
+                        page = cursor.getInt(3),
+                        offset = cursor.getFloat(4),
+                        scale = cursor.getFloat(5),
+                        translate = cursor.getFloat(6)
+                    )
+                )
+            }
+        }
+        return bookmarks
     }
 }

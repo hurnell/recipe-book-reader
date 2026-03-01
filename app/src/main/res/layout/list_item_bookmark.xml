@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/selectableItemBackground"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingHorizontal="4dp"
+    android:paddingVertical="8dp">
+
+
+    <TextView
+        android:id="@+id/bookmarkTitle"
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:padding="5dp"
+        android:maxLines="1"
+        android:textColor="@color/darker_gray"
+        android:textSize="16sp" />
+    <TextView
+        android:id="@+id/bookmarkPage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:padding="5dp"
+        android:maxLines="1"
+        android:textColor="@color/darker_gray"
+        android:textSize="16sp" />
+
+    <ImageButton
+        android:id="@+id/deleteBookmark"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:contentDescription="@string/expand"
+        android:padding="8dp"
+        android:src="@drawable/ic_close_small" />
+
+</LinearLayout>

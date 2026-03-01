@@ -37,9 +37,10 @@ import kotlinx.coroutines.*
 import kotlin.math.floor
 import androidx.core.view.doOnNextLayout
 import apk.hurnell.recipebookreader.helpers.IsbnFinder
+import apk.hurnell.recipebookreader.ui.TocFragmentListener
 
 
-class RecipeBookActivity : AppCompatActivity() {
+class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
 
     private lateinit var binding: ActivityRecipeBookBinding
     private lateinit var tocFragment: TocFragment
@@ -294,7 +295,7 @@ class RecipeBookActivity : AppCompatActivity() {
             isPortrait = !isPortrait
             requestedOrientation = if (isPortrait) {
                 ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-            }else {
+            } else {
                 ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
             }
             if (isPortrait) {
@@ -524,5 +525,9 @@ class RecipeBookActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         document?.destroy()
+    }
+
+    override fun onBookmarkDataReloaded(isEmpty: Boolean) {
+        binding.btnShowBookmarks.visibility = if (isEmpty) View.GONE else View.VISIBLE
     }
 }

@@ -131,4 +131,8 @@ class PdfRepository(
     fun deleteBookmark(item: BookmarkItem): Boolean {
         return dbHelper.deleteBookmark(item)
     }
+
+    fun getBookmarksForBook(bookId: Int): List<BookmarkItem> {
+        return dbHelper.getBookmarksForBook(bookId)
+    }
 }

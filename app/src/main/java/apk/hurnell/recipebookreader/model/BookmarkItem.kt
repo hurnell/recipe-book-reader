@@ -1,13 +1,13 @@
 package apk.hurnell.recipebookreader.model
 
 data class BookmarkItem(
-    val tocId: Long,
+    override val tocId: Long? = null,
     val bookmarkId: Long?,
     val title: String,
-    val bookTitle: String?,
-    val bookId: Long?,
-    val page: Int,
-    val offset: Float = 0f,
-    val scale: Float = 1f,
-    val translate: Float = 0f
-)
+    override val bookTitle: String?,
+    override val bookId: Long?,
+    override val page: Int,
+    override val offset: Float = 0f,
+    override val scale: Float = 1f,
+    override val translate: Float = 0f
+): BaseBookmarkTocItem

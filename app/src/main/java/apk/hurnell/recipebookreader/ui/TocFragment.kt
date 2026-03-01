@@ -15,8 +15,11 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.R
+import apk.hurnell.recipebookreader.adapters.BookmarkAdapter
 import apk.hurnell.recipebookreader.adapters.TocAdapter
 import apk.hurnell.recipebookreader.helpers.PdfRepository
+import apk.hurnell.recipebookreader.model.BaseBookmarkTocItem
+import apk.hurnell.recipebookreader.model.BookmarkItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -25,21 +28,36 @@ import com.google.android.material.appbar.MaterialToolbar
 
 class TocFragment : Fragment() {
     private lateinit var tocRecyclerView: RecyclerView
+    private lateinit var bookmarkRecyclerView: RecyclerView
     private lateinit var tocSearchBar: LinearLayout
     private lateinit var toolbar: MaterialToolbar
     private lateinit var repository: PdfRepository
     private var bookId: Int = -1
-    private var onPageSelected: ((TocItem) -> Unit)? = null
+    private var onPageSelected: ((BaseBookmarkTocItem) -> Unit)? = null
     private var tocData: List<TocItem> = emptyList()
     private var adapter: TocAdapter? = null
+    private var listener: TocFragmentListener? = null
+
+
+    private var bookmarkData: List<BookmarkItem> = emptyList()
+    private var bookmarkAdapter: BookmarkAdapter? = null
     private var allExpanded = false
 
     companion object {
-        fun newInstance(bookId: Int, listener: (TocItem) -> Unit): TocFragment {
+        fun newInstance(bookId: Int, listener: (BaseBookmarkTocItem) -> Unit): TocFragment {
             return TocFragment().apply {
                 this.bookId = bookId
                 this.onPageSelected = listener
             }
+        }
+    }
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        if (context is TocFragmentListener) {
+            listener = context
+        } else {
+            throw RuntimeException("$context must implement TocFragmentListener")
         }
     }
 
@@ -51,6 +69,7 @@ class TocFragment : Fragment() {
         bookmarkItem.isVisible = showToc
         tocSearchBar.visibility = if (showToc) View.VISIBLE else View.GONE
         tocRecyclerView.visibility = if (showToc) View.VISIBLE else View.GONE
+        bookmarkRecyclerView.visibility = if (showToc) View.GONE else View.VISIBLE
         toolbar.title = if (showToc) "TOC" else "Bookmarks"
     }
 
@@ -76,13 +95,14 @@ class TocFragment : Fragment() {
         val view = inflater.inflate(R.layout.fragment_toc, container, false)
         setupToolbar(view)
         tocRecyclerView = view.findViewById(R.id.tocRecyclerView)
+        bookmarkRecyclerView = view.findViewById(R.id.bookmarkRecyclerView)
         tocSearchBar = view.findViewById(R.id.tocSearchBar)
         val searchField = view.findViewById<EditText>(R.id.searchField)
         val btnClear = view.findViewById<ImageButton>(R.id.btnClear)
         val btnToggle = view.findViewById<ImageButton>(R.id.btnToggle)
 
         tocRecyclerView.layoutManager = LinearLayoutManager(requireContext())
-
+        bookmarkRecyclerView.layoutManager = LinearLayoutManager(requireContext())
         btnToggle.setOnClickListener {
             allExpanded = !allExpanded
             toggleAll(tocData, allExpanded)
@@ -123,7 +143,7 @@ class TocFragment : Fragment() {
         return map
     }
 
-    private fun reloadAndShowToast(toastText: String){
+    private fun reloadAndShowToast(toastText: String) {
         loadTocAsync()
         Toast.makeText(
             context,
@@ -142,38 +162,74 @@ class TocFragment : Fragment() {
                 hideKeyboard()
             },
             onLongClick = { item ->
-                var createDeleteSuccess = false
                 if (item.bookmarkId == null) {
-                    createDeleteSuccess = repository.createBookmark(item.toBookmarkItem())
-                    if (createDeleteSuccess) {
+                    val success = repository.createBookmark(item.toBookmarkItem())
+                    if (success) {
                         val toastText =
                             "✅Bookmark with title ${item.title} for book ${item.bookTitle} to bookmarks"
                         reloadAndShowToast(toastText)
+                        loadBookmarksAsync(true)
                     }
                 } else {
-                    AlertDialog.Builder(requireContext())
-                        .setTitle("Already Bookmarked")
-                        .setMessage("This item is already bookmarked do want to delete the bookmark.")
-                        .setPositiveButton("Delete") { dialog, _ ->
-                            createDeleteSuccess = repository.deleteBookmark(item.toBookmarkItem())
-                            if (createDeleteSuccess) {
-                                val toastText =  "❌ Bookmark with title ${item.title} deleted"
-                                reloadAndShowToast(toastText)
-                            }
-                            dialog.dismiss()
-                        }
-                        .setNegativeButton("Cancel") { dialog, _ ->
-                            dialog.dismiss()
-                        }
-                        .show()
+                    checkDeleteBookmark(item.toBookmarkItem(), true)
                 }
+            }
+        )
+        bookmarkAdapter = BookmarkAdapter(
+            bookmarkData,
+            onClick = { item ->
+                onPageSelected?.invoke(item)
+                hideKeyboard()
+            },
+            onDeleteClick = { item ->
+                checkDeleteBookmark(item, false)
+                //bookmarkRecyclerView.
             }
         )
 
         val tocRecyclerView = view.findViewById<RecyclerView>(R.id.tocRecyclerView)
         tocRecyclerView.adapter = adapter
-
+        bookmarkRecyclerView.adapter = bookmarkAdapter
         loadTocAsync()
+        loadBookmarksAsync(true)
+        toggleVisibleChoices(true)
+    }
+
+    private fun checkDeleteBookmark(item: BookmarkItem, fromToc: Boolean) {
+        val message =
+            if (fromToc) "This item is already bookmarked do want to delete the bookmark." else "Are you sure you want to delete this bookmark"
+        AlertDialog.Builder(requireContext())
+            .setTitle("Already Bookmarked")
+            .setMessage(message)
+            .setPositiveButton("Delete") { dialog, _ ->
+                val success = repository.deleteBookmark(item)
+                if (success) {
+                    val toastText = "❌ Bookmark with title ${item.title} deleted"
+                    reloadAndShowToast(toastText)
+                    loadBookmarksAsync(fromToc)
+                }
+                dialog.dismiss()
+            }
+            .setNegativeButton("Cancel") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .show()
+    }
+
+    private fun loadBookmarksAsync(fromToc: Boolean) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val list = withContext(Dispatchers.IO) {
+                context?.let { repository.getBookmarksForBook(bookId) } ?: emptyList()
+            }
+            bookmarkData = list
+            bookmarkAdapter?.updateData(bookmarkData)
+            listener?.onBookmarkDataReloaded(bookmarkData.isEmpty())
+            val bookmarkItem = toolbar.menu.findItem(R.id.action_show_bookmarks)!!
+            bookmarkItem.isVisible = !bookmarkData.isEmpty()
+            if (!fromToc && bookmarkData.isEmpty()) {
+                toggleVisibleChoices(true)
+            }
+        }
     }
 
     private fun loadTocAsync() {
