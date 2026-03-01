@@ -541,14 +541,13 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
 
         val translationTop = if (show) 0f else -binding.toolbar.height.toFloat()
         val translationBottom = if (show) 0f else binding.bottomBar.height.toFloat()
-        var translationBottomFab: Float
-            if (barsVisible) {
-                translationBottomFab = translationBottom
-            } else if(isPortrait){
-                translationBottomFab = translationBottom - binding.zoomIt.height
-            } else {
-                translationBottomFab = translationBottom
-            }
+        val translationBottomFab = if (barsVisible) {
+            translationBottom
+        } else if (isPortrait) {
+            translationBottom - binding.zoomIt.height
+        } else {
+            translationBottom
+        }
         binding.toolbar.animate().translationY(translationTop).setDuration(300).start()
         binding.bottomBar.animate().translationY(translationBottom).setDuration(300).start()
         binding.btnRotate.animate().translationY(translationBottom).setDuration(300).start()
