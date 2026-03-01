@@ -193,11 +193,6 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                     btnPickCover?.visibility = View.GONE
 
                     coverOptionsRecycler?.adapter = CoverPickerAdapter(urls) { selectedUrl ->
-                        // User picked one!
-                        // 1. Load it into the main preview
-                        //Glide.with(this@BaseDrawerActivity).load(selectedUrl).into(bookPreviewImage!!)
-
-                        // 2. Hide the gallery and show the main image again
                         coverOptionsRecycler?.visibility = View.GONE
                         bookPreviewImage?.visibility = View.VISIBLE
                         btnCloseGallery?.visibility = View.GONE
