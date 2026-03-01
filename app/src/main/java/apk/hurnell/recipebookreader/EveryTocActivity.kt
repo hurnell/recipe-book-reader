@@ -20,6 +20,7 @@ import apk.hurnell.recipebookreader.model.TocItem
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import android.content.Context
 import android.view.inputmethod.InputMethodManager
+import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.Dispatchers
@@ -85,14 +86,34 @@ class EveryTocActivity : BaseDrawerActivity() {
                 displayClickResult(item.hierarchy!!, rootLayout)
             },
             onClickBookmark = { item ->
-                if (item.bookmarkId != null) {
+                if (item.bookmarkId == null) {
                     val success = repository.createBookmark(item.toBookmarkItem())
+                    if (success) {
+                        val toastText =
+                        "✅Bookmark with title \"${item.title}\" for book \"${item.bookTitle}\" to bookmarks"
+                        Toast.makeText(
+                            this,
+                            toastText,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                    applyChosenTextAndCategory()
                 } else {
                     AlertDialog.Builder(this)
                         .setTitle("Already Bookmarked")
                         .setMessage("This item is already bookmarked do want to delete the bookmark.")
                         .setPositiveButton("Delete") { dialog, _ ->
                             val success = repository.deleteBookmark(item.toBookmarkItem())
+                            if (success) {
+                                val toastText = "❌ Bookmark with title \"${item.title}\" deleted"
+                                Toast.makeText(
+                                    this@EveryTocActivity,
+                                    toastText,
+                                    Toast.LENGTH_SHORT
+                                ).show()
+
+                            }
+                            this@EveryTocActivity.applyChosenTextAndCategory()
                             dialog.dismiss()
                         }
                         .setNegativeButton("Cancel") { dialog, _ ->
