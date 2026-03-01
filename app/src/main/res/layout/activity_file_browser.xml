@@ -70,8 +70,8 @@
                 android:textStyle="bold" />
         </LinearLayout>
     </FrameLayout>
-    <include
-        layout="@layout/overlay_container_holder" />
+
+    <include layout="@layout/overlay_container_holder" />
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/control_drawer_container"
@@ -81,5 +81,6 @@
         android:layout_gravity="start"
         android:background="@android:color/white"
         android:clickable="true"
-        android:focusable="true" />
+        android:focusable="true"
+        android:tag="file_browser" />
 </androidx.drawerlayout.widget.DrawerLayout>
