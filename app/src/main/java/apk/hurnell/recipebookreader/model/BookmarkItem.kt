@@ -5,6 +5,7 @@ data class BookmarkItem(
     val bookmarkId: Long?,
     val title: String,
     override val bookTitle: String?,
+    override val bookLocation: String?,
     override val bookId: Long?,
     override val page: Int,
     override val offset: Float = 0f,
