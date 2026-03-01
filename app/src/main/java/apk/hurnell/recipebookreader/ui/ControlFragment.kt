@@ -20,11 +20,14 @@ import apk.hurnell.recipebookreader.RecentFilesActivity
 class ControlFragment : Fragment() {
 
     override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View? {
         return inflater.inflate(R.layout.fragment_control, container, false)
+    }
+
+    fun getCurrentActivity(): String? {
+        val currentActivity = activity ?: return null
+        return currentActivity::class.simpleName
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -34,48 +37,55 @@ class ControlFragment : Fragment() {
         val btnBrowseFiles = view.findViewById<Button>(R.id.btnBrowseFiles)
         val btnSearchEveryToc = view.findViewById<Button>(R.id.btnSearchEveryToc)
         val btnBookmarks = view.findViewById<Button>(R.id.btnBookmarks)
-
         btnRecentBooks.setOnClickListener {
-            navigateTo(RecentFilesActivity::class.java)
+            if (getCurrentActivity() != "RecentFilesActivity") {
+                navigateTo(RecentFilesActivity::class.java)
+            }
         }
-
         btnBookShelf.setOnClickListener {
-            navigateTo(BookShelfActivity::class.java)
+            if (getCurrentActivity() != "BookShelfActivity") {
+                navigateTo(BookShelfActivity::class.java)
+            }
         }
 
         btnBrowseFiles.setOnClickListener {
-            val current = activity ?: return@setOnClickListener
-            val drawer = (current as? BaseDrawerActivity)?.drawerLayout
+            if (getCurrentActivity() != "FileBrowserActivity") {
+                val current = activity ?: return@setOnClickListener
+                val drawer = (current as? BaseDrawerActivity)?.drawerLayout
 
-            if (current is FileBrowserActivity) {
-                current.resetToRoot()
-            } else {
-                drawer?.closeDrawer(GravityCompat.START)
+                if (current is FileBrowserActivity) {
+                    current.resetToRoot()
+                } else {
+                    drawer?.closeDrawer(GravityCompat.START)
 
-                drawer?.addDrawerListener(object : DrawerLayout.SimpleDrawerListener() {
-                    override fun onDrawerClosed(drawerView: View) {
-                        drawer.removeDrawerListener(this)
+                    drawer?.addDrawerListener(object : DrawerLayout.SimpleDrawerListener() {
+                        override fun onDrawerClosed(drawerView: View) {
+                            drawer.removeDrawerListener(this)
 
-                        val intent = Intent(requireContext(), FileBrowserActivity::class.java)
-                        intent.flags =
-                            Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                        startActivity(intent)
-                        current.overridePendingTransition(
-                            android.R.anim.fade_in,
-                            android.R.anim.fade_out
-                        )
-                        current.finish()
-                    }
-                })
+                            val intent = Intent(requireContext(), FileBrowserActivity::class.java)
+                            intent.flags =
+                                Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                            startActivity(intent)
+                            current.overridePendingTransition(
+                                android.R.anim.fade_in, android.R.anim.fade_out
+                            )
+                            current.finish()
+                        }
+                    })
+                }
             }
         }
 
         btnSearchEveryToc.setOnClickListener {
-            navigateTo(EveryTocActivity::class.java)
+            val c = getCurrentActivity()
+            if (getCurrentActivity() != "EveryTocActivity") {
+                navigateTo(EveryTocActivity::class.java)
+            }
         }
         btnBookmarks.setOnClickListener {
-            navigateTo(BookmarksActivity::class.java)
-
+            if (getCurrentActivity() != "BookmarksActivity") {
+                navigateTo(BookmarksActivity::class.java)
+            }
         }
     }
 
@@ -99,8 +109,7 @@ class ControlFragment : Fragment() {
                 startActivity(intent)
 
                 currentActivity.overridePendingTransition(
-                    android.R.anim.fade_in,
-                    android.R.anim.fade_out
+                    android.R.anim.fade_in, android.R.anim.fade_out
                 )
 
                 if (currentActivity !is FileBrowserActivity) {
