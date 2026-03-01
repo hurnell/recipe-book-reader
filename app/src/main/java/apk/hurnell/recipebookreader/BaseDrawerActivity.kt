@@ -29,6 +29,7 @@ import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.adapters.CoverPickerAdapter
 import apk.hurnell.recipebookreader.helpers.GetCoverUrlHelper
 import apk.hurnell.recipebookreader.helpers.PdfRepository
+import apk.hurnell.recipebookreader.model.BaseBookmarkTocItem
 import apk.hurnell.recipebookreader.model.Book
 import apk.hurnell.recipebookreader.ui.EditableCategoryView
 import apk.hurnell.recipebookreader.ui.EditableTextView
@@ -108,7 +109,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         spinner.adapter = adapter
     }
 
-    protected fun processAndOpenBook(pdfFile: File, tocItem: TocItem? = null) {
+    protected fun processAndOpenBook(pdfFile: File, tocItem: BaseBookmarkTocItem? = null) {
         loadingOverlay.visibility = View.VISIBLE
 
         lifecycleScope.launch(Dispatchers.IO) {
