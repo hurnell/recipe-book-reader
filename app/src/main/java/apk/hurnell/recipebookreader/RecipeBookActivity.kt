@@ -7,6 +7,7 @@ import android.util.Log
 import android.util.TypedValue
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
 import android.widget.SeekBar
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
@@ -23,7 +24,6 @@ import apk.hurnell.recipebookreader.helpers.FunctionalStructuredTextWalker
 import apk.hurnell.recipebookreader.ui.PinchRecyclerView
 import androidx.activity.OnBackPressedCallback
 import androidx.core.content.ContextCompat
-import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import apk.hurnell.recipebookreader.helpers.PdfRepository
 import apk.hurnell.recipebookreader.model.TocItem
@@ -36,6 +36,8 @@ import kotlin.math.abs
 import kotlinx.coroutines.*
 import kotlin.math.floor
 import androidx.core.view.doOnNextLayout
+import androidx.core.view.marginEnd
+import androidx.core.view.updateLayoutParams
 import apk.hurnell.recipebookreader.helpers.IsbnFinder
 import apk.hurnell.recipebookreader.ui.TocFragmentListener
 
@@ -44,6 +46,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
 
     private lateinit var binding: ActivityRecipeBookBinding
     private lateinit var tocFragment: TocFragment
+    private var bottomInset: Int = 0
     private var isPortrait = true
     private var barsVisible = true
     private var linksWorking = true
@@ -119,8 +122,6 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                 if (!book.name.isNullOrEmpty()) {
                     binding.toolbar.title = book.name
                 }
-
-                // Check TOC
                 if (repository.hasToc(bookId)) {
                     initializeTocFragment(bookId)
                     binding.btnShowToc.visibility = View.VISIBLE
@@ -265,7 +266,8 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                                     px,
                                     py,
                                     pageWidth,
-                                    pagePosition
+                                    pagePosition,
+                                    isPortrait
                                 )
                             ) {
                                 checkFollowLinks(
@@ -274,7 +276,8 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                                     py,
                                     pageWidth,
                                     currentDoc,
-                                    pagePosition
+                                    pagePosition,
+                                    isPortrait
                                 )
                             }
                         }
@@ -300,8 +303,20 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
             }
             if (isPortrait) {
                 binding.btnRotate.setImageResource(R.drawable.ic_to_landscape)
+                binding.zoomIt.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                    marginEnd = 0
+                }
+                binding.bookRecyclerView.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                    marginEnd = 0
+                }
             } else {
                 binding.btnRotate.setImageResource(R.drawable.ic_to_portrait)
+                binding.zoomIt.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                    marginEnd = bottomInset
+                }
+                binding.bookRecyclerView.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                    marginEnd = bottomInset
+                }
             }
         }
 
@@ -356,10 +371,10 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     }
 
     private fun setupSystemBars() {
-        WindowCompat.setDecorFitsSystemWindows(window, false)
+        // WindowCompat.setDecorFitsSystemWindows(window, false)
 
         val controller = WindowInsetsControllerCompat(window, window.decorView)
-        controller.hide(WindowInsetsCompat.Type.statusBars())
+        //controller.hide(WindowInsetsCompat.Type.statusBars())
         controller.systemBarsBehavior =
             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
     }
@@ -400,7 +415,8 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         y: Float,
         w: Float,
         document: Document?,
-        pageNumber: Int
+        pageNumber: Int,
+        isPortrait: Boolean
     ) {
         if (document == null) return
         val page = document.loadPage(pageNumber)
@@ -435,7 +451,8 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         x: Float,
         y: Float,
         width: Float,
-        currentPage: Int
+        currentPage: Int,
+        isPortrait: Boolean
     ): Boolean {
         if (!linksWorking) {
             return true
@@ -473,15 +490,26 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
             binding.toolbar.layoutParams.height = actionBarHeight + systemBars.top
             binding.toolbar.setPadding(0, systemBars.top, 0, 0)
 
-            val bottomInset = systemBars.bottom.coerceAtLeast(ime.bottom)
-
+            bottomInset = systemBars.bottom.coerceAtLeast(ime.bottom)
+            val topInset = systemBars.top.coerceAtLeast(ime.top)
+            binding.bookRecyclerView.setPadding(
+                binding.bookRecyclerView.paddingLeft,
+                topInset, // top padding = toolbar height
+                binding.bookRecyclerView.paddingRight,
+                binding.bookRecyclerView.paddingBottom
+            )
             binding.bottomBar.setPadding(
                 binding.bottomBar.paddingLeft,
                 binding.bottomBar.paddingTop,
                 binding.bottomBar.paddingRight,
                 bottomInset
             )
-
+            binding.zoomIt.setPadding(
+                binding.zoomIt.paddingLeft,
+                binding.zoomIt.paddingTop,
+                binding.zoomIt.paddingRight,
+                bottomInset + binding.bottomBar.height
+            )
             binding.tocPanel.setPadding(0, 0, 0, bottomInset)
             binding.zoomIt.setPadding(0, 0, 0, bottomInset)
 
@@ -513,8 +541,14 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
 
         val translationTop = if (show) 0f else -binding.toolbar.height.toFloat()
         val translationBottom = if (show) 0f else binding.bottomBar.height.toFloat()
-        val translationBottomFab =
-            if (barsVisible) translationBottom else translationBottom - binding.zoomIt.height
+        var translationBottomFab: Float
+            if (barsVisible) {
+                translationBottomFab = translationBottom
+            } else if(isPortrait){
+                translationBottomFab = translationBottom - binding.zoomIt.height
+            } else {
+                translationBottomFab = translationBottom
+            }
         binding.toolbar.animate().translationY(translationTop).setDuration(300).start()
         binding.bottomBar.animate().translationY(translationBottom).setDuration(300).start()
         binding.btnRotate.animate().translationY(translationBottom).setDuration(300).start()
