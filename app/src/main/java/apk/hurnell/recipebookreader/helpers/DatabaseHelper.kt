@@ -392,6 +392,7 @@ WITH RECURSIVE toc_hierarchy AS (
 )
 SELECT 
     b.name AS book_name,
+    b.id AS book_id,
     b.location AS book_location,
     t.id AS toc_id,
     t.parent_id AS parent_id,
@@ -419,8 +420,9 @@ GROUP BY t.id
                 // 1. Check for null title first
                 val titleIndex = cursor.getColumnIndexOrThrow("toc_title")
                 if (cursor.isNull(titleIndex)) continue
-
                 val rawTitle = cursor.getString(titleIndex)
+                val bookIdIndex = cursor.getColumnIndexOrThrow("book_id")
+                val bookId = if (cursor.isNull(bookIdIndex)) null else cursor.getLong(bookIdIndex)
 
                 // 2. Fix the breadcrumbs/hierarchy logic
                 val breadcrumbs = cursor.getString(cursor.getColumnIndexOrThrow("breadcrumbs"))
@@ -461,6 +463,7 @@ GROUP BY t.id
                 list.add(
                     TocItem(
                         tocId = tocId,
+                        bookId = bookId,
                         bookTitle = bookTitle,
                         bookLocation = bookLocation,
                         parentId = parentId,
@@ -1029,7 +1032,8 @@ GROUP BY t.id
                 m.`offset` AS bookmark_offset, 
                 m.scale AS bookmark_scale, 
                 m.translate AS bookmark_translate,
-                b.name AS book_tite
+                b.name AS book_tite,
+                b.location AS book_location
             FROM bookmarks AS m
             LEFT JOIN books AS  b
             ON m.book_id_fk = b.id
@@ -1048,8 +1052,9 @@ GROUP BY t.id
                         page = cursor.getInt(3),
                         offset = cursor.getFloat(4),
                         scale = cursor.getFloat(5),
-                        translate = cursor.getFloat(6)
-                    )
+                        translate = cursor.getFloat(6),
+                        bookLocation = if (cursor.isNull(8)) null else cursor.getString(8),
+                        )
                 )
             }
         }
@@ -1063,12 +1068,13 @@ GROUP BY t.id
             SELECT 
                 m.id AS bookmark_id,
                 m.book_id_fk AS book_id, 
-                m.title AS bookmark_title, 
+                m.title AS bookmark_title,
                 m.page AS bookmark_page, 
                 m.`offset` AS bookmark_offset, 
                 m.scale AS bookmark_scale, 
                 m.translate AS bookmark_translate,
-                b.name AS book_tite
+                b.name AS book_tite,
+                b.location AS book_location
             FROM bookmarks AS m
             LEFT JOIN books AS  b
             ON m.book_id_fk = b.id
@@ -1089,7 +1095,8 @@ GROUP BY t.id
                         page = cursor.getInt(3),
                         offset = cursor.getFloat(4),
                         scale = cursor.getFloat(5),
-                        translate = cursor.getFloat(6)
+                        translate = cursor.getFloat(6),
+                        bookLocation = if (cursor.isNull(7)) null else cursor.getString(7),
                     )
                 )
             }
