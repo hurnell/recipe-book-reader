@@ -19,6 +19,7 @@ import apk.hurnell.recipebookreader.helpers.PdfRepository
 import apk.hurnell.recipebookreader.model.TocItem
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import android.content.Context
+import android.util.Log
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
@@ -30,6 +31,17 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 
+data class EveryTocPositionAndSearchTerm(
+    val currentCategory: String,
+    val searchTerm: String,
+    val lastScrollPosition: Int,
+    val lastScrollOffset: Int
+) {
+    fun asString():String{
+        return "$currentCategory $searchTerm $lastScrollPosition $lastScrollOffset"
+    }
+}
+
 class EveryTocActivity : BaseDrawerActivity() {
     private var searchJob: Job? = null
     private lateinit var adapter: EveryTocAdapter
@@ -37,6 +49,13 @@ class EveryTocActivity : BaseDrawerActivity() {
     private lateinit var resultCountTextView: TextView
     private lateinit var clearSearch: ImageButton
     private lateinit var searchToc: ImageButton
+    private lateinit var recyclerView: RecyclerView
+    private val configurationKey = "EveryTocConfiguration"
+    private var lastScrollPosition = 0
+    private var lastScrollOffset = 0
+    private var justStarted: Boolean = true
+    private var currentSearchTerm: String = ""
+    private var currentCount: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,7 +66,6 @@ class EveryTocActivity : BaseDrawerActivity() {
         loadingOverlay = findViewById(R.id.loadingOverlay)
         val toolbar: Toolbar = findViewById(R.id.everyTocToolbar)
         setupDrawer(toolbar)
-
         spinner = findViewById(R.id.categorySpinner)
         spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(
@@ -65,7 +83,7 @@ class EveryTocActivity : BaseDrawerActivity() {
                 applyChosenTextAndCategory()
             }
         }
-        val recyclerView: RecyclerView = findViewById(R.id.everyTocRecyclerView)
+        recyclerView = findViewById(R.id.everyTocRecyclerView)
         recyclerView.layoutManager = LinearLayoutManager(this)
 
         adapter = EveryTocAdapter(
@@ -90,7 +108,7 @@ class EveryTocActivity : BaseDrawerActivity() {
                     val success = repository.createBookmark(item.toBookmarkItem())
                     if (success) {
                         val toastText =
-                        "✅Bookmark with title \"${item.title}\" for book \"${item.bookTitle}\" to bookmarks"
+                            "✅Bookmark with title \"${item.title}\" for book \"${item.bookTitle}\" to bookmarks"
                         Toast.makeText(
                             this,
                             toastText,
@@ -124,7 +142,15 @@ class EveryTocActivity : BaseDrawerActivity() {
             },
         )
         recyclerView.adapter = adapter
-
+        recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+                if (!justStarted) {
+                    trackRecyclerViewOffset()
+                }
+                justStarted = false
+            }
+        })
         filterInput = findViewById(R.id.filterInput)
 
         searchToc = findViewById(R.id.searchToc)
@@ -150,24 +176,83 @@ class EveryTocActivity : BaseDrawerActivity() {
             filterInput.text.clear()
             clearSearch.visibility = View.GONE
             searchToc.visibility = View.GONE
-            resultCountTextView.text = ""
+            currentCount = ""
+            resultCountTextView.text = currentCount
             adapter.submitList(null)
         }
+        val saved = getSavedParameters()
+        currentCategory = saved?.currentCategory ?: "All"
+        currentSearchTerm = saved?.searchTerm ?: ""
+        lastScrollPosition = saved?.lastScrollPosition ?: 0
+        lastScrollOffset = saved?.lastScrollOffset ?: 0
+        filterInput.text = Editable.Factory.getInstance().newEditable(currentSearchTerm)
+        val position = categories.indexOf(currentCategory)
+        spinner.setSelection(position)
+        applyChosenTextAndCategory(saved)
 
         refreshCategories()
     }
 
-    fun applyChosenTextAndCategory() {
-        val currentText = filterInput.text.toString().trim()
+    fun getSavedParameters(): EveryTocPositionAndSearchTerm? {
+        val params = repository.getConfiguration(
+            configurationKey,
+            EveryTocPositionAndSearchTerm::class.java
+        )
+        return params
+    }
 
-        if (currentText != "") {
+
+    private fun saveEveryTocConfiguration() {
+        val configData = EveryTocPositionAndSearchTerm(
+            currentCategory,
+            currentSearchTerm,
+            lastScrollPosition,
+            lastScrollOffset
+        )
+        if (!justStarted) {
+            Log.i(
+                "NIGEL_HURNELL",
+                "configData = ${configData.asString()} "
+            )
+            repository.saveConfiguration(configurationKey, configData)
+        }
+        justStarted = false
+    }
+
+    private fun trackRecyclerViewOffset() {
+        val layoutManager = recyclerView.layoutManager as? LinearLayoutManager ?: return
+        val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
+        val firstVisibleView = layoutManager.findViewByPosition(firstVisibleItemPosition)
+        val offset = firstVisibleView?.top ?: 0
+
+        lastScrollPosition = firstVisibleItemPosition
+        lastScrollOffset = offset
+        if (!justStarted) {
+            saveEveryTocConfiguration()
+        }
+        justStarted = false
+    }
+
+    fun applyChosenTextAndCategory(saved: EveryTocPositionAndSearchTerm? = null) {
+        currentSearchTerm = filterInput.text.toString().trim()
+        if (currentSearchTerm != "") {
             val everyToc: List<TocItem> =
-                repository.getFilteredEveryToc(currentText, currentCategory)
-            resultCountTextView.text = "${everyToc.size}"
-            adapter.submitList(everyToc)
+                repository.getFilteredEveryToc(currentSearchTerm, currentCategory)
+            currentCount = "${everyToc.size}"
+            resultCountTextView.text = currentCount
+            adapter.submitList(everyToc){
+                if (saved != null) {
+                    val layoutManager = recyclerView.layoutManager as? LinearLayoutManager
+                    layoutManager?.scrollToPositionWithOffset(saved.lastScrollPosition, saved.lastScrollOffset)
+                }
+            }
         } else {
-            resultCountTextView.text = ""
+            currentCount = ""
+            resultCountTextView.text = currentCount
             adapter.submitList(null)
+        }
+        if (!justStarted) {
+            saveEveryTocConfiguration()
         }
     }
 
@@ -206,15 +291,18 @@ class EveryTocActivity : BaseDrawerActivity() {
                 searchJob?.cancel() // Cancel the previous search if user typed again
                 searchJob = lifecycleScope.launch {
                     delay(300)
-                    val currentText = filterInput.text.toString().trim()
-                    var display = ""
-                    if (currentText.isNotEmpty()){
+                    currentSearchTerm = filterInput.text.toString().trim()
+
+                    if (currentSearchTerm.isNotEmpty()) {
                         val count = withContext(Dispatchers.IO) {
-                            repository.searchBooks(currentText, currentCategory) // Your DB call here
+                            repository.searchBooks(
+                                currentSearchTerm,
+                                currentCategory
+                            ) // Your DB call here
                         }
-                        display= "$count"
+                        currentCount = "$count"
                     }
-                    resultCountTextView.text = display
+                    resultCountTextView.text = currentCount
 
                 }
             }
