@@ -179,6 +179,10 @@ class EveryTocActivity : BaseDrawerActivity() {
             currentCount = ""
             resultCountTextView.text = currentCount
             adapter.submitList(null)
+            lastScrollPosition = 0
+            lastScrollOffset = 0
+            currentSearchTerm = ""
+            saveEveryTocConfiguration()
         }
         val saved = getSavedParameters()
         currentCategory = saved?.currentCategory ?: "All"
