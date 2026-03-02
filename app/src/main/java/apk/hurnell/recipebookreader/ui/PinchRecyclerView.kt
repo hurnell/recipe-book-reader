@@ -72,8 +72,15 @@ class PinchRecyclerView @JvmOverloads constructor(
         val pageY: Float,
         val offset: Int,
         val scaleFactor: Float,
-        val translationX: Float
-    )
+        val translationX: Float,
+        val x: Float,
+        val y: Float,
+
+    ){
+        fun asString(): String{
+            return "translationX $translationX x $x y $y, pageX $pageX pageY $pageY offset $offset scaleFactor $scaleFactor "
+        }
+    }
 
     override fun getTranslationX(): Float = translationX
 
@@ -159,7 +166,9 @@ class PinchRecyclerView @JvmOverloads constructor(
             pageY = pageY,
             offset = offset,
             scaleFactor = scaleFactor,
-            translationX = translationX
+            translationX = translationX,
+            x = ev.x,
+            y = ev.y
         )
         touchMetadata[ev.eventTime] = context
 

@@ -2,13 +2,16 @@ package apk.hurnell.recipebookreader
 
 import android.app.AlertDialog
 import android.os.Bundle
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.widget.Toolbar
+import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.adapters.AllBookmarkAdapter
 import apk.hurnell.recipebookreader.helpers.PdfRepository
 import apk.hurnell.recipebookreader.model.BookmarkItem
+import com.google.android.material.snackbar.Snackbar
 import java.io.File
 
 data class BookmarksPositionTracker(
@@ -20,6 +23,7 @@ class BookmarksActivity : BaseDrawerActivity() {
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var bookmarkAdapter: AllBookmarkAdapter
+    private lateinit var rootLayout: CoordinatorLayout
     private var justStarted: Boolean = true
     private var lastScrollPosition = 0
     private var lastScrollOffset = 0
@@ -36,7 +40,7 @@ class BookmarksActivity : BaseDrawerActivity() {
         val toolbar: Toolbar = findViewById(R.id.bookmarksToolbar)
 
         recyclerView = findViewById(R.id.bookmarksRecyclerView)
-
+        rootLayout = findViewById(R.id.rootLayout)
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.itemAnimator = null
         recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
@@ -57,6 +61,9 @@ class BookmarksActivity : BaseDrawerActivity() {
             },
             onDeleteClick = { item ->
                 checkDeleteBookmark(item)
+            },
+            onLongClick = { item ->
+                displayClickResult(item.title, rootLayout)
             }
         )
         recyclerView.adapter = bookmarkAdapter
@@ -64,6 +71,14 @@ class BookmarksActivity : BaseDrawerActivity() {
         setupDrawer(toolbar)
 
 
+    }
+
+    fun displayClickResult(text: String, rootLayout: CoordinatorLayout) {
+        val snackBar = Snackbar.make(rootLayout, text, Snackbar.LENGTH_LONG)
+        val textView =
+            snackBar.view.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)
+        textView.maxLines = 5
+        snackBar.show()
     }
 
     private fun checkDeleteBookmark(item: BookmarkItem) {
@@ -90,7 +105,7 @@ class BookmarksActivity : BaseDrawerActivity() {
     }
 
     private fun reloadBookmarks(applyAfter: Boolean): List<BookmarkItem> {
-        val bookmarks =  repository.getAllBookmarks()
+        val bookmarks = repository.getAllBookmarks()
 
         if (applyAfter) {
             bookmarkAdapter.submitList(bookmarks)

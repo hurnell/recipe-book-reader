@@ -13,7 +13,8 @@ import apk.hurnell.recipebookreader.model.BookmarkItem
 
 class AllBookmarkAdapter(
     private val onClick: (BookmarkItem) -> Unit,
-    private val onDeleteClick: (BookmarkItem) -> Unit
+    private val onDeleteClick: (BookmarkItem) -> Unit,
+    private val onLongClick: (BookmarkItem) -> Unit,
 ) : ListAdapter<BookmarkItem, AllBookmarkAdapter.BookmarkViewHolder>(AllBookmarksDiffCallback) {
 
     class BookmarkViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -36,6 +37,10 @@ class AllBookmarkAdapter(
         holder.bookmarkBookTitle.text = item.bookTitle
         holder.bookmarkTitle.setOnClickListener { onClick(item) }
         holder.deleteBookmarkIcon.setOnClickListener { onDeleteClick(item) }
+        holder.bookmarkTitle.setOnLongClickListener {
+            onLongClick.invoke(item)
+            true
+        }
     }
 
     companion object {

@@ -9,7 +9,10 @@ import android.view.*
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -25,11 +28,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import apk.hurnell.recipebookreader.model.TocItem
 import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.snackbar.Snackbar
 
 class TocFragment : Fragment() {
     private lateinit var tocRecyclerView: RecyclerView
     private lateinit var bookmarkRecyclerView: RecyclerView
     private lateinit var tocSearchBar: LinearLayout
+    private lateinit var tocFragmentRootLayout: ConstraintLayout
     private lateinit var toolbar: MaterialToolbar
     private lateinit var repository: PdfRepository
     private var bookId: Int = -1
@@ -96,6 +101,7 @@ class TocFragment : Fragment() {
         setupToolbar(view)
         tocRecyclerView = view.findViewById(R.id.tocRecyclerView)
         bookmarkRecyclerView = view.findViewById(R.id.bookmarkRecyclerView)
+        tocFragmentRootLayout = view.findViewById(R.id.tocFragmentRootLayout)
         tocSearchBar = view.findViewById(R.id.tocSearchBar)
         val searchField = view.findViewById<EditText>(R.id.searchField)
         val btnClear = view.findViewById<ImageButton>(R.id.btnClear)
@@ -183,7 +189,9 @@ class TocFragment : Fragment() {
             },
             onDeleteClick = { item ->
                 checkDeleteBookmark(item, false)
-                //bookmarkRecyclerView.
+            },
+            onLongClick = { item ->
+                displayClickResult(item.title, tocFragmentRootLayout)
             }
         )
 
@@ -193,6 +201,14 @@ class TocFragment : Fragment() {
         loadTocAsync()
         loadBookmarksAsync(true)
         toggleVisibleChoices(true)
+    }
+
+    fun displayClickResult(text: String, rootLayout: ConstraintLayout) {
+        val snackBar = Snackbar.make(rootLayout, text, Snackbar.LENGTH_LONG)
+        val textView =
+            snackBar.view.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)
+        textView.maxLines = 5
+        snackBar.show()
     }
 
     private fun checkDeleteBookmark(item: BookmarkItem, fromToc: Boolean) {

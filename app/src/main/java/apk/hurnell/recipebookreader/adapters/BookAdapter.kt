@@ -15,7 +15,8 @@ import com.artifex.mupdf.fitz.android.AndroidDrawDevice
 import androidx.core.graphics.createBitmap
 
 class BookAdapter(
-    private val document: Document
+    private val document: Document,
+    private var usableWidth: Int
 ) :
     RecyclerView.Adapter<BookAdapter.PageViewHolder>() {
 
@@ -28,6 +29,10 @@ class BookAdapter(
     ) :
         RecyclerView.ViewHolder(container)
 
+    fun updateUsableWidth(newWidth: Int) {
+        this.usableWidth = newWidth
+        notifyDataSetChanged()
+    }
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PageViewHolder {
         val context = parent.context
 
@@ -65,10 +70,8 @@ class BookAdapter(
         val pageWidth = bounds.x1 - bounds.x0
         val pageHeight = bounds.y1 - bounds.y0
 
-        val screenWidth = holder.imageView.resources.displayMetrics.widthPixels
-        val scale = screenWidth / pageWidth
-
-        val bitmap = createBitmap(screenWidth, (pageHeight * scale).toInt())
+        val scale = usableWidth.toFloat() / pageWidth
+        val bitmap = createBitmap(usableWidth, (pageHeight * scale).toInt())
         val device = AndroidDrawDevice(bitmap, 0, 0)
         holder.pageScale = ((pageHeight * scale + 3).toInt()) / pageHeight
         holder.pageHeight = (pageHeight * 100).toInt()
@@ -84,7 +87,7 @@ class BookAdapter(
 
         val boxWidth = 60f
         val boxHeight = 60f
-        val left = (screenWidth - boxWidth) / 2f
+        val left = (usableWidth - boxWidth) / 2f
         val top = 0f
         val right = left + boxWidth
         val bottom = top + boxHeight

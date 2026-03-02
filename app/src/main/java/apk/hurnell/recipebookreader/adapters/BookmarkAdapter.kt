@@ -12,7 +12,8 @@ import apk.hurnell.recipebookreader.model.BookmarkItem
 class BookmarkAdapter(
     private var fullList: List<BookmarkItem>,
     private val onClick: (BookmarkItem) -> Unit,
-    private val onDeleteClick: (BookmarkItem) -> Unit
+    private val onDeleteClick: (BookmarkItem) -> Unit,
+    private val onLongClick: (BookmarkItem) -> Unit
 ) : RecyclerView.Adapter<BookmarkAdapter.BookmarkViewHolder>() {
 
     class BookmarkViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -36,6 +37,10 @@ class BookmarkAdapter(
         holder.bookmarkPage.text = item.page.toString()
         holder.bookmarkTitle.setOnClickListener { onClick(item) }
         holder.deleteBookmarkIcon.setOnClickListener { onDeleteClick(item) }
+        holder.bookmarkTitle.setOnLongClickListener {
+            onLongClick.invoke(item)
+            true
+        }
     }
 
     override fun getItemCount(): Int = fullList.size

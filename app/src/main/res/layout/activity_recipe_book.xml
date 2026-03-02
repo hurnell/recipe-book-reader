@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/drawerLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fitsSystemWindows="true"
     android:keepScreenOn="true"
+    android:paddingBottom="12dp"
     android:padding="0dp">
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -33,6 +34,7 @@
             android:layout_height="?attr/actionBarSize"
             android:background="@color/pastel_blue"
             app:fabSize="mini"
+            android:padding="0dp"
             app:layout_constraintTop_toTopOf="parent"
             app:navigationIcon="?attr/homeAsUpIndicator"
             app:navigationIconTint="@android:color/white"
@@ -47,9 +49,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@color/pastel_blue"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp"
-            android:paddingBottom="12dp"
+            android:paddingVertical="2dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintBottom_toBottomOf="parent">
 
             <ProgressBar
@@ -71,12 +73,15 @@
                 android:id="@+id/pageSeekBar"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:paddingTop="12dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="2dp"
+                android:paddingHorizontal="0dp"
                 android:progressBackgroundTint="@color/black"
                 android:progressTint="@color/black"
                 android:thumbTint="@color/black"
                 app:layout_constraintEnd_toStartOf="@+id/pageIndicator"
                 app:layout_constraintHorizontal_bias="0.0"
+
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -86,7 +91,7 @@
                 android:layout_height="wrap_content"
                 android:paddingStart="8dp"
                 android:paddingTop="12dp"
-                android:paddingEnd="32dp"
+                android:paddingEnd="8dp"
                 android:text="@string/default_indicator_text"
                 android:textColor="@android:color/black"
                 app:layout_constraintBottom_toBottomOf="@+id/pageSeekBar"
@@ -98,11 +103,15 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:orientation="horizontal"
+                android:paddingBottom="8dp"
+                android:paddingHorizontal="8dp"
                 app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/pageSeekBar">
 
                 <ImageButton
                     android:id="@+id/btnRotate"
+                    android:layout_marginStart="12dp"
                     android:layout_width="17dp"
                     android:layout_height="match_parent"
                     android:background="?attr/selectableItemBackgroundBorderless"
@@ -143,12 +152,14 @@
             app:layout_constraintBottom_toTopOf="@+id/bottomBar"
             app:layout_constraintEnd_toEndOf="parent"
             app:maxImageSize="18dp"
+            tools:ignore="AccessibilityClassName"
             app:srcCompat="@drawable/ic_zoom" />
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/stopLinks"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            tools:ignore="AccessibilityClassName"
             android:layout_marginStart="2dp"
             android:layout_marginTop="2dp"
             android:layout_marginEnd="-4dp"

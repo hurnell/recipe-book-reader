@@ -24,6 +24,8 @@ import apk.hurnell.recipebookreader.helpers.FunctionalStructuredTextWalker
 import apk.hurnell.recipebookreader.ui.PinchRecyclerView
 import androidx.activity.OnBackPressedCallback
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.Insets
+import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import apk.hurnell.recipebookreader.helpers.PdfRepository
 import apk.hurnell.recipebookreader.model.TocItem
@@ -36,7 +38,6 @@ import kotlin.math.abs
 import kotlinx.coroutines.*
 import kotlin.math.floor
 import androidx.core.view.doOnNextLayout
-import androidx.core.view.marginEnd
 import androidx.core.view.updateLayoutParams
 import apk.hurnell.recipebookreader.helpers.IsbnFinder
 import apk.hurnell.recipebookreader.ui.TocFragmentListener
@@ -47,6 +48,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     private lateinit var binding: ActivityRecipeBookBinding
     private lateinit var tocFragment: TocFragment
     private var bottomInset: Int = 0
+    private lateinit var systemBars: Insets
     private var isPortrait = true
     private var barsVisible = true
     private var linksWorking = true
@@ -67,9 +69,17 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                 getColor(R.color.pastel_blue)
             )
         )
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
+        window.navigationBarColor = android.graphics.Color.TRANSPARENT
         binding = ActivityRecipeBookBinding.inflate(layoutInflater)
         setContentView(binding.drawerLayout)
 
+        val tocJson = intent.getStringExtra("TOC_ITEM_JSON")
+        val tocItem = if (tocJson != null) {
+            Gson().fromJson(tocJson, TocItem::class.java)
+        } else {
+            null
+        }
         setupWindowInsets()
         setupSystemBars()
 
@@ -80,12 +90,6 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
             Log.e(LOG_TAG, "No PDF path provided")
             finish()
             return
-        }
-        val tocJson = intent.getStringExtra("TOC_ITEM_JSON")
-        val tocItem = if (tocJson != null) {
-            Gson().fromJson(tocJson, TocItem::class.java)
-        } else {
-            null
         }
         val pdfFile = File(pdfFilePath)
         binding.btnShowToc.visibility = View.GONE
@@ -189,7 +193,10 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     }
 
     private fun onDocumentReady(doc: Document, tocItem: TocItem?) {
-        val adapter = BookAdapter(doc)
+        val metrics = resources.displayMetrics
+        val horizontalBars = if (::systemBars.isInitialized)  systemBars.right else 0
+        val initialUw = metrics.widthPixels - horizontalBars
+        val adapter = BookAdapter(doc, initialUw)
         binding.bookRecyclerView.layoutManager = LinearLayoutManager(this)
         binding.bookRecyclerView.adapter = adapter
 
@@ -266,8 +273,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                                     px,
                                     py,
                                     pageWidth,
-                                    pagePosition,
-                                    isPortrait
+                                    pagePosition
                                 )
                             ) {
                                 checkFollowLinks(
@@ -276,8 +282,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                                     py,
                                     pageWidth,
                                     currentDoc,
-                                    pagePosition,
-                                    isPortrait
+                                    pagePosition
                                 )
                             }
                         }
@@ -371,10 +376,11 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     }
 
     private fun setupSystemBars() {
-        // WindowCompat.setDecorFitsSystemWindows(window, false)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
 
         val controller = WindowInsetsControllerCompat(window, window.decorView)
-        //controller.hide(WindowInsetsCompat.Type.statusBars())
+
+        controller.hide(WindowInsetsCompat.Type.systemBars())
         controller.systemBarsBehavior =
             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
     }
@@ -415,15 +421,14 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         y: Float,
         w: Float,
         document: Document?,
-        pageNumber: Int,
-        isPortrait: Boolean
+        pageNumber: Int
     ) {
         if (document == null) return
         val page = document.loadPage(pageNumber)
         val links = page.links
         if (links == null) {
             page.destroy()
-            return
+                    return
         }
         for (link in links) {
             val rect = link.bounds
@@ -451,8 +456,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         x: Float,
         y: Float,
         width: Float,
-        currentPage: Int,
-        isPortrait: Boolean
+        currentPage: Int
     ): Boolean {
         if (!linksWorking) {
             return true
@@ -480,16 +484,16 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
 
     private fun setupWindowInsets() {
         ViewCompat.setOnApplyWindowInsetsListener(binding.drawerLayout) { _, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
 
             val actionBarHeight = TypedValue.applyDimension(
                 TypedValue.COMPLEX_UNIT_DIP, 56f, resources.displayMetrics
             ).toInt()
-
+            val metrics = resources.displayMetrics
+            val currentUw = metrics.widthPixels
+            (binding.bookRecyclerView.adapter as? BookAdapter)?.updateUsableWidth(currentUw)
             binding.toolbar.layoutParams.height = actionBarHeight + systemBars.top
-            binding.toolbar.setPadding(0, systemBars.top, 0, 0)
-
             bottomInset = systemBars.bottom.coerceAtLeast(ime.bottom)
             val topInset = systemBars.top.coerceAtLeast(ime.top)
             binding.bookRecyclerView.setPadding(
@@ -541,18 +545,18 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
 
         val translationTop = if (show) 0f else -binding.toolbar.height.toFloat()
         val translationBottom = if (show) 0f else binding.bottomBar.height.toFloat()
-        val translationBottomFab = if (barsVisible) {
+        /*val translationBottomFab = if (barsVisible) {
             translationBottom
         } else if (isPortrait) {
             translationBottom - binding.zoomIt.height
         } else {
             translationBottom
-        }
+        }*/
         binding.toolbar.animate().translationY(translationTop).setDuration(300).start()
         binding.bottomBar.animate().translationY(translationBottom).setDuration(300).start()
         binding.btnRotate.animate().translationY(translationBottom).setDuration(300).start()
-        binding.zoomIt.animate().translationY(translationBottomFab).setDuration(300).start()
-        binding.stopLinks.animate().translationY(translationBottomFab).setDuration(300).start()
+        binding.zoomIt.animate().translationY(translationBottom).setDuration(300).start()
+        binding.stopLinks.animate().translationY(translationBottom).setDuration(300).start()
     }
 
     override fun onDestroy() {
