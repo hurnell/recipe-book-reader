@@ -86,5 +86,6 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.androidx.lifecycle.process)
     implementation(libs.glide)
+    implementation(libs.kotlin.reflect)
     annotationProcessor(libs.compiler)
 }
