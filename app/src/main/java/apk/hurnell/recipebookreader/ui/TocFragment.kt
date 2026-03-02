@@ -213,9 +213,10 @@ class TocFragment : Fragment() {
 
     private fun checkDeleteBookmark(item: BookmarkItem, fromToc: Boolean) {
         val message =
-            if (fromToc) "This item is already bookmarked do want to delete the bookmark." else "Are you sure you want to delete this bookmark"
+            if (fromToc) "This item is already bookmarked. Do want to delete the bookmark." else "Are you sure you want to delete this bookmark"
+        val alertTitle = if (fromToc) "Already Bookmarked" else "Delete Bookmark?"
         AlertDialog.Builder(requireContext())
-            .setTitle("Already Bookmarked")
+            .setTitle(alertTitle)
             .setMessage(message)
             .setPositiveButton("Delete") { dialog, _ ->
                 val success = repository.deleteBookmark(item)

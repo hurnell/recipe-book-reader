@@ -83,7 +83,7 @@ class BookmarksActivity : BaseDrawerActivity() {
 
     private fun checkDeleteBookmark(item: BookmarkItem) {
         AlertDialog.Builder(this)
-            .setTitle("Already Bookmarked")
+            .setTitle("Delete Bookmark?")
             .setMessage("Are you sure you want to delete this bookmark")
             .setPositiveButton("Delete") { dialog, _ ->
                 val success = repository.deleteBookmark(item)

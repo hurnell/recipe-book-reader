@@ -118,8 +118,8 @@ class EveryTocActivity : BaseDrawerActivity() {
                     applyChosenTextAndCategory()
                 } else {
                     AlertDialog.Builder(this)
-                        .setTitle("Already Bookmarked")
-                        .setMessage("This item is already bookmarked do want to delete the bookmark.")
+                        .setTitle("Delete Bookmark?")
+                        .setMessage("Are you sure you want to delete the bookmark?")
                         .setPositiveButton("Delete") { dialog, _ ->
                             val success = repository.deleteBookmark(item.toBookmarkItem())
                             if (success) {

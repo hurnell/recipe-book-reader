@@ -42,11 +42,12 @@
 
         <ImageButton
             android:id="@+id/deleteBookmark"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/expand"
             android:padding="8dp"
-            android:src="@drawable/ic_close_small" />
+            android:src="@drawable/ic_bookmark_closed" />
 
     </LinearLayout>
     <LinearLayout
