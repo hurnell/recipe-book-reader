@@ -22,12 +22,13 @@ import apk.hurnell.recipebookreader.model.FileItem
 import apk.hurnell.recipebookreader.helpers.PdfRepository
 import java.io.File
 import androidx.core.graphics.scale
+import apk.hurnell.recipebookreader.model.BaseTracker
 
 data class LastFolderAndScrollPosition(
     val directory: String,
     val lastScrollPosition: Int,
     val lastScrollOffset: Int
-)
+): BaseTracker()
 
 
 class FileBrowserActivity : BaseDrawerActivity() {

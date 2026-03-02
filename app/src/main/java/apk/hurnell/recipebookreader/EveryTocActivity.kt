@@ -1,6 +1,5 @@
 package apk.hurnell.recipebookreader
 
-import android.R.attr.delay
 import android.app.AlertDialog
 import android.os.Bundle
 import android.text.Editable
@@ -23,6 +22,7 @@ import android.util.Log
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
+import apk.hurnell.recipebookreader.model.BaseTracker
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -36,11 +36,7 @@ data class EveryTocPositionAndSearchTerm(
     val searchTerm: String,
     val lastScrollPosition: Int,
     val lastScrollOffset: Int
-) {
-    fun asString():String{
-        return "$currentCategory $searchTerm $lastScrollPosition $lastScrollOffset"
-    }
-}
+): BaseTracker()
 
 class EveryTocActivity : BaseDrawerActivity() {
     private var searchJob: Job? = null

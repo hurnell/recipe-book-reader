@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.adapters.BookShelfAdapter
 import apk.hurnell.recipebookreader.helpers.PdfRepository
+import apk.hurnell.recipebookreader.model.BaseTracker
 import apk.hurnell.recipebookreader.model.FileItem
 import java.io.File
 
@@ -15,7 +16,7 @@ data class BookShelfPositionAndCategory(
     val category: String,
     val lastScrollPosition: Int,
     val lastScrollOffset: Int
-)
+): BaseTracker()
 
 class BookShelfActivity : BaseDrawerActivity() {
     private lateinit var bookRowAdapter: BookShelfAdapter
