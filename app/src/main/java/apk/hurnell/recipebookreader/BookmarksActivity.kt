@@ -2,6 +2,7 @@ package apk.hurnell.recipebookreader
 
 import android.app.AlertDialog
 import android.os.Bundle
+import android.util.Log
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.widget.Toolbar
@@ -10,14 +11,15 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.adapters.AllBookmarkAdapter
 import apk.hurnell.recipebookreader.helpers.PdfRepository
+import apk.hurnell.recipebookreader.model.BaseTracker
 import apk.hurnell.recipebookreader.model.BookmarkItem
 import com.google.android.material.snackbar.Snackbar
 import java.io.File
 
-data class BookmarksPositionTracker(
+data class BookmarksPositionTracker (
     val lastScrollPosition: Int,
     val lastScrollOffset: Int
-)
+): BaseTracker()
 
 class BookmarksActivity : BaseDrawerActivity() {
 
@@ -49,6 +51,7 @@ class BookmarksActivity : BaseDrawerActivity() {
                 if (!justStarted) {
                     trackRecyclerViewOffset()
                 }
+                justStarted = false
             }
         })
         bookmarkData = reloadBookmarks(false)
@@ -67,7 +70,16 @@ class BookmarksActivity : BaseDrawerActivity() {
             }
         )
         recyclerView.adapter = bookmarkAdapter
-        bookmarkAdapter.submitList(bookmarkData)
+        val saved = getSavedParameters()
+        lastScrollPosition = saved?.lastScrollPosition ?: 0
+        lastScrollOffset = saved?.lastScrollOffset ?: 0
+
+        bookmarkAdapter.submitList(bookmarkData){
+            if (saved != null) {
+                val layoutManager = recyclerView.layoutManager as? LinearLayoutManager
+                layoutManager?.scrollToPositionWithOffset(saved.lastScrollPosition, saved.lastScrollOffset)
+            }
+        }
         setupDrawer(toolbar)
 
 
@@ -106,7 +118,6 @@ class BookmarksActivity : BaseDrawerActivity() {
 
     private fun reloadBookmarks(applyAfter: Boolean): List<BookmarkItem> {
         val bookmarks = repository.getAllBookmarks()
-
         if (applyAfter) {
             bookmarkAdapter.submitList(bookmarks)
         }
@@ -129,10 +140,18 @@ class BookmarksActivity : BaseDrawerActivity() {
             lastScrollPosition,
             lastScrollOffset
         )
+        Log.i("NIGEL_HURNELL", configData.asString() )
         if (!justStarted) {
             repository.saveConfiguration(configurationKey, configData)
         }
         justStarted = false
+    }
+    fun getSavedParameters(): BookmarksPositionTracker? {
+        val params = repository.getConfiguration(
+            configurationKey,
+            BookmarksPositionTracker::class.java
+        )
+        return params
     }
 
     override fun refreshFilesAndUI() {
