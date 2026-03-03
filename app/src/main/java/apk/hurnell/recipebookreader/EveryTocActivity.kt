@@ -30,6 +30,7 @@ import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -39,7 +40,7 @@ data class EveryTocTracker(
     val searchTerm: String,
     val lastScrollPosition: Int,
     val lastScrollOffset: Int
-): BaseTracker()
+) : BaseTracker()
 
 class EveryTocActivity : BaseDrawerActivity() {
     private var searchJob: Job? = null
@@ -183,20 +184,17 @@ class EveryTocActivity : BaseDrawerActivity() {
     fun applySavedSettings() {
         val dataStoreManager = DataStoreManager(applicationContext)
         lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                dataStoreManager.everyTocState.collect { tracker ->
-                    if (tracker != null) {
-                        currentCategory = tracker.currentCategory
-                        currentSearchTerm = tracker.searchTerm
-                        lastScrollPosition = tracker.lastScrollPosition
-                        lastScrollOffset = tracker.lastScrollOffset
-                        filterInput.text = Editable.Factory.getInstance().newEditable(currentSearchTerm)
+            val tracker = dataStoreManager.everyTocState.firstOrNull()
+            if (tracker != null) {
+                currentCategory = tracker.currentCategory
+                currentSearchTerm = tracker.searchTerm
+                lastScrollPosition = tracker.lastScrollPosition
+                lastScrollOffset = tracker.lastScrollOffset
+                filterInput.text = Editable.Factory.getInstance().newEditable(currentSearchTerm)
 
-                        val position = categories.indexOf(currentCategory)
-                        spinner.setSelection(position)
-                        applyChosenTextAndCategory(tracker)
-                    }
-                }
+                val position = categories.indexOf(currentCategory)
+                spinner.setSelection(position)
+                applyChosenTextAndCategory(tracker)
             }
         }
         val position = categories.indexOf("All")
@@ -223,10 +221,13 @@ class EveryTocActivity : BaseDrawerActivity() {
                 repository.getFilteredEveryToc(currentSearchTerm, currentCategory)
             currentCount = "${everyToc.size}"
             resultCountTextView.text = currentCount
-            adapter.submitList(everyToc){
+            adapter.submitList(everyToc) {
                 if (saved != null) {
                     val layoutManager = recyclerView.layoutManager as? LinearLayoutManager
-                    layoutManager?.scrollToPositionWithOffset(saved.lastScrollPosition, saved.lastScrollOffset)
+                    layoutManager?.scrollToPositionWithOffset(
+                        saved.lastScrollPosition,
+                        saved.lastScrollOffset
+                    )
                 }
             }
         } else {
@@ -302,7 +303,7 @@ class EveryTocActivity : BaseDrawerActivity() {
         lifecycleScope.launch {
             dataStoreManager.saveLastActivity(this@EveryTocActivity::class.java.name)
             val currentTracker = EveryTocTracker(
-                currentCategory ,
+                currentCategory,
                 currentSearchTerm,
                 lastScrollPosition,
                 lastScrollOffset

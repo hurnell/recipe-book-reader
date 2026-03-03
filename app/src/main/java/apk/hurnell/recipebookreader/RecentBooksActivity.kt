@@ -61,7 +61,6 @@ class RecentBooksActivity : BaseDrawerActivity() {
         val dataStoreManager = DataStoreManager(applicationContext)
         lifecycleScope.launch {
             val tracker = dataStoreManager.recentBooksState.firstOrNull()
-
             if (tracker != null) {
                 lastScrollPosition = tracker.lastScrollPosition
                 lastScrollOffset = tracker.lastScrollOffset

@@ -19,6 +19,7 @@ import apk.hurnell.recipebookreader.model.BaseTracker
 import apk.hurnell.recipebookreader.model.BookmarkItem
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -117,17 +118,14 @@ class BookmarksActivity : BaseDrawerActivity() {
     fun populateAdapter() {
         val dataStoreManager = DataStoreManager(applicationContext)
         lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                dataStoreManager.bookmarksState.collect { tracker ->
-                    if (tracker != null) {
-                        val layoutManager = recyclerView.layoutManager as? LinearLayoutManager
-                        lastScrollPosition = tracker.lastScrollPosition
-                        lastScrollOffset = tracker.lastScrollOffset
-                        layoutManager?.scrollToPositionWithOffset(
-                            lastScrollPosition, lastScrollOffset
-                        )
-                    }
-                }
+            val tracker = dataStoreManager.bookmarksState.firstOrNull()
+            if (tracker != null) {
+                val layoutManager = recyclerView.layoutManager as? LinearLayoutManager
+                lastScrollPosition = tracker.lastScrollPosition
+                lastScrollOffset = tracker.lastScrollOffset
+                layoutManager?.scrollToPositionWithOffset(
+                    lastScrollPosition, lastScrollOffset
+                )
             }
         }
         bookmarkAdapter.submitList(bookmarkData)
