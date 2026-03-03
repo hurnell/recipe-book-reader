@@ -94,6 +94,19 @@ ON t.book_id_fk = b.id;
 );
 ```
 
+### The book history
+```sqldelight
+    DROP TABLE IF EXISTS history;
+    CREATE TABLE history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        book_id_fk INTEGER DEFAULT NULL,
+        page INTEGER,
+        offset INTEGER,
+        translationX REAL,
+        scale REAL
+    );
+```
+
 ```sqldelight
 SELECT b.name, c.category AS main_category, sc.category AS sub_category
 FROM  books AS b
