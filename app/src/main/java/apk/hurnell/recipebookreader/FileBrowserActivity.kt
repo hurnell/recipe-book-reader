@@ -22,13 +22,17 @@ import apk.hurnell.recipebookreader.model.FileItem
 import apk.hurnell.recipebookreader.helpers.PdfRepository
 import java.io.File
 import androidx.core.graphics.scale
+import androidx.lifecycle.lifecycleScope
+import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.model.BaseTracker
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
-data class LastFolderAndScrollPosition(
+data class FileBrowserTracker(
     val directory: String,
     val lastScrollPosition: Int,
     val lastScrollOffset: Int
-): BaseTracker()
+) : BaseTracker()
 
 
 class FileBrowserActivity : BaseDrawerActivity() {
@@ -50,6 +54,8 @@ class FileBrowserActivity : BaseDrawerActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        navigateBackToSavedActivity()
+
         setContentView(R.layout.activity_file_browser)
         pdfOnly = intent.getBooleanExtra(EXTRA_PDF_ONLY, true)
         targetSha = intent.getStringExtra(EXTRA_TARGET_SHA)
@@ -92,6 +98,39 @@ class FileBrowserActivity : BaseDrawerActivity() {
 
     }
 
+    private fun navigateBackToSavedActivity() {
+        val dataStoreManager = DataStoreManager(applicationContext)
+
+        lifecycleScope.launch {
+            // Get the first emitted value from the Flow
+            val lastActivityName = dataStoreManager.lastActivityFlow.first()
+            val simpleActivities = arrayOf(
+                "apk.hurnell.recipebookreader.BookmarksActivity",
+                "apk.hurnell.recipebookreader.BookShelfActivity",
+                "apk.hurnell.recipebookreader.EveryTocActivity",
+                "apk.hurnell.recipebookreader.RecentBooksActivity",
+
+            )
+            if (!lastActivityName.isNullOrEmpty()) {
+
+                try {
+                    if (lastActivityName in simpleActivities) {
+                        val targetClass = Class.forName(lastActivityName)
+                        startActivity(Intent(this@FileBrowserActivity, targetClass))
+                        finish()
+                    }
+                    if (lastActivityName == "apk.hurnell.recipebookreader.RecipeBookActivity"){
+                        val targetClass = Class.forName(lastActivityName)
+                        val recipeBookState = getSavedRecipeBookParameters()
+                        val q = 123
+                    }
+                } catch (e: ClassNotFoundException) {
+                    // Handle case where activity no longer exists
+                }
+            }
+        }
+    }
+
     private fun trackRecyclerViewOffset() {
         val layoutManager = recyclerView.layoutManager as? LinearLayoutManager ?: return
         val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
@@ -102,11 +141,11 @@ class FileBrowserActivity : BaseDrawerActivity() {
         saveConfiguration()
     }
 
-    fun getSavedParameters(pdfOnly: Boolean): LastFolderAndScrollPosition? {
+    fun getSavedParameters(pdfOnly: Boolean): FileBrowserTracker? {
         val key = if (pdfOnly) "FileBrowserActivityDirectory" else "ImageBrowserActivityDirectory"
         return repository.getConfiguration(
             key,
-            LastFolderAndScrollPosition::class.java
+            FileBrowserTracker::class.java
         )
     }
 
@@ -210,7 +249,7 @@ class FileBrowserActivity : BaseDrawerActivity() {
     private fun showFiles(
         dir: File,
         ignoreSavedPosition: Boolean = true,
-        saved: LastFolderAndScrollPosition? = null
+        saved: FileBrowserTracker? = null
     ) {
         currentDir = dir
         val items = dir.listFiles()
@@ -229,7 +268,10 @@ class FileBrowserActivity : BaseDrawerActivity() {
             val ensuredSaved = saved!!
             adapter.submitList(items) {
                 val layoutManager = recyclerView.layoutManager as? LinearLayoutManager
-                layoutManager?.scrollToPositionWithOffset(ensuredSaved.lastScrollPosition, ensuredSaved.lastScrollOffset)
+                layoutManager?.scrollToPositionWithOffset(
+                    ensuredSaved.lastScrollPosition,
+                    ensuredSaved.lastScrollOffset
+                )
             }
         }
         updateBreadcrumb(currentDir)
@@ -237,7 +279,7 @@ class FileBrowserActivity : BaseDrawerActivity() {
     }
 
     private fun saveConfiguration() {
-        val configData = LastFolderAndScrollPosition(
+        val configData = FileBrowserTracker(
             currentDir.absolutePath,
             lastScrollPosition,
             lastScrollOffset
@@ -289,5 +331,20 @@ class FileBrowserActivity : BaseDrawerActivity() {
     fun resetToRoot() {
         showFiles(rootDir)
         drawerLayout.closeDrawers()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        val dataStoreManager = DataStoreManager(applicationContext)
+        lifecycleScope.launch {
+            dataStoreManager.saveLastActivity(this@FileBrowserActivity::class.java.name)
+        }
+    }
+
+    fun getSavedRecipeBookParameters(): RecipeBookTracker? {
+        return repository.getConfiguration(
+            "RecipeBookConfiguration",
+            RecipeBookTracker::class.java
+        )
     }
 }

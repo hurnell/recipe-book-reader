@@ -15,7 +15,7 @@ import apk.hurnell.recipebookreader.BookmarksActivity
 import apk.hurnell.recipebookreader.EveryTocActivity
 import apk.hurnell.recipebookreader.FileBrowserActivity
 import apk.hurnell.recipebookreader.R
-import apk.hurnell.recipebookreader.RecentFilesActivity
+import apk.hurnell.recipebookreader.RecentBooksActivity
 
 class ControlFragment : Fragment() {
 
@@ -38,8 +38,8 @@ class ControlFragment : Fragment() {
         val btnSearchEveryToc = view.findViewById<Button>(R.id.btnSearchEveryToc)
         val btnBookmarks = view.findViewById<Button>(R.id.btnBookmarks)
         btnRecentBooks.setOnClickListener {
-            if (getCurrentActivity() != "RecentFilesActivity") {
-                navigateTo(RecentFilesActivity::class.java)
+            if (getCurrentActivity() != "RecentBooksActivity") {
+                navigateTo(RecentBooksActivity::class.java)
             }
         }
         btnBookShelf.setOnClickListener {

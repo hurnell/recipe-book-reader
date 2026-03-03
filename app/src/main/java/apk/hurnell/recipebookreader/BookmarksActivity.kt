@@ -7,16 +7,19 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.widget.Toolbar
 import androidx.coordinatorlayout.widget.CoordinatorLayout
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.adapters.AllBookmarkAdapter
+import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.helpers.PdfRepository
 import apk.hurnell.recipebookreader.model.BaseTracker
 import apk.hurnell.recipebookreader.model.BookmarkItem
 import com.google.android.material.snackbar.Snackbar
+import kotlinx.coroutines.launch
 import java.io.File
 
-data class BookmarksPositionTracker (
+data class BookmarksTracker (
     val lastScrollPosition: Int,
     val lastScrollOffset: Int
 ): BaseTracker()
@@ -135,7 +138,7 @@ class BookmarksActivity : BaseDrawerActivity() {
     }
 
     private fun saveBookmarksConfiguration() {
-        val configData = BookmarksPositionTracker(
+        val configData = BookmarksTracker(
             lastScrollPosition,
             lastScrollOffset
         )
@@ -145,15 +148,23 @@ class BookmarksActivity : BaseDrawerActivity() {
         }
         justStarted = false
     }
-    fun getSavedParameters(): BookmarksPositionTracker? {
+    fun getSavedParameters(): BookmarksTracker? {
         val params = repository.getConfiguration(
             configurationKey,
-            BookmarksPositionTracker::class.java
+            BookmarksTracker::class.java
         )
         return params
     }
 
     override fun refreshFilesAndUI() {
 
+    }
+
+    override fun onPause() {
+        super.onPause()
+        val dataStoreManager = DataStoreManager(applicationContext)
+        lifecycleScope.launch {
+            dataStoreManager.saveLastActivity(this@BookmarksActivity::class.java.name)
+        }
     }
 }

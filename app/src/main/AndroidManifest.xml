@@ -26,7 +26,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".RecentFilesActivity"
+            android:name=".RecentBooksActivity"
             android:enableOnBackInvokedCallback="false"
             android:windowSoftInputMode="adjustResize"
             android:exported="true">

@@ -4,15 +4,18 @@ import android.os.Bundle
 import android.view.View
 import android.widget.AdapterView
 import androidx.appcompat.widget.Toolbar
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.adapters.BookShelfAdapter
+import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.helpers.PdfRepository
 import apk.hurnell.recipebookreader.model.BaseTracker
 import apk.hurnell.recipebookreader.model.FileItem
+import kotlinx.coroutines.launch
 import java.io.File
 
-data class BookShelfPositionAndCategory(
+data class BookShelfTracker(
     val category: String,
     val lastScrollPosition: Int,
     val lastScrollOffset: Int
@@ -83,10 +86,10 @@ class BookShelfActivity : BaseDrawerActivity() {
         populateShelf(currentCategory, saved == null)
     }
 
-    fun getSavedParameters(): BookShelfPositionAndCategory? {
+    fun getSavedParameters(): BookShelfTracker? {
         val params = repository.getConfiguration(
             configurationKey,
-            BookShelfPositionAndCategory::class.java
+            BookShelfTracker::class.java
         )
         return params
     }
@@ -109,7 +112,7 @@ class BookShelfActivity : BaseDrawerActivity() {
     }
 
     private fun saveShelfConfiguration() {
-        val configData = BookShelfPositionAndCategory(
+        val configData = BookShelfTracker(
             currentCategory,
             lastScrollPosition,
             lastScrollOffset
@@ -186,5 +189,13 @@ class BookShelfActivity : BaseDrawerActivity() {
 
     private fun getBookShelfBooks(): List<FileItem> {
         return repository.getBookShelfBooks()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        val dataStoreManager = DataStoreManager(applicationContext)
+        lifecycleScope.launch {
+            dataStoreManager.saveLastActivity(this@BookShelfActivity::class.java.name)
+        }
     }
 }

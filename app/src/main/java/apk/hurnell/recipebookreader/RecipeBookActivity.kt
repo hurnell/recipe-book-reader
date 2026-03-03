@@ -39,6 +39,7 @@ import kotlinx.coroutines.*
 import kotlin.math.floor
 import androidx.core.view.doOnNextLayout
 import androidx.core.view.updateLayoutParams
+import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.helpers.IsbnFinder
 import apk.hurnell.recipebookreader.model.BaseTracker
 import apk.hurnell.recipebookreader.ui.TocFragmentListener
@@ -588,7 +589,13 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         super.onDestroy()
         document?.destroy()
     }
-
+    override fun onPause() {
+        super.onPause()
+        val dataStoreManager = DataStoreManager(applicationContext)
+        lifecycleScope.launch {
+            dataStoreManager.saveLastActivity(this@RecipeBookActivity::class.java.name)
+        }
+    }
     override fun onBookmarkDataReloaded(isEmpty: Boolean) {
         binding.btnShowBookmarks.visibility = if (isEmpty) View.GONE else View.VISIBLE
     }

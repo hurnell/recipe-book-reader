@@ -22,6 +22,7 @@ import android.util.Log
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
+import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.model.BaseTracker
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.Dispatchers
@@ -31,7 +32,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 
-data class EveryTocPositionAndSearchTerm(
+data class EveryTocTracker(
     val currentCategory: String,
     val searchTerm: String,
     val lastScrollPosition: Int,
@@ -192,17 +193,17 @@ class EveryTocActivity : BaseDrawerActivity() {
         refreshCategories()
     }
 
-    fun getSavedParameters(): EveryTocPositionAndSearchTerm? {
+    fun getSavedParameters(): EveryTocTracker? {
         val params = repository.getConfiguration(
             configurationKey,
-            EveryTocPositionAndSearchTerm::class.java
+            EveryTocTracker::class.java
         )
         return params
     }
 
 
     private fun saveEveryTocConfiguration() {
-        val configData = EveryTocPositionAndSearchTerm(
+        val configData = EveryTocTracker(
             currentCategory,
             currentSearchTerm,
             lastScrollPosition,
@@ -232,7 +233,7 @@ class EveryTocActivity : BaseDrawerActivity() {
         justStarted = false
     }
 
-    fun applyChosenTextAndCategory(saved: EveryTocPositionAndSearchTerm? = null) {
+    fun applyChosenTextAndCategory(saved: EveryTocTracker? = null) {
         currentSearchTerm = filterInput.text.toString().trim()
         if (currentSearchTerm != "") {
             val everyToc: List<TocItem> =
@@ -314,5 +315,13 @@ class EveryTocActivity : BaseDrawerActivity() {
     }
 
     override fun refreshFilesAndUI() {}
+
+    override fun onPause() {
+        super.onPause()
+        val dataStoreManager = DataStoreManager(applicationContext)
+        lifecycleScope.launch {
+            dataStoreManager.saveLastActivity(this@EveryTocActivity::class.java.name)
+        }
+    }
 }
 
