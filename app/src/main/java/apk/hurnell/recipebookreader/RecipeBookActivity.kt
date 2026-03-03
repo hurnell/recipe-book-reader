@@ -398,6 +398,10 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
             triedToClose = true
         }
 
+        binding.btnBackInHistory.setOnClickListener {
+
+        }
+
         binding.zoomIt.setOnClickListener {
             toggleBars(!barsVisible)
         }

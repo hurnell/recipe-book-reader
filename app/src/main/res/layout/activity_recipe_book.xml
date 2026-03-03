@@ -141,18 +141,45 @@
                     app:tint="@android:color/black" />
             </LinearLayout>
 
-            <ImageButton
-                android:id="@+id/btnCloseApp"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_marginStart="12dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/switch_between_portrait_and_landscape"
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:orientation="horizontal"
                 android:paddingHorizontal="8dp"
                 android:paddingBottom="8dp"
-                android:src="@drawable/ic_close_basic"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"/>
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/pageSeekBar"
+                >
+
+
+                <ImageButton
+                    android:id="@+id/btnBackInHistory"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/show_table_of_contents"
+                    android:src="@drawable/ic_left"
+                    android:paddingHorizontal="8dp"
+                    android:paddingBottom="8dp"
+                    android:visibility="gone"
+                    app:tint="@android:color/black" />
+
+                <ImageButton
+                    android:id="@+id/btnCloseApp"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginEnd="16dp"
+                    android:layout_marginStart="12dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/switch_between_portrait_and_landscape"
+                    android:paddingHorizontal="8dp"
+                    android:paddingBottom="8dp"
+                    app:tint="@android:color/black"
+                    android:src="@drawable/ic_close_basic"/>
+            </LinearLayout>
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
