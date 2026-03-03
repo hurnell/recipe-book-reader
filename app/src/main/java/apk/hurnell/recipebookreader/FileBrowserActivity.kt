@@ -27,6 +27,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.model.BaseTracker
+import com.google.gson.Gson
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
@@ -127,7 +128,7 @@ class FileBrowserActivity : BaseDrawerActivity() {
                         finish()
                     }
                     if (lastActivityName == "apk.hurnell.recipebookreader.RecipeBookActivity") {
-                        navigateToSavedRecipeBookState(lastActivityName)
+                        navigateToSavedRecipeBookState()
                     }
                 } catch (e: ClassNotFoundException) {
                     // Handle case where activity no longer exists
@@ -343,13 +344,21 @@ class FileBrowserActivity : BaseDrawerActivity() {
         }
     }
 
-    fun navigateToSavedRecipeBookState(lastActivityName: String) {
+    fun navigateToSavedRecipeBookState() {
         val dataStoreManager = DataStoreManager(applicationContext)
         lifecycleScope.launch {
             val tracker = dataStoreManager.recipeBookState.firstOrNull()
             if (tracker != null) {
 
-                val targetClass = Class.forName(lastActivityName)
+                val intent =
+                    Intent(this@FileBrowserActivity, RecipeBookActivity::class.java).apply {
+                        putExtra("PDF_PATH", tracker.location)
+                        val savedStateJson = tracker.let { Gson().toJson(it) }
+                        if (savedStateJson != null) {
+                            putExtra("SAVED_STATE_JSON", savedStateJson)
+                        }
+                    }
+                startActivity(intent)
             }
         }
     }
