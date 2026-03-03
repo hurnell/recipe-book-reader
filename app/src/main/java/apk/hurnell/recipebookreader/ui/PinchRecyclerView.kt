@@ -10,6 +10,7 @@ import androidx.core.view.GestureDetectorCompat
 import androidx.recyclerview.widget.RecyclerView
 import kotlin.math.min
 import androidx.recyclerview.widget.LinearLayoutManager
+import apk.hurnell.recipebookreader.RecipeBookTracker
 import apk.hurnell.recipebookreader.model.BaseTracker
 
 class PinchRecyclerView @JvmOverloads constructor(
@@ -17,7 +18,7 @@ class PinchRecyclerView @JvmOverloads constructor(
     attrs: AttributeSet? = null
 ) : RecyclerView(context, attrs) {
 
-    private var scaleFactor = 1f
+    private var scaleFactor: Float = 1f
     private var lastFocusX = 0f
     private var lastFocusY = 0f
     private var translationX = 0f
@@ -64,6 +65,14 @@ class PinchRecyclerView @JvmOverloads constructor(
         invalidate()
         translationX = (width * (1 - sf)) * translatingPercentage
         (layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(pageNumber, 0)
+        invalidate()
+    }
+
+    fun handleReturnToRecipeBookTracker(tracker: RecipeBookTracker) {
+        scaleFactor = tracker.scale!!
+        invalidate()
+        translationX = tracker.translationX!!
+        (layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(tracker.pageIndex!!, 0)
         invalidate()
     }
 
