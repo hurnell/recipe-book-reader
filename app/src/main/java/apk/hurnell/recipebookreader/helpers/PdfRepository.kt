@@ -134,7 +134,7 @@ class PdfRepository(
     }
 
 
-    fun getBookHistory(bookId: Int): List<BookHistoryItem> {
+    fun getBookHistory(bookId: Long): List<BookHistoryItem> {
         return dbHelper.getBookHistory(bookId)
     }
 
@@ -146,7 +146,7 @@ class PdfRepository(
         return dbHelper.updateBookHistoryItem(historyItem)
     }
 
-    fun removeBookHistoryItem(historyItemId: Int, bookId: Int): List<BookHistoryItem> {
+    fun removeBookHistoryItem(historyItemId: Int, bookId: Long): List<BookHistoryItem> {
         return dbHelper.removeBookHistoryItem(historyItemId, bookId)
     }
 }

@@ -18,7 +18,6 @@ import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
 import java.security.MessageDigest
-import com.google.gson.Gson
 import apk.hurnell.recipebookreader.model.Book
 import apk.hurnell.recipebookreader.model.Category
 import apk.hurnell.recipebookreader.model.RecentFile
@@ -43,7 +42,6 @@ class DatabaseHelper(private val context: Context) :
 
     companion object {
         private const val DB_NAME = "recipe-reader.db"
-        private val gson = Gson()
         private const val LOG_TAG = "NIGEL_HURNELL"
     }
 
@@ -1043,7 +1041,7 @@ GROUP BY t.id
             put("scale", historyItem.scale)
         }
         db.insert("history", null, values)
-        return getBookHistory(historyItem.bookId.toInt())
+        return getBookHistory(historyItem.bookId)
     }
 
     fun updateBookHistoryItem(historyItem: BookHistoryItem): List<BookHistoryItem> {
@@ -1061,16 +1059,16 @@ GROUP BY t.id
             "id = ?",
             arrayOf(historyItem.id.toString())
         )
-        return getBookHistory(historyItem.bookId.toInt())
+        return getBookHistory(historyItem.bookId)
     }
 
-    fun removeBookHistoryItem(historyItemId: Int, bookId: Int): List<BookHistoryItem> {
+    fun removeBookHistoryItem(historyItemId: Int, bookId: Long): List<BookHistoryItem> {
         val db = writableDatabase
         db.delete("history", "id = ?", arrayOf(historyItemId.toString()))
         return getBookHistory(bookId)
     }
 
-    fun getBookHistory(bookId: Int): List<BookHistoryItem> {
+    fun getBookHistory(bookId: Long): List<BookHistoryItem> {
         val db = readableDatabase
         val cursor = db.rawQuery(
             """
