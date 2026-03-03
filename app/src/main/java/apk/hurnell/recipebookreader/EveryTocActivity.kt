@@ -21,7 +21,9 @@ import android.content.Context
 import android.util.Log
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.model.BaseTracker
 import com.google.android.material.snackbar.Snackbar
@@ -47,7 +49,6 @@ class EveryTocActivity : BaseDrawerActivity() {
     private lateinit var clearSearch: ImageButton
     private lateinit var searchToc: ImageButton
     private lateinit var recyclerView: RecyclerView
-    private val configurationKey = "EveryTocConfiguration"
     private var lastScrollPosition = 0
     private var lastScrollOffset = 0
     private var currentSearchTerm: String = ""
@@ -175,25 +176,34 @@ class EveryTocActivity : BaseDrawerActivity() {
             lastScrollOffset = 0
             currentSearchTerm = ""
         }
-        val saved = getSavedParameters()
-        currentCategory = saved?.currentCategory ?: "All"
-        currentSearchTerm = saved?.searchTerm ?: ""
-        lastScrollPosition = saved?.lastScrollPosition ?: 0
-        lastScrollOffset = saved?.lastScrollOffset ?: 0
-        filterInput.text = Editable.Factory.getInstance().newEditable(currentSearchTerm)
-        val position = categories.indexOf(currentCategory)
-        spinner.setSelection(position)
-        applyChosenTextAndCategory(saved)
+        applySavedSettings()
 
-        refreshCategories()
     }
 
-    fun getSavedParameters(): EveryTocTracker? {
-        val params = repository.getConfiguration(
-            configurationKey,
-            EveryTocTracker::class.java
-        )
-        return params
+    fun applySavedSettings() {
+        val dataStoreManager = DataStoreManager(applicationContext)
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                dataStoreManager.everyTocState.collect { tracker ->
+                    if (tracker != null) {
+                        currentCategory = tracker.currentCategory
+                        currentSearchTerm = tracker.searchTerm
+                        lastScrollPosition = tracker.lastScrollPosition
+                        lastScrollOffset = tracker.lastScrollOffset
+                        filterInput.text = Editable.Factory.getInstance().newEditable(currentSearchTerm)
+
+                        val position = categories.indexOf(currentCategory)
+                        spinner.setSelection(position)
+                        applyChosenTextAndCategory(tracker)
+                    }
+                }
+            }
+        }
+        val position = categories.indexOf("All")
+        spinner.setSelection(position)
+        applyChosenTextAndCategory(null)
+
+        refreshCategories()
     }
 
     private fun trackRecyclerViewOffset() {
