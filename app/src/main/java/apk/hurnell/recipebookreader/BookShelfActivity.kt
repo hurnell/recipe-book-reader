@@ -30,8 +30,6 @@ class BookShelfActivity : BaseDrawerActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_book_shelf)
 
-        repository = PdfRepository(this)
-
         loadingOverlay = findViewById(R.id.loadingOverlay)
 
         val toolbar: Toolbar = findViewById(R.id.bookShelfToolbar)

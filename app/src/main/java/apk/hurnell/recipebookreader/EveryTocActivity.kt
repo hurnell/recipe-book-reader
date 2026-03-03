@@ -57,7 +57,6 @@ class EveryTocActivity : BaseDrawerActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_every_toc)
         val rootLayout: CoordinatorLayout = findViewById(R.id.rootLayout)
-        repository = PdfRepository(this)
 
         loadingOverlay = findViewById(R.id.loadingOverlay)
         val toolbar: Toolbar = findViewById(R.id.everyTocToolbar)

@@ -40,13 +40,24 @@ import kotlin.math.floor
 import androidx.core.view.doOnNextLayout
 import androidx.core.view.updateLayoutParams
 import apk.hurnell.recipebookreader.helpers.IsbnFinder
+import apk.hurnell.recipebookreader.model.BaseTracker
 import apk.hurnell.recipebookreader.ui.TocFragmentListener
+
+data class RecipeBookTracker(
+    val isOpen: Boolean,
+    val portrait: Boolean?,
+    val location: String?,
+    val offset: Int?,
+    val translationX: Float?,
+    val scale: Float?
+) : BaseTracker()
 
 
 class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
 
     private lateinit var binding: ActivityRecipeBookBinding
     private lateinit var tocFragment: TocFragment
+    private lateinit var bookLocation: String
     private var bottomInset: Int = 0
     private lateinit var systemBars: Insets
     private var isPortrait = true
@@ -55,6 +66,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     private var totalPages = 0
     private var document: Document? = null
     private lateinit var repository: PdfRepository
+    private val configurationKey = "RecipeBookConfiguration"
 
     companion object {
         private const val LOG_TAG = "NIGEL_HURNELL"
@@ -91,10 +103,10 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
             finish()
             return
         }
+        bookLocation = pdfFilePath
         val pdfFile = File(pdfFilePath)
         binding.btnShowToc.visibility = View.GONE
         repository = PdfRepository(this)
-
         lifecycleScope.launch {
             try {
                 // Open PDF
@@ -122,7 +134,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                     finish()
                     return@launch
                 }
-
+                saveTracker()
                 if (!book.name.isNullOrEmpty()) {
                     binding.toolbar.title = book.name
                 }
@@ -175,6 +187,26 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         }
     }
 
+    private fun buildTracker(isOpen: Boolean): RecipeBookTracker {
+        val pinch = binding.bookRecyclerView as PinchRecyclerView
+
+        return RecipeBookTracker(
+            isOpen = isOpen,
+            portrait = isPortrait,
+            location = bookLocation,
+            offset = pinch.computeVerticalScrollOffset(),
+            translationX = pinch.translationX,
+            scale = pinch.getScaleFactor()
+        )
+    }
+
+    private fun saveTracker(isOpen: Boolean = true) {
+        val configData = buildTracker(isOpen)
+        Log.i(LOG_TAG, configData.asString())
+        repository.saveConfiguration(configurationKey, configData)
+    }
+
+
     private fun initializeTocFragment(id: Long) {
         tocFragment = TocFragment.newInstance(id.toInt()) { item ->
             binding.bookRecyclerView.scrollToPosition(item.page)
@@ -194,7 +226,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
 
     private fun onDocumentReady(doc: Document, tocItem: TocItem?) {
         val metrics = resources.displayMetrics
-        val horizontalBars = if (::systemBars.isInitialized)  systemBars.right else 0
+        val horizontalBars = if (::systemBars.isInitialized) systemBars.right else 0
         val initialUw = metrics.widthPixels - horizontalBars
         val adapter = BookAdapter(doc, initialUw)
         binding.bookRecyclerView.layoutManager = LinearLayoutManager(this)
@@ -359,6 +391,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                 val currentPosition = layoutManager.findFirstVisibleItemPosition()
                 binding.pageSeekBar.progress = currentPosition
                 if (barsVisible && abs(dy) > 10) toggleBars(false)
+                saveTracker()
             }
         })
 
@@ -428,7 +461,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         val links = page.links
         if (links == null) {
             page.destroy()
-                    return
+            return
         }
         for (link in links) {
             val rect = link.bounds
@@ -542,16 +575,8 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     private fun toggleBars(show: Boolean) {
         if (barsVisible == show) return
         barsVisible = show
-
         val translationTop = if (show) 0f else -binding.toolbar.height.toFloat()
         val translationBottom = if (show) 0f else binding.bottomBar.height.toFloat()
-        /*val translationBottomFab = if (barsVisible) {
-            translationBottom
-        } else if (isPortrait) {
-            translationBottom - binding.zoomIt.height
-        } else {
-            translationBottom
-        }*/
         binding.toolbar.animate().translationY(translationTop).setDuration(300).start()
         binding.bottomBar.animate().translationY(translationBottom).setDuration(300).start()
         binding.btnRotate.animate().translationY(translationBottom).setDuration(300).start()

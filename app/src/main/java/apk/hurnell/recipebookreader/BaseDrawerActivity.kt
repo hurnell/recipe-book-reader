@@ -86,6 +86,8 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         onBackPressedDispatcher.addCallback(this, drawerBackCallback)
+        repository = PdfRepository(this)
+
     }
 
     abstract fun refreshFilesAndUI()

@@ -53,7 +53,6 @@ class FileBrowserActivity : BaseDrawerActivity() {
         setContentView(R.layout.activity_file_browser)
         pdfOnly = intent.getBooleanExtra(EXTRA_PDF_ONLY, true)
         targetSha = intent.getStringExtra(EXTRA_TARGET_SHA)
-        repository = PdfRepository(this)
 
         loadingOverlay = findViewById(R.id.loadingOverlay)
         val toolbar: Toolbar = findViewById(R.id.toolbar)

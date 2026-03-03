@@ -33,7 +33,6 @@ class RecentFilesActivity : BaseDrawerActivity() {
 
         val toolbar: Toolbar = findViewById(R.id.toolbar)
         setupDrawer(toolbar)
-        repository = PdfRepository(this)
         val saved = getSavedParameters()
         lastScrollPosition = saved?.lastScrollPosition ?: 0
         lastScrollOffset = saved?.lastScrollOffset ?: 0

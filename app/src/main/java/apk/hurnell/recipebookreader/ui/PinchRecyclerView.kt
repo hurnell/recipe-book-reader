@@ -3,7 +3,6 @@ package apk.hurnell.recipebookreader.ui
 import android.content.Context
 import android.graphics.Canvas
 import android.util.AttributeSet
-import android.util.Log
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
@@ -11,6 +10,7 @@ import androidx.core.view.GestureDetectorCompat
 import androidx.recyclerview.widget.RecyclerView
 import kotlin.math.min
 import androidx.recyclerview.widget.LinearLayoutManager
+import apk.hurnell.recipebookreader.model.BaseTracker
 
 class PinchRecyclerView @JvmOverloads constructor(
     context: Context,
@@ -76,11 +76,7 @@ class PinchRecyclerView @JvmOverloads constructor(
         val x: Float,
         val y: Float,
 
-    ){
-        fun asString(): String{
-            return "translationX $translationX x $x y $y, pageX $pageX pageY $pageY offset $offset scaleFactor $scaleFactor "
-        }
-    }
+    ): BaseTracker()
 
     override fun getTranslationX(): Float = translationX
 
