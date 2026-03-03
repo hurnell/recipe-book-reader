@@ -4,7 +4,9 @@ import android.os.Bundle
 import android.view.View
 import android.widget.AdapterView
 import androidx.appcompat.widget.Toolbar
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.adapters.BookShelfAdapter
@@ -12,6 +14,7 @@ import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.helpers.PdfRepository
 import apk.hurnell.recipebookreader.model.BaseTracker
 import apk.hurnell.recipebookreader.model.FileItem
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -26,7 +29,6 @@ class BookShelfActivity : BaseDrawerActivity() {
     private lateinit var recyclerView: RecyclerView
     private var lastScrollPosition = 0
     private var lastScrollOffset = 0
-    private val configurationKey = "BookShelfConfiguration"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,10 +41,6 @@ class BookShelfActivity : BaseDrawerActivity() {
 
 
         recyclerView = findViewById(R.id.shelfRecyclerView)
-        val saved = getSavedParameters()
-        currentCategory = saved?.category ?: "All"
-        lastScrollPosition = saved?.lastScrollPosition ?: 0
-        lastScrollOffset = saved?.lastScrollOffset ?: 0
         spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(
                 parent: AdapterView<*>,
@@ -52,7 +50,6 @@ class BookShelfActivity : BaseDrawerActivity() {
             ) {
                 val selectedCategory = parent.getItemAtPosition(position) as String
                 populateShelf(selectedCategory)
-
             }
 
             override fun onNothingSelected(parent: AdapterView<*>) {
@@ -60,9 +57,6 @@ class BookShelfActivity : BaseDrawerActivity() {
             }
         }
 
-        refreshCategories()
-        val position = categories.indexOf(currentCategory)
-        spinner.setSelection(position)
         setupDrawer(toolbar)
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.itemAnimator = null
@@ -77,15 +71,31 @@ class BookShelfActivity : BaseDrawerActivity() {
             onLongClick = { file -> shelfShowBookInfoOverlay(file) }
         )
         recyclerView.adapter = bookRowAdapter
-        populateShelf(currentCategory, saved == null)
+
+        applySavedSettings()
+
     }
 
-    fun getSavedParameters(): BookShelfTracker? {
-        val params = repository.getConfiguration(
-            configurationKey,
-            BookShelfTracker::class.java
-        )
-        return params
+    private fun updateFromSavedSettings(currentCategory: String, acceptZero: Boolean = true){
+        refreshCategories()
+        val position = categories.indexOf(currentCategory)
+        spinner.setSelection(position)
+        populateShelf(currentCategory, acceptZero)
+    }
+
+    fun applySavedSettings() {
+        val dataStoreManager = DataStoreManager(applicationContext)
+        lifecycleScope.launch {
+            val tracker = dataStoreManager.bookShelfState.firstOrNull()
+            if (tracker != null) {
+                lastScrollPosition = tracker.lastScrollPosition
+                lastScrollOffset = tracker.lastScrollOffset
+                currentCategory = tracker.category
+                updateFromSavedSettings(currentCategory, false)
+            } else {
+                updateFromSavedSettings("All")
+            }
+        }
     }
 
     override fun refreshFilesAndUI() {
