@@ -45,14 +45,6 @@ class PdfRepository(
         Document.openDocument(tmpFile.absolutePath)
     }
 
-    fun saveConfiguration(key: String, json: Any) {
-        dbHelper.saveConfiguration(key, json)
-    }
-
-    fun <T> getConfiguration(key: String, clazz: Class<T>): T? {
-        return dbHelper.getConfiguration(key, clazz)
-    }
-
     fun loadCategories(): List<Category> = dbHelper.loadCategories()
 
     fun updateBookStringParam(bookId: Long, column: String, value: String) =
