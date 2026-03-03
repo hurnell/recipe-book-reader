@@ -3,6 +3,7 @@ agp = "9.0.1"
 coil = "2.7.0"
 compiler = "5.0.5"
 coreKtx = "1.17.0"
+datastorePreferences = "1.2.0"
 fitz = "1.27.1"
 glide = "5.0.5"
 junit = "4.13.2"
@@ -24,6 +25,7 @@ ksp = "2.1.0-1.0.29"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
 androidx-lifecycle-process = { module = "androidx.lifecycle:lifecycle-process", version.ref = "lifecycleProcess" }
 coil = { module = "io.coil-kt:coil", version.ref = "coil" }
 compiler = { module = "com.github.bumptech.glide:compiler", version.ref = "compiler" }

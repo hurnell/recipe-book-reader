@@ -87,5 +87,6 @@ dependencies {
     implementation(libs.androidx.lifecycle.process)
     implementation(libs.glide)
     implementation(libs.kotlin.reflect)
+    implementation(libs.androidx.datastore.preferences)
     annotationProcessor(libs.compiler)
 }
