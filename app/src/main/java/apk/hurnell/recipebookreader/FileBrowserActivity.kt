@@ -28,6 +28,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.model.BaseTracker
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 
 data class FileBrowserTracker(
@@ -126,9 +127,7 @@ class FileBrowserActivity : BaseDrawerActivity() {
                         finish()
                     }
                     if (lastActivityName == "apk.hurnell.recipebookreader.RecipeBookActivity") {
-                        val targetClass = Class.forName(lastActivityName)
-                        val recipeBookState = getSavedRecipeBookParameters()
-                        val q = 123
+                        navigateToSavedRecipeBookState(lastActivityName)
                     }
                 } catch (e: ClassNotFoundException) {
                     // Handle case where activity no longer exists
@@ -149,17 +148,9 @@ class FileBrowserActivity : BaseDrawerActivity() {
     fun applySavedTracker(pdfOnly: Boolean) {
         val dataStoreManager = DataStoreManager(applicationContext)
         lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                if (pdfOnly) {
-                    dataStoreManager.pdfFileBrowserState.collect { tracker ->
-                        navigateToSavedDirectory(tracker)
-                    }
-                } else {
-                    dataStoreManager.imageFileBrowserState.collect { tracker ->
-                        navigateToSavedDirectory(tracker)
-                    }
-                }
-            }
+            val tracker =
+                if (pdfOnly) dataStoreManager.pdfFileBrowserState.firstOrNull() else dataStoreManager.imageFileBrowserState.firstOrNull()
+            navigateToSavedDirectory(tracker)
         }
     }
 
@@ -339,7 +330,7 @@ class FileBrowserActivity : BaseDrawerActivity() {
     override fun onPause() {
         super.onPause()
         val dataStoreManager = DataStoreManager(applicationContext)
-        lifecycleScope.launch{
+        lifecycleScope.launch {
             dataStoreManager.saveLastActivity(this@FileBrowserActivity::class.java.name)
             val currentTracker = FileBrowserTracker(
                 currentDir.absolutePath,
@@ -352,18 +343,14 @@ class FileBrowserActivity : BaseDrawerActivity() {
         }
     }
 
-    fun getSavedRecipeBookParameters(): RecipeBookTracker? {
+    fun navigateToSavedRecipeBookState(lastActivityName: String) {
         val dataStoreManager = DataStoreManager(applicationContext)
-        var foundTracker: RecipeBookTracker? = null
         lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                dataStoreManager.recipeBookState.collect { tracker ->
-                    if (tracker != null) {
-                        foundTracker = tracker
-                    }
-                }
+            val tracker = dataStoreManager.recipeBookState.firstOrNull()
+            if (tracker != null) {
+
+                val targetClass = Class.forName(lastActivityName)
             }
         }
-        return foundTracker
     }
 }
