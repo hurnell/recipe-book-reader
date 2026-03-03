@@ -27,7 +27,8 @@ class DataStoreManager(private val context: Context) {
         val BOOKMARKS_KEY = stringPreferencesKey("bookmarks_tracker")
         val BOOK_SHELF_KEY = stringPreferencesKey("bookshelf_tracker")
         val EVERY_TOC_KEY = stringPreferencesKey("every_toc_tracker")
-        val FILE_BROWSER_KEY = stringPreferencesKey("file_browser_tracker")
+        val PDF_FILE_BROWSER_KEY = stringPreferencesKey("pdf_file_browser_tracker")
+        val IMAGE_FILE_BROWSER_KEY = stringPreferencesKey("image_file_browser_tracker")
         val RECENT_BOOKS_KEY = stringPreferencesKey("recent_books_tracker")
         val RECIPE_BOOK_KEY = stringPreferencesKey("recipe_book_tracker")
     }
@@ -58,7 +59,8 @@ class DataStoreManager(private val context: Context) {
     val bookmarksState = getTracker(BOOKMARKS_KEY, BookmarksTracker::class.java)
     val bookShelfState = getTracker(BOOK_SHELF_KEY, BookShelfTracker::class.java)
     val everyTocState = getTracker(EVERY_TOC_KEY, EveryTocTracker::class.java)
-    val fileBrowserState = getTracker(FILE_BROWSER_KEY, FileBrowserTracker::class.java)
+    val pdfFileBrowserState = getTracker(PDF_FILE_BROWSER_KEY, FileBrowserTracker::class.java)
+    val imageFileBrowserState = getTracker(IMAGE_FILE_BROWSER_KEY, FileBrowserTracker::class.java)
     val recentBooksState = getTracker(RECENT_BOOKS_KEY, RecentBooksTracker::class.java)
     val recipeBookState = getTracker(RECIPE_BOOK_KEY, RecipeBookTracker::class.java)
 
