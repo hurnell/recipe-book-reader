@@ -9,6 +9,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.SeekBar
+import android.widget.Toast
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -47,6 +48,7 @@ import apk.hurnell.recipebookreader.ui.TocFragmentListener
 data class RecipeBookTracker(
     val portrait: Boolean?,
     val location: String?,
+    val pageIndex: Int?,
     val offset: Int?,
     val translationX: Float?,
     val scale: Float?
@@ -58,6 +60,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     private lateinit var binding: ActivityRecipeBookBinding
     private lateinit var tocFragment: TocFragment
     private lateinit var bookLocation: String
+    private lateinit var repository: PdfRepository
     private var bottomInset: Int = 0
     private lateinit var systemBars: Insets
     private var isPortrait = true
@@ -65,7 +68,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     private var linksWorking = true
     private var totalPages = 0
     private var document: Document? = null
-    private lateinit var repository: PdfRepository
+    private var triedToClose: Boolean = false
 
     companion object {
         private const val LOG_TAG = "NIGEL_HURNELL"
@@ -88,6 +91,12 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         val tocJson = intent.getStringExtra("TOC_ITEM_JSON")
         val tocItem = if (tocJson != null) {
             Gson().fromJson(tocJson, TocItem::class.java)
+        } else {
+            null
+        }
+        val savedStateJson = intent.getStringExtra("SAVED_STATE_JSON")
+        val recipeBookTracked = if (savedStateJson != null) {
+            Gson().fromJson(savedStateJson, RecipeBookTracker::class.java)
         } else {
             null
         }
@@ -117,7 +126,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                     return@launch
                 }
                 document = currentDocument
-                onDocumentReady(currentDocument, tocItem)
+                onDocumentReady(currentDocument, tocItem, recipeBookTracked)
 
                 // Get or create book in DB
                 val book = repository.getOrCreateBook(pdfFile, pdfFilePath, currentDocument)
@@ -190,6 +199,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         return RecipeBookTracker(
             portrait = isPortrait,
             location = bookLocation,
+            pageIndex = binding.pageSeekBar.progress,
             offset = pinch.computeVerticalScrollOffset(),
             translationX = pinch.translationX,
             scale = pinch.getScaleFactor()
@@ -213,7 +223,11 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
             .commit()
     }
 
-    private fun onDocumentReady(doc: Document, tocItem: TocItem?) {
+    private fun onDocumentReady(
+        doc: Document,
+        tocItem: TocItem?,
+        recipeBookTracked: RecipeBookTracker?
+    ) {
         val metrics = resources.displayMetrics
         val horizontalBars = if (::systemBars.isInitialized) systemBars.right else 0
         val initialUw = metrics.widthPixels - horizontalBars
@@ -240,6 +254,21 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                 )
                 toggleBars(false)
                 updatePageText(tocItem.page, totalPages)
+            }
+        }
+
+        recipeBookTracked?.let { tracker ->
+            binding.bookRecyclerView.handleReturnToRecipeBookTracker(tracker)
+            binding.bookRecyclerView.post {
+                // This code runs AFTER the scroll and scale have been processed by the system
+                Log.d("NIGEL_HURNELL", "Scroll and scale applied!")
+                val requestedOffset = tracker.offset
+                val actualOffset = binding.bookRecyclerView.computeVerticalScrollOffset()
+                val diff = requestedOffset?.minus(actualOffset)
+
+                if (diff != 0) {
+                    binding.bookRecyclerView.scrollBy(0, diff!!)
+                }
             }
         }
 
@@ -353,6 +382,20 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         binding.btnShowBookmarks.setOnClickListener {
             binding.drawerLayout.openDrawer(GravityCompat.START)
             tocFragment.setShowingToc(false)
+        }
+
+        binding.btnCloseApp.setOnClickListener {
+            if (!triedToClose) {
+                Toast.makeText(
+                    this@RecipeBookActivity,
+                    "Click once more to close Recipe Book Reader",
+                    Toast.LENGTH_SHORT
+                ).show()
+            } else {
+                moveTaskToBack(true)
+            }
+
+            triedToClose = true
         }
 
         binding.zoomIt.setOnClickListener {
