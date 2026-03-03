@@ -43,6 +43,7 @@ import androidx.core.view.updateLayoutParams
 import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.helpers.IsbnFinder
 import apk.hurnell.recipebookreader.model.BaseTracker
+import apk.hurnell.recipebookreader.model.BookHistoryItem
 import apk.hurnell.recipebookreader.ui.TocFragmentListener
 
 data class RecipeBookTracker(
@@ -58,6 +59,8 @@ data class RecipeBookTracker(
 class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
 
     private lateinit var binding: ActivityRecipeBookBinding
+
+    private lateinit var history: List<BookHistoryItem>
     private lateinit var tocFragment: TocFragment
     private lateinit var bookLocation: String
     private lateinit var repository: PdfRepository
@@ -117,7 +120,6 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         repository = PdfRepository(this)
         lifecycleScope.launch {
             try {
-                // Open PDF
                 val currentDocument = runCatching {
                     repository.openPdfFast(pdfFile)
                 }.getOrElse {
@@ -142,6 +144,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                     finish()
                     return@launch
                 }
+                loadBookHistory(bookId)
                 if (!book.name.isNullOrEmpty()) {
                     binding.toolbar.title = book.name
                 }
@@ -177,7 +180,6 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                     }
 
                     if (success) {
-                        // Ensure UI updates happen on Main thread
                         withContext(Dispatchers.Main) {
                             binding.horizontalLoader.visibility = View.GONE
                             binding.btnShowToc.visibility = View.VISIBLE
@@ -191,6 +193,15 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                 finish()
             }
         }
+    }
+
+    private fun loadBookHistory(bookId: Long) {
+        history = repository.getBookHistory(bookId)
+        checkHistory()
+    }
+
+    private fun checkHistory() {
+        binding.btnBackInHistory.visibility = if (history.isNotEmpty()) View.VISIBLE else View.GONE
     }
 
     private fun buildTracker(): RecipeBookTracker {
@@ -623,6 +634,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         super.onDestroy()
         document?.destroy()
     }
+
     override fun onPause() {
         super.onPause()
         val dataStoreManager = DataStoreManager(applicationContext)
@@ -632,6 +644,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
             dataStoreManager.saveTracker(DataStoreManager.RECIPE_BOOK_KEY, currentTracker)
         }
     }
+
     override fun onBookmarkDataReloaded(isEmpty: Boolean) {
         binding.btnShowBookmarks.visibility = if (isEmpty) View.GONE else View.VISIBLE
     }
