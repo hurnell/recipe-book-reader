@@ -172,6 +172,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
     fun searchFileSystemForBookCovers(book: Book) {
         val intent = Intent(this@BaseDrawerActivity, FileBrowserActivity::class.java).apply {
             putExtra(FileBrowserActivity.EXTRA_PDF_ONLY, false)
+            putExtra(FileBrowserActivity.NOT_FROM_NAVIGATION_EVENT, false)
             putExtra(FileBrowserActivity.EXTRA_TARGET_SHA, book.sha)
         }
         fileBrowserLauncher.launch(intent)

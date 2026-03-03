@@ -62,7 +62,9 @@ class ControlFragment : Fragment() {
                         override fun onDrawerClosed(drawerView: View) {
                             drawer.removeDrawerListener(this)
 
-                            val intent = Intent(requireContext(), FileBrowserActivity::class.java)
+                            val intent = Intent(requireContext(), FileBrowserActivity::class.java).apply {
+                                putExtra(FileBrowserActivity.NOT_FROM_NAVIGATION_EVENT, false)
+                            }
                             intent.flags =
                                 Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                             startActivity(intent)
@@ -103,9 +105,10 @@ class ControlFragment : Fragment() {
             override fun onDrawerClosed(drawerView: View) {
                 drawer.removeDrawerListener(this)
 
-                val intent = Intent(requireContext(), destination)
+                val intent = Intent(requireContext(), destination).apply {
+                    putExtra(FileBrowserActivity.NOT_FROM_NAVIGATION_EVENT, false)
+                }
                 intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-
                 startActivity(intent)
 
                 currentActivity.overridePendingTransition(

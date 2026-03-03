@@ -19,10 +19,12 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.adapters.FileAdapter
 import apk.hurnell.recipebookreader.model.FileItem
-import apk.hurnell.recipebookreader.helpers.PdfRepository
 import java.io.File
 import androidx.core.graphics.scale
+import androidx.datastore.preferences.core.Preferences
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.model.BaseTracker
 import kotlinx.coroutines.flow.first
@@ -50,15 +52,19 @@ class FileBrowserActivity : BaseDrawerActivity() {
     companion object {
         const val EXTRA_PDF_ONLY = "extra_pdf_only"
         const val EXTRA_TARGET_SHA = "extra_target_sha"
+        const val NOT_FROM_NAVIGATION_EVENT = "not_from_navigation_event"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        navigateBackToSavedActivity()
 
         setContentView(R.layout.activity_file_browser)
         pdfOnly = intent.getBooleanExtra(EXTRA_PDF_ONLY, true)
         targetSha = intent.getStringExtra(EXTRA_TARGET_SHA)
+        val notFromNavigationEvent = intent.getBooleanExtra(NOT_FROM_NAVIGATION_EVENT, true)
+        if (notFromNavigationEvent) {
+            navigateBackToSavedActivity()
+        }
 
         loadingOverlay = findViewById(R.id.loadingOverlay)
         val toolbar: Toolbar = findViewById(R.id.toolbar)
@@ -82,7 +88,7 @@ class FileBrowserActivity : BaseDrawerActivity() {
             }
         })
         requestStoragePermission()
-        navigateToSavedDirectory()
+        applySavedTracker(pdfOnly)
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -140,17 +146,26 @@ class FileBrowserActivity : BaseDrawerActivity() {
         lastScrollOffset = offset
     }
 
-    fun getSavedParameters(pdfOnly: Boolean): FileBrowserTracker? {
-        val key = if (pdfOnly) "FileBrowserActivityDirectory" else "ImageBrowserActivityDirectory"
-        return repository.getConfiguration(
-            key,
-            FileBrowserTracker::class.java
-        )
+    fun applySavedTracker(pdfOnly: Boolean) {
+        val dataStoreManager = DataStoreManager(applicationContext)
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                if (pdfOnly) {
+                    dataStoreManager.pdfFileBrowserState.collect { tracker ->
+                        navigateToSavedDirectory(tracker)
+                    }
+                } else {
+                    dataStoreManager.imageFileBrowserState.collect { tracker ->
+                        navigateToSavedDirectory(tracker)
+                    }
+                }
+            }
+        }
     }
 
-    private fun navigateToSavedDirectory() {
-        val saved = getSavedParameters(pdfOnly)
-        val savedDir = saved?.let { File(it.directory) }
+    private fun navigateToSavedDirectory(tracker: FileBrowserTracker?) {
+
+        val savedDir = tracker?.let { File(it.directory) }
         var ignoreSavedPosition: Boolean
         currentDir = if (savedDir != null && savedDir.exists()) {
             ignoreSavedPosition = false
@@ -159,7 +174,7 @@ class FileBrowserActivity : BaseDrawerActivity() {
             ignoreSavedPosition = true
             File(rootDir, "Documents")
         }
-        showFiles(currentDir, ignoreSavedPosition, saved)
+        showFiles(currentDir, ignoreSavedPosition, tracker)
     }
 
     private fun browserShowBookInfoOverlay(file: File) {
@@ -324,21 +339,31 @@ class FileBrowserActivity : BaseDrawerActivity() {
     override fun onPause() {
         super.onPause()
         val dataStoreManager = DataStoreManager(applicationContext)
-        lifecycleScope.launch {
+        lifecycleScope.launch{
             dataStoreManager.saveLastActivity(this@FileBrowserActivity::class.java.name)
             val currentTracker = FileBrowserTracker(
                 currentDir.absolutePath,
                 lastScrollPosition,
                 lastScrollOffset
             )
-            dataStoreManager.saveTracker(DataStoreManager.FILE_BROWSER_KEY, currentTracker)
+            val key: Preferences.Key<String> =
+                if (pdfOnly) DataStoreManager.PDF_FILE_BROWSER_KEY else DataStoreManager.IMAGE_FILE_BROWSER_KEY
+            dataStoreManager.saveTracker(key, currentTracker)
         }
     }
 
     fun getSavedRecipeBookParameters(): RecipeBookTracker? {
-        return repository.getConfiguration(
-            "RecipeBookConfiguration",
-            RecipeBookTracker::class.java
-        )
+        val dataStoreManager = DataStoreManager(applicationContext)
+        var foundTracker: RecipeBookTracker? = null
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                dataStoreManager.recipeBookState.collect { tracker ->
+                    if (tracker != null) {
+                        foundTracker = tracker
+                    }
+                }
+            }
+        }
+        return foundTracker
     }
 }
