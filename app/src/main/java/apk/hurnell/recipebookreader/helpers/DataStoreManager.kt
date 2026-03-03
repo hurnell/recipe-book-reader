@@ -24,12 +24,12 @@ class DataStoreManager(private val context: Context) {
 
     companion object {
         val LAST_ACTIVITY_KEY = stringPreferencesKey("last_activity")
-        private val BOOKMARKS_KEY = stringPreferencesKey("bookmarks_tracker")
-        private val BOOK_SHELF_KEY = stringPreferencesKey("bookshelf_tracker")
-        private val EVERY_TOC_KEY = stringPreferencesKey("every_toc_tracker")
-        private val FILE_BROWSER_KEY = stringPreferencesKey("file_browser_tracker")
-        private val RECENT_BOOKS_KEY = stringPreferencesKey("recent_books_tracker")
-        private val RECIPE_BOOK_KEY = stringPreferencesKey("recipe_book_tracker")
+        val BOOKMARKS_KEY = stringPreferencesKey("bookmarks_tracker")
+        val BOOK_SHELF_KEY = stringPreferencesKey("bookshelf_tracker")
+        val EVERY_TOC_KEY = stringPreferencesKey("every_toc_tracker")
+        val FILE_BROWSER_KEY = stringPreferencesKey("file_browser_tracker")
+        val RECENT_BOOKS_KEY = stringPreferencesKey("recent_books_tracker")
+        val RECIPE_BOOK_KEY = stringPreferencesKey("recipe_book_tracker")
     }
 
     suspend fun saveLastActivity(activityName: String) {

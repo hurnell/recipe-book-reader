@@ -26,7 +26,6 @@ class RecentBooksActivity : BaseDrawerActivity() {
     private lateinit var recyclerView: RecyclerView
     private var lastScrollPosition = 0
     private var lastScrollOffset = 0
-    private var justStarted: Boolean = true
     private val configurationKey = "RecentFilesConfiguration"
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,15 +37,12 @@ class RecentBooksActivity : BaseDrawerActivity() {
         val saved = getSavedParameters()
         lastScrollPosition = saved?.lastScrollPosition ?: 0
         lastScrollOffset = saved?.lastScrollOffset ?: 0
-        recyclerView = findViewById<RecyclerView>(R.id.recentRecyclerView)
+        recyclerView = findViewById(R.id.recentRecyclerView)
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 super.onScrolled(recyclerView, dx, dy)
-                if (!justStarted) {
-                    trackRecyclerViewOffset()
-                }
-                justStarted = false
+                trackRecyclerViewOffset()
             }
         })
         loadingOverlay = findViewById(R.id.loadingOverlay)
@@ -75,17 +71,6 @@ class RecentBooksActivity : BaseDrawerActivity() {
 
         lastScrollPosition = firstVisibleItemPosition
         lastScrollOffset = offset
-        saveRecentFilesConfiguration()
-    }
-    private fun saveRecentFilesConfiguration() {
-        val configData = RecentBooksTracker(
-            lastScrollPosition,
-            lastScrollOffset
-        )
-        if (!justStarted) {
-            repository.saveConfiguration(configurationKey, configData)
-        }
-        justStarted = false
     }
     override fun refreshFilesAndUI() {
 
@@ -130,6 +115,11 @@ class RecentBooksActivity : BaseDrawerActivity() {
         val dataStoreManager = DataStoreManager(applicationContext)
         lifecycleScope.launch {
             dataStoreManager.saveLastActivity(this@RecentBooksActivity::class.java.name)
+            val currentTracker = RecentBooksTracker(
+                lastScrollPosition,
+                lastScrollOffset
+            )
+            dataStoreManager.saveTracker(DataStoreManager.RECENT_BOOKS_KEY, currentTracker)
         }
     }
 }

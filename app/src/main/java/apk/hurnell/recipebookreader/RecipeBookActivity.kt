@@ -45,7 +45,6 @@ import apk.hurnell.recipebookreader.model.BaseTracker
 import apk.hurnell.recipebookreader.ui.TocFragmentListener
 
 data class RecipeBookTracker(
-    val isOpen: Boolean,
     val portrait: Boolean?,
     val location: String?,
     val offset: Int?,
@@ -67,7 +66,6 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     private var totalPages = 0
     private var document: Document? = null
     private lateinit var repository: PdfRepository
-    private val configurationKey = "RecipeBookConfiguration"
 
     companion object {
         private const val LOG_TAG = "NIGEL_HURNELL"
@@ -135,7 +133,6 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                     finish()
                     return@launch
                 }
-                saveTracker()
                 if (!book.name.isNullOrEmpty()) {
                     binding.toolbar.title = book.name
                 }
@@ -147,7 +144,6 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                     binding.horizontalLoader.visibility = View.VISIBLE
                     binding.horizontalLoader.progress = 0
 
-                    // Use IO dispatcher for heavy DB work
                     val success = withContext(Dispatchers.IO) {
                         val tocSuccess = repository.generateTocAsync(
                             currentDocument,
@@ -188,11 +184,10 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         }
     }
 
-    private fun buildTracker(isOpen: Boolean): RecipeBookTracker {
+    private fun buildTracker(): RecipeBookTracker {
         val pinch = binding.bookRecyclerView as PinchRecyclerView
 
         return RecipeBookTracker(
-            isOpen = isOpen,
             portrait = isPortrait,
             location = bookLocation,
             offset = pinch.computeVerticalScrollOffset(),
@@ -200,13 +195,6 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
             scale = pinch.getScaleFactor()
         )
     }
-
-    private fun saveTracker(isOpen: Boolean = true) {
-        val configData = buildTracker(isOpen)
-        Log.i(LOG_TAG, configData.asString())
-        repository.saveConfiguration(configurationKey, configData)
-    }
-
 
     private fun initializeTocFragment(id: Long) {
         tocFragment = TocFragment.newInstance(id.toInt()) { item ->
@@ -392,7 +380,6 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                 val currentPosition = layoutManager.findFirstVisibleItemPosition()
                 binding.pageSeekBar.progress = currentPosition
                 if (barsVisible && abs(dy) > 10) toggleBars(false)
-                saveTracker()
             }
         })
 
@@ -594,6 +581,8 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         val dataStoreManager = DataStoreManager(applicationContext)
         lifecycleScope.launch {
             dataStoreManager.saveLastActivity(this@RecipeBookActivity::class.java.name)
+            val currentTracker = buildTracker()
+            dataStoreManager.saveTracker(DataStoreManager.RECIPE_BOOK_KEY, currentTracker)
         }
     }
     override fun onBookmarkDataReloaded(isEmpty: Boolean) {

@@ -19,7 +19,7 @@ data class BookShelfTracker(
     val category: String,
     val lastScrollPosition: Int,
     val lastScrollOffset: Int
-): BaseTracker()
+) : BaseTracker()
 
 class BookShelfActivity : BaseDrawerActivity() {
     private lateinit var bookRowAdapter: BookShelfAdapter
@@ -27,7 +27,6 @@ class BookShelfActivity : BaseDrawerActivity() {
     private var lastScrollPosition = 0
     private var lastScrollOffset = 0
     private val configurationKey = "BookShelfConfiguration"
-    private var justStarted: Boolean = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,12 +50,9 @@ class BookShelfActivity : BaseDrawerActivity() {
                 position: Int,
                 id: Long
             ) {
-                if (!justStarted) {
-                    val selectedCategory = parent.getItemAtPosition(position) as String
-                    populateShelf(selectedCategory)
-                }
+                val selectedCategory = parent.getItemAtPosition(position) as String
+                populateShelf(selectedCategory)
 
-                justStarted = false
             }
 
             override fun onNothingSelected(parent: AdapterView<*>) {
@@ -73,9 +69,7 @@ class BookShelfActivity : BaseDrawerActivity() {
         recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 super.onScrolled(recyclerView, dx, dy)
-                if (!justStarted) {
-                    trackRecyclerViewOffset()
-                }
+                trackRecyclerViewOffset()
             }
         })
         bookRowAdapter = BookShelfAdapter(
@@ -108,19 +102,6 @@ class BookShelfActivity : BaseDrawerActivity() {
 
         lastScrollPosition = firstVisibleItemPosition
         lastScrollOffset = offset
-        saveShelfConfiguration()
-    }
-
-    private fun saveShelfConfiguration() {
-        val configData = BookShelfTracker(
-            currentCategory,
-            lastScrollPosition,
-            lastScrollOffset
-        )
-        if (!justStarted) {
-            repository.saveConfiguration(configurationKey, configData)
-        }
-        justStarted = false
     }
 
     private fun onBookClicked(file: File) {
@@ -179,7 +160,6 @@ class BookShelfActivity : BaseDrawerActivity() {
             }
             lastScrollPosition = 0
             lastScrollOffset = 0
-            saveShelfConfiguration()
         }
     }
 
@@ -196,6 +176,12 @@ class BookShelfActivity : BaseDrawerActivity() {
         val dataStoreManager = DataStoreManager(applicationContext)
         lifecycleScope.launch {
             dataStoreManager.saveLastActivity(this@BookShelfActivity::class.java.name)
+            val currentTracker = BookShelfTracker(
+                currentCategory,
+                lastScrollPosition,
+                lastScrollOffset
+            )
+            dataStoreManager.saveTracker(DataStoreManager.BOOK_SHELF_KEY, currentTracker)
         }
     }
 }

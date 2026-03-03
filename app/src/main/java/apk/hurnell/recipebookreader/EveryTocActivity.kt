@@ -50,7 +50,6 @@ class EveryTocActivity : BaseDrawerActivity() {
     private val configurationKey = "EveryTocConfiguration"
     private var lastScrollPosition = 0
     private var lastScrollOffset = 0
-    private var justStarted: Boolean = true
     private var currentSearchTerm: String = ""
     private var currentCount: String = ""
 
@@ -141,10 +140,7 @@ class EveryTocActivity : BaseDrawerActivity() {
         recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 super.onScrolled(recyclerView, dx, dy)
-                if (!justStarted) {
-                    trackRecyclerViewOffset()
-                }
-                justStarted = false
+                trackRecyclerViewOffset()
             }
         })
         filterInput = findViewById(R.id.filterInput)
@@ -178,7 +174,6 @@ class EveryTocActivity : BaseDrawerActivity() {
             lastScrollPosition = 0
             lastScrollOffset = 0
             currentSearchTerm = ""
-            saveEveryTocConfiguration()
         }
         val saved = getSavedParameters()
         currentCategory = saved?.currentCategory ?: "All"
@@ -201,24 +196,6 @@ class EveryTocActivity : BaseDrawerActivity() {
         return params
     }
 
-
-    private fun saveEveryTocConfiguration() {
-        val configData = EveryTocTracker(
-            currentCategory,
-            currentSearchTerm,
-            lastScrollPosition,
-            lastScrollOffset
-        )
-        if (!justStarted) {
-            Log.i(
-                "NIGEL_HURNELL",
-                "configData = ${configData.asString()} "
-            )
-            repository.saveConfiguration(configurationKey, configData)
-        }
-        justStarted = false
-    }
-
     private fun trackRecyclerViewOffset() {
         val layoutManager = recyclerView.layoutManager as? LinearLayoutManager ?: return
         val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
@@ -227,10 +204,6 @@ class EveryTocActivity : BaseDrawerActivity() {
 
         lastScrollPosition = firstVisibleItemPosition
         lastScrollOffset = offset
-        if (!justStarted) {
-            saveEveryTocConfiguration()
-        }
-        justStarted = false
     }
 
     fun applyChosenTextAndCategory(saved: EveryTocTracker? = null) {
@@ -250,9 +223,6 @@ class EveryTocActivity : BaseDrawerActivity() {
             currentCount = ""
             resultCountTextView.text = currentCount
             adapter.submitList(null)
-        }
-        if (!justStarted) {
-            saveEveryTocConfiguration()
         }
     }
 
@@ -321,6 +291,13 @@ class EveryTocActivity : BaseDrawerActivity() {
         val dataStoreManager = DataStoreManager(applicationContext)
         lifecycleScope.launch {
             dataStoreManager.saveLastActivity(this@EveryTocActivity::class.java.name)
+            val currentTracker = EveryTocTracker(
+                currentCategory ,
+                currentSearchTerm,
+                lastScrollPosition,
+                lastScrollOffset
+            )
+            dataStoreManager.saveTracker(DataStoreManager.EVERY_TOC_KEY, currentTracker)
         }
     }
 }

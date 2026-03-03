@@ -110,7 +110,7 @@ class FileBrowserActivity : BaseDrawerActivity() {
                 "apk.hurnell.recipebookreader.EveryTocActivity",
                 "apk.hurnell.recipebookreader.RecentBooksActivity",
 
-            )
+                )
             if (!lastActivityName.isNullOrEmpty()) {
 
                 try {
@@ -119,7 +119,7 @@ class FileBrowserActivity : BaseDrawerActivity() {
                         startActivity(Intent(this@FileBrowserActivity, targetClass))
                         finish()
                     }
-                    if (lastActivityName == "apk.hurnell.recipebookreader.RecipeBookActivity"){
+                    if (lastActivityName == "apk.hurnell.recipebookreader.RecipeBookActivity") {
                         val targetClass = Class.forName(lastActivityName)
                         val recipeBookState = getSavedRecipeBookParameters()
                         val q = 123
@@ -138,7 +138,6 @@ class FileBrowserActivity : BaseDrawerActivity() {
         val offset = firstVisibleView?.top ?: 0
         lastScrollPosition = firstVisibleItemPosition
         lastScrollOffset = offset
-        saveConfiguration()
     }
 
     fun getSavedParameters(pdfOnly: Boolean): FileBrowserTracker? {
@@ -275,17 +274,6 @@ class FileBrowserActivity : BaseDrawerActivity() {
             }
         }
         updateBreadcrumb(currentDir)
-        saveConfiguration()
-    }
-
-    private fun saveConfiguration() {
-        val configData = FileBrowserTracker(
-            currentDir.absolutePath,
-            lastScrollPosition,
-            lastScrollOffset
-        )
-        val key = if (pdfOnly) "FileBrowserActivityDirectory" else "ImageBrowserActivityDirectory"
-        repository.saveConfiguration(key, configData)
     }
 
     private fun onFileClick(file: File) {
@@ -338,6 +326,12 @@ class FileBrowserActivity : BaseDrawerActivity() {
         val dataStoreManager = DataStoreManager(applicationContext)
         lifecycleScope.launch {
             dataStoreManager.saveLastActivity(this@FileBrowserActivity::class.java.name)
+            val currentTracker = FileBrowserTracker(
+                currentDir.absolutePath,
+                lastScrollPosition,
+                lastScrollOffset
+            )
+            dataStoreManager.saveTracker(DataStoreManager.FILE_BROWSER_KEY, currentTracker)
         }
     }
 

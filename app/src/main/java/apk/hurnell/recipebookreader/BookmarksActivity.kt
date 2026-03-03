@@ -19,17 +19,15 @@ import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch
 import java.io.File
 
-data class BookmarksTracker (
-    val lastScrollPosition: Int,
-    val lastScrollOffset: Int
-): BaseTracker()
+data class BookmarksTracker(
+    val lastScrollPosition: Int, val lastScrollOffset: Int
+) : BaseTracker()
 
 class BookmarksActivity : BaseDrawerActivity() {
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var bookmarkAdapter: AllBookmarkAdapter
     private lateinit var rootLayout: CoordinatorLayout
-    private var justStarted: Boolean = true
     private var lastScrollPosition = 0
     private var lastScrollOffset = 0
     private val configurationKey = "BookmarksConfiguration"
@@ -50,41 +48,34 @@ class BookmarksActivity : BaseDrawerActivity() {
         recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 super.onScrolled(recyclerView, dx, dy)
-                if (!justStarted) {
-                    trackRecyclerViewOffset()
-                }
-                justStarted = false
+                trackRecyclerViewOffset()
             }
         })
         bookmarkData = reloadBookmarks(false)
-        bookmarkAdapter = AllBookmarkAdapter(
-            onClick = { item ->
-                if (item.bookLocation != null) {
-                    val file = File(item.bookLocation)
-                    processAndOpenBook(file, item)
-                }
-            },
-            onDeleteClick = { item ->
-                checkDeleteBookmark(item)
-            },
-            onLongClick = { item ->
-                displayClickResult(item.title, rootLayout)
+        bookmarkAdapter = AllBookmarkAdapter(onClick = { item ->
+            if (item.bookLocation != null) {
+                val file = File(item.bookLocation)
+                processAndOpenBook(file, item)
             }
-        )
+        }, onDeleteClick = { item ->
+            checkDeleteBookmark(item)
+        }, onLongClick = { item ->
+            displayClickResult(item.title, rootLayout)
+        })
         recyclerView.adapter = bookmarkAdapter
         val saved = getSavedParameters()
         lastScrollPosition = saved?.lastScrollPosition ?: 0
         lastScrollOffset = saved?.lastScrollOffset ?: 0
 
-        bookmarkAdapter.submitList(bookmarkData){
+        bookmarkAdapter.submitList(bookmarkData) {
             if (saved != null) {
                 val layoutManager = recyclerView.layoutManager as? LinearLayoutManager
-                layoutManager?.scrollToPositionWithOffset(saved.lastScrollPosition, saved.lastScrollOffset)
+                layoutManager?.scrollToPositionWithOffset(
+                    saved.lastScrollPosition, saved.lastScrollOffset
+                )
             }
         }
         setupDrawer(toolbar)
-
-
     }
 
     fun displayClickResult(text: String, rootLayout: CoordinatorLayout) {
@@ -96,26 +87,21 @@ class BookmarksActivity : BaseDrawerActivity() {
     }
 
     private fun checkDeleteBookmark(item: BookmarkItem) {
-        AlertDialog.Builder(this)
-            .setTitle("Delete Bookmark?")
+        AlertDialog.Builder(this).setTitle("Delete Bookmark?")
             .setMessage("Are you sure you want to delete this bookmark")
             .setPositiveButton("Delete") { dialog, _ ->
                 val success = repository.deleteBookmark(item)
                 if (success) {
                     val toastText = "❌ Bookmark with title ${item.title} deleted"
                     Toast.makeText(
-                        this,
-                        toastText,
-                        Toast.LENGTH_SHORT
+                        this, toastText, Toast.LENGTH_SHORT
                     ).show()
                     this@BookmarksActivity.reloadBookmarks(true)
                 }
                 dialog.dismiss()
-            }
-            .setNegativeButton("Cancel") { dialog, _ ->
+            }.setNegativeButton("Cancel") { dialog, _ ->
                 dialog.dismiss()
-            }
-            .show()
+            }.show()
     }
 
     private fun reloadBookmarks(applyAfter: Boolean): List<BookmarkItem> {
@@ -134,24 +120,11 @@ class BookmarksActivity : BaseDrawerActivity() {
 
         lastScrollPosition = firstVisibleItemPosition
         lastScrollOffset = offset
-        saveBookmarksConfiguration()
     }
 
-    private fun saveBookmarksConfiguration() {
-        val configData = BookmarksTracker(
-            lastScrollPosition,
-            lastScrollOffset
-        )
-        Log.i("NIGEL_HURNELL", configData.asString() )
-        if (!justStarted) {
-            repository.saveConfiguration(configurationKey, configData)
-        }
-        justStarted = false
-    }
     fun getSavedParameters(): BookmarksTracker? {
         val params = repository.getConfiguration(
-            configurationKey,
-            BookmarksTracker::class.java
+            configurationKey, BookmarksTracker::class.java
         )
         return params
     }
@@ -165,6 +138,10 @@ class BookmarksActivity : BaseDrawerActivity() {
         val dataStoreManager = DataStoreManager(applicationContext)
         lifecycleScope.launch {
             dataStoreManager.saveLastActivity(this@BookmarksActivity::class.java.name)
+            val currentTracker = BookmarksTracker(
+                lastScrollPosition, lastScrollOffset
+            )
+            dataStoreManager.saveTracker(DataStoreManager.BOOKMARKS_KEY, currentTracker)
         }
     }
 }
