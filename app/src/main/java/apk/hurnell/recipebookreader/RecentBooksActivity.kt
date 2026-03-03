@@ -4,21 +4,24 @@ import android.os.Bundle
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.adapters.FileAdapter
+import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.model.FileItem
 import apk.hurnell.recipebookreader.helpers.PdfRepository
 import apk.hurnell.recipebookreader.model.BaseTracker
 import apk.hurnell.recipebookreader.model.RecentFile
+import kotlinx.coroutines.launch
 import java.io.File
 
-data class RecentFilesPosition(
+data class RecentBooksTracker(
     val lastScrollPosition: Int,
     val lastScrollOffset: Int
 ): BaseTracker()
 
-class RecentFilesActivity : BaseDrawerActivity() {
+class RecentBooksActivity : BaseDrawerActivity() {
 
     private lateinit var adapter: FileAdapter
     private lateinit var recyclerView: RecyclerView
@@ -58,10 +61,10 @@ class RecentFilesActivity : BaseDrawerActivity() {
         refreshFileList()
     }
 
-    fun getSavedParameters(): RecentFilesPosition? {
+    fun getSavedParameters(): RecentBooksTracker? {
         val params = repository.getConfiguration(
             configurationKey,
-            RecentFilesPosition::class.java
+            RecentBooksTracker::class.java
         )
         return params
     }
@@ -76,7 +79,7 @@ class RecentFilesActivity : BaseDrawerActivity() {
         saveRecentFilesConfiguration()
     }
     private fun saveRecentFilesConfiguration() {
-        val configData = RecentFilesPosition(
+        val configData = RecentBooksTracker(
             lastScrollPosition,
             lastScrollOffset
         )
@@ -123,4 +126,11 @@ class RecentFilesActivity : BaseDrawerActivity() {
     }
 
 
+    override fun onPause() {
+        super.onPause()
+        val dataStoreManager = DataStoreManager(applicationContext)
+        lifecycleScope.launch {
+            dataStoreManager.saveLastActivity(this@RecentBooksActivity::class.java.name)
+        }
+    }
 }
