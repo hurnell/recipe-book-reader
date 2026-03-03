@@ -3,6 +3,7 @@ package apk.hurnell.recipebookreader.helpers
 import android.content.Context
 import android.util.Log
 import apk.hurnell.recipebookreader.model.Book
+import apk.hurnell.recipebookreader.model.BookHistoryItem
 import apk.hurnell.recipebookreader.model.BookInfo
 import apk.hurnell.recipebookreader.model.BookmarkItem
 import apk.hurnell.recipebookreader.model.Category
@@ -127,7 +128,25 @@ class PdfRepository(
     fun getBookmarksForBook(bookId: Int): List<BookmarkItem> {
         return dbHelper.getBookmarksForBook(bookId)
     }
+
     fun getAllBookmarks(): List<BookmarkItem> {
         return dbHelper.getAllBookmarks()
+    }
+
+
+    fun getBookHistory(bookId: Int): List<BookHistoryItem> {
+        return dbHelper.getBookHistory(bookId)
+    }
+
+    fun addBookHistoryItem(historyItem: BookHistoryItem): List<BookHistoryItem> {
+        return dbHelper.addBookHistoryItem(historyItem)
+    }
+
+    fun updateBookHistoryItem(historyItem: BookHistoryItem): List<BookHistoryItem> {
+        return dbHelper.updateBookHistoryItem(historyItem)
+    }
+
+    fun removeBookHistoryItem(historyItemId: Int, bookId: Int): List<BookHistoryItem> {
+        return dbHelper.removeBookHistoryItem(historyItemId, bookId)
     }
 }

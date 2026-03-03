@@ -28,6 +28,7 @@ import com.artifex.mupdf.fitz.android.AndroidDrawDevice
 import apk.hurnell.recipebookreader.model.BookInfo
 import apk.hurnell.recipebookreader.model.FileItem
 import androidx.core.graphics.createBitmap
+import apk.hurnell.recipebookreader.model.BookHistoryItem
 import apk.hurnell.recipebookreader.model.BookmarkItem
 import apk.hurnell.recipebookreader.model.Row
 import apk.hurnell.recipebookreader.model.TocItem
@@ -1008,7 +1009,8 @@ GROUP BY t.id
             LEFT JOIN books AS  b
             ON m.book_id_fk = b.id
             ORDER BY m.page
-        """.trimIndent(), null)
+        """.trimIndent(), null
+        )
         val bookmarks = mutableListOf<BookmarkItem>()
         cursor.use { cursor ->
             while (cursor.moveToNext()) {
@@ -1024,11 +1026,82 @@ GROUP BY t.id
                         scale = cursor.getFloat(5),
                         translate = cursor.getFloat(6),
                         bookLocation = if (cursor.isNull(8)) null else cursor.getString(8),
-                        )
+                    )
                 )
             }
         }
         return bookmarks
+    }
+
+    fun addBookHistoryItem(historyItem: BookHistoryItem): List<BookHistoryItem> {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put("book_id_fk", historyItem.bookId)
+            put("page", historyItem.page)
+            put("offset", historyItem.offset)
+            put("translation_x", historyItem.translationX)
+            put("scale", historyItem.scale)
+        }
+        db.insert("history", null, values)
+        return getBookHistory(historyItem.bookId.toInt())
+    }
+
+    fun updateBookHistoryItem(historyItem: BookHistoryItem): List<BookHistoryItem> {
+        val db = writableDatabase
+
+        val values = ContentValues().apply {
+            put("page", historyItem.page)
+            put("offset", historyItem.offset)
+            put("translation_x", historyItem.translationX)
+            put("scale", historyItem.scale)
+        }
+        db.update(
+            "history",
+            values,
+            "id = ?",
+            arrayOf(historyItem.id.toString())
+        )
+        return getBookHistory(historyItem.bookId.toInt())
+    }
+
+    fun removeBookHistoryItem(historyItemId: Int, bookId: Int): List<BookHistoryItem> {
+        val db = writableDatabase
+        db.delete("history", "id = ?", arrayOf(historyItemId.toString()))
+        return getBookHistory(bookId)
+    }
+
+    fun getBookHistory(bookId: Int): List<BookHistoryItem> {
+        val db = readableDatabase
+        val cursor = db.rawQuery(
+            """
+            SELECT 
+                h.id AS history_id,
+                h.book_id_fk AS history_book_id,
+                h.page AS history_page, 
+                h.`offset` AS history_offset, 
+                h.translation_x AS history_translation_x,
+                h.scale AS history_scale
+            FROM history AS h
+            WHERE h.book_id_fk = ?
+            ORDER BY h.page, h.`offset`
+        """.trimIndent(), arrayOf(bookId.toString())
+        )
+        val history = mutableListOf<BookHistoryItem>()
+        cursor.use { cursor ->
+            while (cursor.moveToNext()) {
+                history.add(
+                    BookHistoryItem(
+                        id = cursor.getLong(0),
+                        bookId = cursor.getLong(1),
+                        page = cursor.getInt(2),
+                        offset = if (cursor.isNull(3)) null else cursor.getInt(3),
+                        translationX = if (cursor.isNull(4)) null else cursor.getFloat(4),
+                        scale = if (cursor.isNull(5)) null else cursor.getFloat(5)
+                    )
+                )
+            }
+        }
+        return history
     }
 
     fun getBookmarksForBook(bookId: Int): List<BookmarkItem> {
