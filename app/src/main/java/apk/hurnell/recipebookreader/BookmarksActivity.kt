@@ -7,7 +7,9 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.widget.Toolbar
 import androidx.coordinatorlayout.widget.CoordinatorLayout
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.adapters.AllBookmarkAdapter
@@ -16,6 +18,7 @@ import apk.hurnell.recipebookreader.helpers.PdfRepository
 import apk.hurnell.recipebookreader.model.BaseTracker
 import apk.hurnell.recipebookreader.model.BookmarkItem
 import com.google.android.material.snackbar.Snackbar
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -63,18 +66,7 @@ class BookmarksActivity : BaseDrawerActivity() {
             displayClickResult(item.title, rootLayout)
         })
         recyclerView.adapter = bookmarkAdapter
-        val saved = getSavedParameters()
-        lastScrollPosition = saved?.lastScrollPosition ?: 0
-        lastScrollOffset = saved?.lastScrollOffset ?: 0
-
-        bookmarkAdapter.submitList(bookmarkData) {
-            if (saved != null) {
-                val layoutManager = recyclerView.layoutManager as? LinearLayoutManager
-                layoutManager?.scrollToPositionWithOffset(
-                    saved.lastScrollPosition, saved.lastScrollOffset
-                )
-            }
-        }
+        populateAdapter()
         setupDrawer(toolbar)
     }
 
@@ -122,11 +114,23 @@ class BookmarksActivity : BaseDrawerActivity() {
         lastScrollOffset = offset
     }
 
-    fun getSavedParameters(): BookmarksTracker? {
-        val params = repository.getConfiguration(
-            configurationKey, BookmarksTracker::class.java
-        )
-        return params
+    fun populateAdapter() {
+        val dataStoreManager = DataStoreManager(applicationContext)
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                dataStoreManager.bookmarksState.collect { tracker ->
+                    if (tracker != null) {
+                        val layoutManager = recyclerView.layoutManager as? LinearLayoutManager
+                        lastScrollPosition = tracker.lastScrollPosition
+                        lastScrollOffset = tracker.lastScrollOffset
+                        layoutManager?.scrollToPositionWithOffset(
+                            lastScrollPosition, lastScrollOffset
+                        )
+                    }
+                }
+            }
+        }
+        bookmarkAdapter.submitList(bookmarkData)
     }
 
     override fun refreshFilesAndUI() {
