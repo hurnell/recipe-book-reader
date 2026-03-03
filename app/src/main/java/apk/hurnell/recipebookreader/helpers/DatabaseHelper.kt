@@ -64,36 +64,6 @@ class DatabaseHelper(private val context: Context) :
         return super.getReadableDatabase()
     }
 
-    fun saveConfiguration(key: String, data: Any) {
-        val db = writableDatabase
-        val jsonString = gson.toJson(data)
-        db.transaction {
-            val values = ContentValues().apply {
-                put("key", key)
-                put("json", jsonString)
-            }
-
-            val rowsAffected = db.update("configuration", values, "key = ?", arrayOf(key))
-
-            if (rowsAffected == 0) {
-                db.insert("configuration", null, values)
-            }
-        }
-    }
-
-    fun <T> getConfiguration(key: String, clazz: Class<T>): T? {
-        val db = writableDatabase
-        db.query(
-            "configuration", arrayOf("json"), "key = ?", arrayOf(key), null, null, null
-        ).use { cursor ->
-            if (cursor.moveToFirst()) {
-                val json = cursor.getString(0)
-                return gson.fromJson(json, clazz)
-            }
-        }
-        return null
-    }
-
     @Throws(IOException::class)
     fun copyDatabaseIfNeeded() {
         val dbFile: File = context.getDatabasePath(DB_NAME)
