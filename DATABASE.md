@@ -102,7 +102,7 @@ ON t.book_id_fk = b.id;
         book_id_fk INTEGER DEFAULT NULL,
         page INTEGER,
         offset INTEGER,
-        translationX REAL,
+        translation_x REAL,
         scale REAL
     );
 ```
