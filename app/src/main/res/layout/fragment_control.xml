@@ -8,10 +8,24 @@
 
     <View
         android:id="@+id/headerBackground"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="160dp"
         android:background="@color/pastel_blue"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageButton
+        android:id="@+id/btnCloseDrawer"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="16dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@drawable/ic_left"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:tint="@color/black" />
 
     <TextView
         android:id="@+id/drawerTitle"
@@ -40,12 +54,12 @@
 
 
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal">
 
             <ImageView
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:layout_marginEnd="16dp"
                 android:contentDescription="@string/recently_viewed_books"
@@ -59,7 +73,7 @@
                 android:gravity="start|center_vertical"
                 android:text="@string/recent_books"
                 android:textAllCaps="false"
-                android:textColor="@color/dark_gray" />
+                android:textColor="@color/almost_black" />
         </LinearLayout>
 
         <View
@@ -69,12 +83,12 @@
             android:background="#EEEEEE" />
 
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal">
 
             <ImageView
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:layout_marginEnd="16dp"
                 android:contentDescription="@string/book_shelf_description"
@@ -88,7 +102,7 @@
                 android:gravity="start|center_vertical"
                 android:text="@string/book_shelf"
                 android:textAllCaps="false"
-                android:textColor="@color/dark_gray" />
+                android:textColor="@color/almost_black" />
         </LinearLayout>
 
         <View
@@ -98,12 +112,12 @@
             android:background="#EEEEEE" />
 
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal">
 
             <ImageView
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:layout_marginEnd="16dp"
                 android:contentDescription="@string/open_file_browser"
@@ -117,7 +131,7 @@
                 android:gravity="start|center_vertical"
                 android:text="@string/browse_files"
                 android:textAllCaps="false"
-                android:textColor="@color/dark_gray" />
+                android:textColor="@color/almost_black" />
         </LinearLayout>
 
         <View
@@ -127,12 +141,12 @@
             android:background="#EEEEEE" />
 
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal">
 
             <ImageView
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:layout_marginEnd="16dp"
                 android:contentDescription="@string/open_file_browser"
@@ -146,7 +160,7 @@
                 android:gravity="start|center_vertical"
                 android:text="@string/search_tables_of_contents"
                 android:textAllCaps="false"
-                android:textColor="@color/dark_gray" />
+                android:textColor="@color/almost_black" />
         </LinearLayout>
 
         <View
@@ -156,12 +170,12 @@
             android:background="#EEEEEE" />
 
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal">
 
             <ImageView
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:layout_marginEnd="16dp"
                 android:contentDescription="@string/open_file_browser"
@@ -175,7 +189,7 @@
                 android:gravity="start|center_vertical"
                 android:text="@string/bookmarks"
                 android:textAllCaps="false"
-                android:textColor="@color/dark_gray" />
+                android:textColor="@color/almost_black" />
         </LinearLayout>
 
     </LinearLayout>
