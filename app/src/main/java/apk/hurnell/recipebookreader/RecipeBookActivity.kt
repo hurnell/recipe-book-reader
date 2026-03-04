@@ -2,6 +2,7 @@ package apk.hurnell.recipebookreader
 
 import android.content.pm.ActivityInfo
 import android.content.res.ColorStateList
+import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
 import android.util.TypedValue
@@ -40,6 +41,7 @@ import kotlinx.coroutines.*
 import kotlin.math.floor
 import androidx.core.view.doOnNextLayout
 import androidx.core.view.updateLayoutParams
+import androidx.drawerlayout.widget.DrawerLayout
 import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.helpers.IsbnFinder
 import apk.hurnell.recipebookreader.model.BaseTracker
@@ -72,6 +74,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     private var totalPages = 0
     private var document: Document? = null
     private var triedToClose: Boolean = false
+    private var currentBookId: Long = -1L
 
     companion object {
         private const val LOG_TAG = "NIGEL_HURNELL"
@@ -139,6 +142,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                     }
 
                 val bookId = book.id
+                currentBookId = bookId
                 if (bookId == -1L) {
                     Log.e(LOG_TAG, "Invalid bookId returned")
                     finish()
@@ -161,7 +165,6 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                             currentDocument,
                             bookId,
                             progressCallback = { percent: Int ->
-                                // Update UI safely on Main
                                 lifecycleScope.launch(Dispatchers.Main) {
                                     binding.horizontalLoader.progress = percent
                                     if (percent >= 100) {
@@ -193,15 +196,11 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                 finish()
             }
         }
+
     }
 
     private fun loadBookHistory(bookId: Long) {
         history = repository.getBookHistory(bookId)
-        checkHistory()
-    }
-
-    private fun checkHistory() {
-        binding.btnBackInHistory.visibility = if (history.isNotEmpty()) View.VISIBLE else View.GONE
     }
 
     private fun buildTracker(): RecipeBookTracker {
@@ -220,11 +219,16 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     private fun initializeTocFragment(id: Long) {
         tocFragment = TocFragment.newInstance(id.toInt()) { item ->
             binding.bookRecyclerView.scrollToPosition(item.page)
-            binding.bookRecyclerView.setScaleFactor(
+            val historyItem = binding.bookRecyclerView.setScaleFactor(
                 item.scale.coerceAtMost(3.0f),
                 item.page,
                 item.translate
             )
+            binding.bookRecyclerView.post {
+                historyItem.bookId = currentBookId
+                historyItem.offset = binding.bookRecyclerView.computeVerticalScrollOffset()
+                history = repository.addBookHistoryItem(historyItem)
+            }
             binding.drawerLayout.closeDrawer(GravityCompat.START)
             toggleBars(false)
             updatePageText(item.page, totalPages)
@@ -271,8 +275,6 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         recipeBookTracked?.let { tracker ->
             binding.bookRecyclerView.handleReturnToRecipeBookTracker(tracker)
             binding.bookRecyclerView.post {
-                // This code runs AFTER the scroll and scale have been processed by the system
-                Log.d("NIGEL_HURNELL", "Scroll and scale applied!")
                 val requestedOffset = tracker.offset
                 val actualOffset = binding.bookRecyclerView.computeVerticalScrollOffset()
                 val diff = requestedOffset?.minus(actualOffset)
@@ -359,6 +361,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
 
     private fun setupStaticListeners() {
         binding.toolbar.setNavigationOnClickListener { finish() }
+        binding.toolbar.setNavigationIconTint(Color.BLACK)
 
         binding.btnRotate.setOnClickListener {
             isPortrait = !isPortrait
@@ -390,6 +393,11 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
             binding.drawerLayout.openDrawer(GravityCompat.START)
             tocFragment.setShowingToc(true)
         }
+
+        binding.bottomBar.setOnClickListener {
+
+        }
+
         binding.btnShowBookmarks.setOnClickListener {
             binding.drawerLayout.openDrawer(GravityCompat.START)
             tocFragment.setShowingToc(false)
@@ -410,7 +418,21 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         }
 
         binding.btnBackInHistory.setOnClickListener {
-
+            if (history.isNotEmpty()) {
+                val latestHistoryItem = history.first()
+                binding.bookRecyclerView.handleReturnToRecipeBookHistoryItem(latestHistoryItem)
+                binding.bookRecyclerView.post {
+                    val requestedOffset = latestHistoryItem.offset
+                    val actualOffset = binding.bookRecyclerView.computeVerticalScrollOffset()
+                    val diff = requestedOffset?.minus(actualOffset)
+                    if (diff != 0) {
+                        binding.bookRecyclerView.scrollBy(0, diff!!)
+                    }
+                    history = repository.removeBookHistoryItem(latestHistoryItem.id!!, currentBookId)
+                }
+            } else {
+                finish()
+            }
         }
 
         binding.zoomIt.setOnClickListener {
@@ -486,9 +508,14 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                 if (zoomParts.size >= 3) {
                     val xOffset = zoomParts[1].toFloat()
                     val zoom = (w / (w - 2 * xOffset) * 0.95f)
-                    rv.setScaleFactor(zoom, page - 1, 0.5f)
+                    val historyItem = rv.setScaleFactor(zoom, page - 1, 0.5f)
                     toggleBars(false)
                     updatePageText(page - 1, totalPages)
+                    binding.bookRecyclerView.post {
+                        historyItem.bookId = currentBookId
+                        historyItem.offset = binding.bookRecyclerView.computeVerticalScrollOffset()
+                        history = repository.addBookHistoryItem(historyItem)
+                    }
                 }
             }
         }
@@ -554,9 +581,14 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
             FunctionalStructuredTextWalker().getPageCoordinates(document, currentPage)
         if (pageCoordinates.found) {
             val finalScale = pageCoordinates.targetScale.coerceAtMost(3.0f)
-            rv.setScaleFactor(finalScale, currentPage, pageCoordinates.translatingPercentage)
+            val historyItem = rv.setScaleFactor(finalScale, currentPage, pageCoordinates.translatingPercentage)
             toggleBars(false)
             updatePageText(currentPage, totalPages)
+            binding.bookRecyclerView.post {
+                historyItem.bookId = currentBookId
+                historyItem.offset = binding.bookRecyclerView.computeVerticalScrollOffset()
+                history = repository.addBookHistoryItem(historyItem)
+            }
         }
         return pageCoordinates.found
     }
@@ -632,6 +664,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
 
     override fun onDestroy() {
         super.onDestroy()
+        repository.clearBookHistory(currentBookId)
         document?.destroy()
     }
 
@@ -646,6 +679,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     }
 
     override fun onBookmarkDataReloaded(isEmpty: Boolean) {
+
         binding.btnShowBookmarks.visibility = if (isEmpty) View.GONE else View.VISIBLE
     }
 }
