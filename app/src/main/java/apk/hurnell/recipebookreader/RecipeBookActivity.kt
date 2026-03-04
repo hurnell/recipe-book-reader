@@ -72,7 +72,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     private lateinit var systemBars: Insets
     private var isPortrait = true
     private var barsVisible = true
-    private var linksWorking = true
+    private var linkState:Int = 0
     private var totalPages = 0
     private var document: Document? = null
     private var triedToClose: Boolean = false
@@ -442,7 +442,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
             toggleBars(!barsVisible)
         }
         binding.stopLinks.setOnClickListener {
-            toggleLinks(!linksWorking)
+            toggleLinks()
         }
 
         binding.pageSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -545,12 +545,12 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
 
                 if (link.isExternal) {
                     val uri = link.uri
-                    if (linksWorking) {
+                    if (linkState == 0) {
                         handleExternalLink(uri)
                     }
                 } else {
                     page.destroy()
-                    if (linksWorking) {
+                    if (linkState == 0) {
                         handleInternalLink(rv, link, w)
                     }
                 }
@@ -567,7 +567,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         width: Float,
         currentPage: Int
     ): Boolean {
-        if (!linksWorking) {
+        if (linkState != 0) {
             return true
         }
         if (document == null) {
@@ -640,16 +640,20 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         binding.pageIndicator.text = getString(R.string.page_indicator, current + 1, total)
     }
 
-    private fun toggleLinks(allow: Boolean) {
-        linksWorking = allow
-        if (linksWorking) {
+    private fun toggleLinks() {
+        linkState = (linkState + 1) % 3
+        if (linkState == 0) {
             val color = ContextCompat.getColor(this, R.color.links_working)
             binding.stopLinks.imageTintList = ColorStateList.valueOf(color)
             binding.stopLinks.setImageResource(R.drawable.ic_link_on)
-        } else {
+        } else if(linkState == 1) {
             val colorOff = ContextCompat.getColor(this, R.color.links_off)
             binding.stopLinks.imageTintList = ColorStateList.valueOf(colorOff)
             binding.stopLinks.setImageResource(R.drawable.ic_link_off)
+        } else {
+            val colorOff = ContextCompat.getColor(this, R.color.links_working)
+            binding.stopLinks.imageTintList = ColorStateList.valueOf(colorOff)
+            binding.stopLinks.setImageResource(R.drawable.ic_bookmark_open)
         }
 
     }
