@@ -68,5 +68,10 @@
     <string name="bookmark_id_or_null_if_not_bookmarked">The bookmark id of the saved toc item</string>
     <string name="go_back_in_history">Go back in history</string>
     <string name="put_the_application_in_the_background">Put the application in the background</string>
+    <string name="enter_bookmark">Enter bookmark</string>
+    <string name="search_recipe">Search recipe…</string>
+    <string name="search">Search</string>
+    <string name="execute_search">Execute Search</string>
+    <string name="clear_search">Clear Search</string>
 
 </resources>

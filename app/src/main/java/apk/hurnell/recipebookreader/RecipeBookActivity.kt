@@ -1,16 +1,21 @@
 package apk.hurnell.recipebookreader
 
+import android.app.AlertDialog
 import android.content.Context
+import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
 import android.util.TypedValue
+import android.view.Menu
+import android.view.MenuItem
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
+import android.widget.EditText
 import android.widget.SeekBar
 import android.widget.Toast
 import androidx.activity.SystemBarStyle
@@ -27,6 +32,7 @@ import apk.hurnell.recipebookreader.databinding.ActivityRecipeBookBinding
 import apk.hurnell.recipebookreader.helpers.FunctionalStructuredTextWalker
 import apk.hurnell.recipebookreader.ui.PinchRecyclerView
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.Insets
 import androidx.core.view.WindowCompat
@@ -44,11 +50,13 @@ import kotlin.math.floor
 import androidx.core.view.doOnNextLayout
 import androidx.core.view.updateLayoutParams
 import androidx.drawerlayout.widget.DrawerLayout
+import apk.hurnell.recipebookreader.helpers.Coordinates
 import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.helpers.IsbnFinder
 import apk.hurnell.recipebookreader.model.BaseTracker
 import apk.hurnell.recipebookreader.model.BookHistoryItem
 import apk.hurnell.recipebookreader.ui.TocFragmentListener
+import com.artifex.mupdf.fitz.Rect
 
 data class RecipeBookTracker(
     val portrait: Boolean?,
@@ -72,11 +80,12 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     private lateinit var systemBars: Insets
     private var isPortrait = true
     private var barsVisible = true
-    private var linkState:Int = 0
+    private var linkState: Int = 0
     private var totalPages = 0
     private var document: Document? = null
     private var triedToClose: Boolean = false
     private var currentBookId: Long = -1L
+    private var clearSearchMenuItem: MenuItem? = null
 
     companion object {
         private const val LOG_TAG = "NIGEL_HURNELL"
@@ -198,7 +207,90 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                 finish()
             }
         }
+        binding.toolbar.inflateMenu(R.menu.recipe_book_menu)
 
+        binding.toolbar.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                R.id.action_search -> {
+                    val intent = Intent(this, SearchActivity::class.java)
+                    intent.putExtra("PDF_PATH", bookLocation)
+                    searchLauncher.launch(intent)
+                    true
+                }
+
+                R.id.action_clear_search -> { // Add this click listener here too!
+                    clearSearchHighlights()
+                    true
+                }
+
+                else -> false
+            }
+        }
+
+    }
+
+    private val searchLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val pageIndex = result.data?.getIntExtra("SELECTED_PAGE", -1) ?: -1
+            val rectanglesJson = result.data?.getStringExtra("BLOCK_RECTANGLES_JSON")
+            val coordinatesJson = result.data?.getStringExtra("PAGE_COORDINATES")
+            if (pageIndex != -1 && rectanglesJson != null) {
+                val gson = Gson()
+                val type = object : com.google.gson.reflect.TypeToken<List<Rect>>() {}.type
+                val rectangles: List<Rect> = gson.fromJson(rectanglesJson, type)
+                val coordinatesType =
+                    object : com.google.gson.reflect.TypeToken<Coordinates>() {}.type
+                val coordinates: Coordinates = gson.fromJson(coordinatesJson, coordinatesType)
+                // Pass to adapter
+                (binding.bookRecyclerView.adapter as? BookAdapter)?.setHighlight(
+                    pageIndex,
+                    rectangles
+                )
+                binding.bookRecyclerView.scrollToPosition(pageIndex)
+                binding.bookRecyclerView.setScaleFactor(
+                    coordinates.scale,
+                    pageIndex,
+                    coordinates.percentage
+                )
+                updatePageText(pageIndex, totalPages)
+                binding.pageSeekBar.progress = pageIndex
+
+                toggleBars(true) // Show bars so user sees the 'X' button
+
+                // Re-find the item if it was lost during configuration change
+                if (clearSearchMenuItem == null) {
+                    clearSearchMenuItem = binding.toolbar.menu.findItem(R.id.action_clear_search)
+                }
+                clearSearchMenuItem?.isVisible = true
+            }
+        }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.recipe_book_menu, menu)
+        clearSearchMenuItem = menu.findItem(R.id.action_clear_search)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_clear_search -> {
+                clearSearchHighlights()
+                true
+            }
+
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    private fun clearSearchHighlights() {
+        val adapter = binding.bookRecyclerView.adapter as? BookAdapter
+        adapter?.clearHighlight()
+
+        // Hide the 'X' button now that highlights are gone
+        clearSearchMenuItem?.isVisible = false
     }
 
     private fun loadBookHistory(bookId: Long) {
@@ -289,6 +381,11 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
 
     }
 
+    private fun saveBookmark(name: String) {
+        // Logic to save to your PdfRepository or database
+        Log.d("BOOKMARK", "Saving bookmark: $name")
+    }
+
     private fun setupRecyclerViewTouchListener() {
         binding.bookRecyclerView.addOnItemTouchListener(object : RecyclerView.OnItemTouchListener {
             override fun onInterceptTouchEvent(rv: RecyclerView, e: MotionEvent): Boolean {
@@ -315,6 +412,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                         py = touchContext.pageY / pageScale
                         pagePosition = floor((py * 100) / pageHeight).toInt()
                         py = ((py * 100) % pageHeight) / 100
+                        Log.i(LOG_TAG, "px $px py $py page $pagePosition")
                     }
 
                     toggleBars(false)
@@ -332,7 +430,38 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                                     abs(pinchRv.getScaleFactor() - initialScale) > 0.01f
 
                         if (!hasMoved) {
-                            if (!checkIfTopOfPageClicked(
+                            if (linkState == 2) {
+                                val text = getTextNearClickPoint(
+                                    document, pagePosition,
+                                    px,
+                                    py
+                                )
+                                val dialogView =
+                                    layoutInflater.inflate(R.layout.dialog_bookmark, null)
+                                val editText =
+                                    dialogView.findViewById<EditText>(R.id.enterBookmarkText)
+                                val dialog = AlertDialog.Builder(this@RecipeBookActivity)
+                                    .setTitle("Create Bookmark $px $py $pagePosition")
+                                    .setView(dialogView)
+                                    .setPositiveButton("Create Bookmark") { _, _ ->
+                                        val bookmarkText = editText.text.toString()
+                                        if (bookmarkText.isNotBlank()) {
+                                            saveBookmark(bookmarkText)
+                                        } else {
+                                            Toast.makeText(
+                                                this@RecipeBookActivity,
+                                                "Name cannot be empty",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
+                                    }
+                                    .setNegativeButton("Cancel") { dialog, _ ->
+                                        dialog.dismiss()
+                                    }
+                                    .create()
+
+                                dialog.show()
+                            } else if (!checkIfTopOfPageClicked(
                                     currentDoc,
                                     pinchRv,
                                     px,
@@ -559,6 +688,15 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         }
     }
 
+    private fun getTextNearClickPoint(
+        document: Document?,
+        currentPage: Int,
+        x: Float,
+        y: Float
+    ) {
+
+    }
+
     private fun checkIfTopOfPageClicked(
         document: Document?,
         rv: PinchRecyclerView,
@@ -646,7 +784,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
             val color = ContextCompat.getColor(this, R.color.links_working)
             binding.stopLinks.imageTintList = ColorStateList.valueOf(color)
             binding.stopLinks.setImageResource(R.drawable.ic_link_on)
-        } else if(linkState == 1) {
+        } else if (linkState == 1) {
             val colorOff = ContextCompat.getColor(this, R.color.links_off)
             binding.stopLinks.imageTintList = ColorStateList.valueOf(colorOff)
             binding.stopLinks.setImageResource(R.drawable.ic_link_off)

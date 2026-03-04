@@ -8,17 +8,21 @@ import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.widget.ImageView
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.artifex.mupdf.fitz.Document
 import com.artifex.mupdf.fitz.Matrix
 import com.artifex.mupdf.fitz.android.AndroidDrawDevice
 import androidx.core.graphics.createBitmap
+import com.artifex.mupdf.fitz.Rect
+import androidx.core.graphics.toColorInt
+import apk.hurnell.recipebookreader.R
 
 class BookAdapter(
     private val document: Document,
     private var usableWidth: Int
-) :
-    RecyclerView.Adapter<BookAdapter.PageViewHolder>() {
+) : RecyclerView.Adapter<BookAdapter.PageViewHolder>() {
+    private var highlightedPage: Int = -1
 
     class PageViewHolder(
         container: View,
@@ -33,6 +37,7 @@ class BookAdapter(
         this.usableWidth = newWidth
         notifyDataSetChanged()
     }
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PageViewHolder {
         val context = parent.context
 
@@ -77,7 +82,8 @@ class BookAdapter(
         holder.pageHeight = (pageHeight * 100).toInt()
         holder.pageWidth = pageWidth
         page.run(device, Matrix(scale, scale), null)
-
+        device.close()
+        device.destroy()
         val canvas = Canvas(bitmap)
         val paint = Paint().apply {
             color = 0xFFEEEEEE.toInt()
@@ -94,16 +100,49 @@ class BookAdapter(
 
         canvas.drawRect(left, top, right, bottom, paint)
 
+        val highlightPaint = Paint().apply {
+            color = ContextCompat.getColor(holder.itemView.context, R.color.book_highlight)
+            alpha = 90 // Transparency (0-255)
+            style = Paint.Style.FILL
+        }
+
+        searchHighlights[position]?.forEach { rect ->
+            // Transform PDF coordinates to Bitmap pixels
+            val left = rect.x0 * scale
+            val top = rect.y0 * scale
+            val right = rect.x1 * scale
+            val bottom = rect.y1 * scale
+
+            canvas.drawRect(left, top, right, bottom, highlightPaint)
+        }
         canvas.save()
         canvas.restore()
 
-        device.close()
-        device.destroy()
         page.destroy()
 
         holder.imageView.setImageBitmap(bitmap)
+        holder.itemView.setBackgroundColor(
+            if (position == highlightedPage) "#22FFFF00".toColorInt()
+            else Color.TRANSPARENT
+        )
+    }
 
+    fun clearHighlight() {
+        searchHighlights.clear()
+        highlightedPage = -1
+        notifyDataSetChanged()
     }
 
     override fun getItemCount(): Int = document.countPages()
+
+    private val searchHighlights = mutableMapOf<Int, List<com.artifex.mupdf.fitz.Rect>>()
+
+    fun setHighlight(pageIndex: Int, rectangles: List<Rect>?) {
+        searchHighlights.clear()
+        if (rectangles != null) {
+            searchHighlights[pageIndex] = rectangles
+        }
+        highlightedPage = pageIndex
+        notifyDataSetChanged()
+    }
 }
