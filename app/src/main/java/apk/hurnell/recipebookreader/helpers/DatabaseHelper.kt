@@ -1041,7 +1041,7 @@ GROUP BY t.id
             put("scale", historyItem.scale)
         }
         db.insert("history", null, values)
-        return getBookHistory(historyItem.bookId)
+        return getBookHistory(historyItem.bookId!!)
     }
 
     fun updateBookHistoryItem(historyItem: BookHistoryItem): List<BookHistoryItem> {
@@ -1059,10 +1059,10 @@ GROUP BY t.id
             "id = ?",
             arrayOf(historyItem.id.toString())
         )
-        return getBookHistory(historyItem.bookId)
+        return getBookHistory(historyItem.bookId!!)
     }
 
-    fun removeBookHistoryItem(historyItemId: Int, bookId: Long): List<BookHistoryItem> {
+    fun removeBookHistoryItem(historyItemId: Long, bookId: Long): List<BookHistoryItem> {
         val db = writableDatabase
         db.delete("history", "id = ?", arrayOf(historyItemId.toString()))
         return getBookHistory(bookId)
@@ -1081,7 +1081,7 @@ GROUP BY t.id
                 h.scale AS history_scale
             FROM history AS h
             WHERE h.book_id_fk = ?
-            ORDER BY h.page, h.`offset`
+            ORDER BY h.id DESC ;
         """.trimIndent(), arrayOf(bookId.toString())
         )
         val history = mutableListOf<BookHistoryItem>()
@@ -1089,8 +1089,8 @@ GROUP BY t.id
             while (cursor.moveToNext()) {
                 history.add(
                     BookHistoryItem(
-                        id = cursor.getLong(0),
-                        bookId = cursor.getLong(1),
+                        id = if (cursor.isNull(0)) null else cursor.getLong(0),
+                        bookId = if (cursor.isNull(1)) null else cursor.getLong(1),
                         page = cursor.getInt(2),
                         offset = if (cursor.isNull(3)) null else cursor.getInt(3),
                         translationX = if (cursor.isNull(4)) null else cursor.getFloat(4),
@@ -1143,5 +1143,15 @@ GROUP BY t.id
             }
         }
         return bookmarks
+    }
+
+    fun clearBookHistory(bookId: Long) {
+        val db = writableDatabase
+        db.delete(
+            "history",
+            "book_id_fk = ?",
+            arrayOf(bookId.toString())
+        )
+
     }
 }
