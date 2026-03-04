@@ -36,7 +36,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="end"
-                    android:backgroundTint="@color/dark_gray"
+                    android:backgroundTint="@color/almost_black"
                     android:popupBackground="@android:color/white"
                     android:spinnerMode="dropdown" />
             </androidx.appcompat.widget.Toolbar>
@@ -48,6 +48,7 @@
                 android:paddingEnd="8dp"
                 android:paddingBottom="8dp">
 
+
                 <TextView
                     android:id="@+id/resultCountTextView"
                     android:layout_width="35dp"
@@ -57,45 +58,60 @@
                     android:singleLine="true"
                     android:text="@string/zero"
                     android:textAlignment="center"
-                    android:textColor="@color/dark_gray"
+                    android:textColor="@color/almost_black"
                     android:textSize="16sp"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toStartOf="@+id/filterInput"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent" />
 
-                <EditText
-                    android:id="@+id/filterInput"
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/filterInputLayout"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                     android:layout_width="0dp"
-                    android:layout_height="match_parent"
+                    android:layout_height="wrap_content"
                     android:layout_marginStart="5dp"
                     android:layout_marginEnd="5dp"
-                    android:layout_weight="1"
-                    android:autofillHints="name"
-                    android:imeOptions="actionSearch"
-                    android:inputType="text"
-                    android:textColor="@color/dark_gray"
+                    android:hint="Search"
+                    android:theme="@style/ThemeOverlay.App.DarkAccent"
+                    app:boxCornerRadiusBottomEnd="5dp"
+                    app:boxCornerRadiusBottomStart="5dp"
+                    app:boxCornerRadiusTopEnd="5dp"
+                    app:boxCornerRadiusTopStart="5dp"
+                    app:boxStrokeColor="@color/pastel_blue"
+                    app:hintTextColor="@color/almost_black"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toStartOf="@+id/searchToc"
                     app:layout_constraintStart_toEndOf="@+id/resultCountTextView"
-                    app:layout_constraintTop_toTopOf="parent"
-                    tools:ignore="LabelFor" />
+                    app:layout_constraintTop_toTopOf="parent">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/filterInput"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:autofillHints="name"
+                        android:imeOptions="actionSearch"
+                        android:inputType="text"
+                        android:padding="12dp"
+                        android:textColor="@color/almost_black" />
+
+                </com.google.android.material.textfield.TextInputLayout>
 
                 <ImageButton
                     android:id="@+id/clearSearch"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="5dp"
-                    android:layout_marginEnd="5dp"
+                    android:layout_marginEnd="15dp"
                     android:layout_weight="1"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:contentDescription="@string/button_to_clear_search_field"
                     android:src="@drawable/ic_close_small"
                     android:visibility="invisible"
                     app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="@+id/filterInput"
+                    app:layout_constraintEnd_toStartOf="@+id/searchToc"
                     app:layout_constraintTop_toTopOf="parent"
-                    app:tint="@color/dark_gray" />
+                    app:tint="@color/almost_black" />
 
                 <ImageButton
                     android:id="@+id/searchToc"
@@ -111,7 +127,7 @@
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
-                    app:tint="@color/dark_gray" />
+                    app:tint="@color/almost_black" />
 
             </androidx.constraintlayout.widget.ConstraintLayout>
         </com.google.android.material.appbar.AppBarLayout>
