@@ -1,5 +1,6 @@
 package apk.hurnell.recipebookreader
 
+import android.content.Context
 import android.content.pm.ActivityInfo
 import android.content.res.ColorStateList
 import android.graphics.Color
@@ -9,6 +10,7 @@ import android.util.TypedValue
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
 import android.widget.SeekBar
 import android.widget.Toast
 import androidx.activity.SystemBarStyle
@@ -428,7 +430,8 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                     if (diff != 0) {
                         binding.bookRecyclerView.scrollBy(0, diff!!)
                     }
-                    history = repository.removeBookHistoryItem(latestHistoryItem.id!!, currentBookId)
+                    history =
+                        repository.removeBookHistoryItem(latestHistoryItem.id!!, currentBookId)
                 }
             } else {
                 finish()
@@ -581,7 +584,8 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
             FunctionalStructuredTextWalker().getPageCoordinates(document, currentPage)
         if (pageCoordinates.found) {
             val finalScale = pageCoordinates.targetScale.coerceAtMost(3.0f)
-            val historyItem = rv.setScaleFactor(finalScale, currentPage, pageCoordinates.translatingPercentage)
+            val historyItem =
+                rv.setScaleFactor(finalScale, currentPage, pageCoordinates.translatingPercentage)
             toggleBars(false)
             updatePageText(currentPage, totalPages)
             binding.bookRecyclerView.post {
@@ -653,8 +657,12 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     private fun toggleBars(show: Boolean) {
         if (barsVisible == show) return
         barsVisible = show
+        val imeHeight = ViewCompat.getRootWindowInsets(binding.root)
+            ?.getInsets(WindowInsetsCompat.Type.ime())
+            ?.bottom ?: 0
         val translationTop = if (show) 0f else -binding.toolbar.height.toFloat()
-        val translationBottom = if (show) 0f else binding.bottomBar.height.toFloat()
+        val translationBottom = if (show) 0f else binding.bottomBar.height.toFloat() - imeHeight
+
         binding.toolbar.animate().translationY(translationTop).setDuration(300).start()
         binding.bottomBar.animate().translationY(translationBottom).setDuration(300).start()
         binding.btnRotate.animate().translationY(translationBottom).setDuration(300).start()
