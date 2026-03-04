@@ -12,6 +12,7 @@ import kotlin.math.min
 import androidx.recyclerview.widget.LinearLayoutManager
 import apk.hurnell.recipebookreader.RecipeBookTracker
 import apk.hurnell.recipebookreader.model.BaseTracker
+import apk.hurnell.recipebookreader.model.BookHistoryItem
 
 class PinchRecyclerView @JvmOverloads constructor(
     context: Context,
@@ -60,12 +61,17 @@ class PinchRecyclerView @JvmOverloads constructor(
 
     fun getScaleFactor(): Float = scaleFactor
 
-    fun setScaleFactor(sf: Float, pageNumber: Int, translatingPercentage: Float) {
+    fun setScaleFactor(sf: Float, pageNumber: Int, translatingPercentage: Float): BookHistoryItem {
         scaleFactor = sf
         invalidate()
         translationX = (width * (1 - sf)) * translatingPercentage
         (layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(pageNumber, 0)
         invalidate()
+        return BookHistoryItem(
+            page = pageNumber,
+            translationX = translationX,
+            scale = sf
+        )
     }
 
     fun handleReturnToRecipeBookTracker(tracker: RecipeBookTracker) {
@@ -73,6 +79,13 @@ class PinchRecyclerView @JvmOverloads constructor(
         invalidate()
         translationX = tracker.translationX!!
         (layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(tracker.pageIndex!!, 0)
+        invalidate()
+    }
+    fun handleReturnToRecipeBookHistoryItem(historyItem: BookHistoryItem) {
+        scaleFactor = historyItem.scale!!
+        invalidate()
+        translationX = historyItem.translationX!!
+        (layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(historyItem.page, 0)
         invalidate()
     }
 
@@ -84,7 +97,6 @@ class PinchRecyclerView @JvmOverloads constructor(
         val translationX: Float,
         val x: Float,
         val y: Float,
-
     ): BaseTracker()
 
     override fun getTranslationX(): Float = translationX
