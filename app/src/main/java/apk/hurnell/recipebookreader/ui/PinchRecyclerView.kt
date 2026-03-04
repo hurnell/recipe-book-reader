@@ -183,7 +183,7 @@ class PinchRecyclerView @JvmOverloads constructor(
             pageY = pageY,
             offset = offset,
             scaleFactor = scaleFactor,
-            translationX = translationX,
+            translationX = translationX,    
             x = ev.x,
             y = ev.y
         )

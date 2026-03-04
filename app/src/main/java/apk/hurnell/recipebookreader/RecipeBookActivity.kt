@@ -264,6 +264,8 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                     clearSearchMenuItem = binding.toolbar.menu.findItem(R.id.action_clear_search)
                 }
                 clearSearchMenuItem?.isVisible = true
+
+                toggleBars(false)
             }
         }
     }
