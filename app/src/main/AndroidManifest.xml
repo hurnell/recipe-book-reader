@@ -39,6 +39,7 @@
         </activity>
         <activity
             android:name=".RecipeBookActivity"
+            android:enableOnBackInvokedCallback="false"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:windowSoftInputMode="adjustResize"
             android:exported="true" >
