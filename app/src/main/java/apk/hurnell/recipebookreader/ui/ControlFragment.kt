@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ImageButton
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
@@ -37,6 +38,7 @@ class ControlFragment : Fragment() {
         val btnBrowseFiles = view.findViewById<Button>(R.id.btnBrowseFiles)
         val btnSearchEveryToc = view.findViewById<Button>(R.id.btnSearchEveryToc)
         val btnBookmarks = view.findViewById<Button>(R.id.btnBookmarks)
+        val btnCloseDrawer = view.findViewById<ImageButton>(R.id.btnCloseDrawer)
         btnRecentBooks.setOnClickListener {
             if (getCurrentActivity() != "RecentBooksActivity") {
                 navigateTo(RecentBooksActivity::class.java)
@@ -88,6 +90,10 @@ class ControlFragment : Fragment() {
             if (getCurrentActivity() != "BookmarksActivity") {
                 navigateTo(BookmarksActivity::class.java)
             }
+        }
+        btnCloseDrawer.setOnClickListener {
+            val baseActivity = activity as? BaseDrawerActivity
+            baseActivity?.drawerLayout?.closeDrawer(GravityCompat.START)
         }
     }
 
