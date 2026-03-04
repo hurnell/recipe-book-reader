@@ -76,9 +76,9 @@
                 android:paddingHorizontal="0dp"
                 android:paddingTop="4dp"
                 android:paddingBottom="2dp"
-                android:progressBackgroundTint="@color/black"
-                android:progressTint="@color/black"
-                android:thumbTint="@color/black"
+                android:progressBackgroundTint="@color/almost_black"
+                android:progressTint="@color/almost_black"
+                android:thumbTint="@color/almost_black"
                 app:layout_constraintEnd_toStartOf="@+id/pageIndicator"
                 app:layout_constraintHorizontal_bias="0.0"
 
@@ -111,8 +111,8 @@
 
                 <ImageButton
                     android:id="@+id/btnRotate"
-                    android:layout_width="17dp"
-                    android:layout_height="match_parent"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
                     android:layout_marginStart="12dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:contentDescription="@string/switch_between_portrait_and_landscape"
@@ -160,11 +160,8 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="@string/show_table_of_contents"
+                    android:contentDescription="@string/go_back_in_history"
                     android:src="@drawable/ic_left"
-                    android:paddingHorizontal="8dp"
-                    android:paddingBottom="8dp"
-                    android:visibility="gone"
                     app:tint="@android:color/black" />
 
                 <ImageButton
@@ -174,9 +171,7 @@
                     android:layout_marginEnd="16dp"
                     android:layout_marginStart="12dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="@string/switch_between_portrait_and_landscape"
-                    android:paddingHorizontal="8dp"
-                    android:paddingBottom="8dp"
+                    android:contentDescription="@string/put_the_application_in_the_background"
                     app:tint="@android:color/black"
                     android:src="@drawable/ic_close_basic"/>
             </LinearLayout>
