@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="black">#FF000000</color>
+    <color name="almost_black">#FF333333</color>
     <color name="white">#FFFFFFFF</color>
     <color name="grey">#DDDDDD</color>
     <color name="mid_gray">#FFBBBBBB</color>
     <color name="darker_gray">#FF999999</color>
     <color name="dark_gray">#FF666666</color>
     <color name="pastel_blue">#FFC6E2E7</color>
+    <color name="dark_blue">#FF111844</color>
     <color name="transparent">#00000000</color>
     <color name="links_working">#FF16A085</color>
     <color name="links_off">#FFC0392B</color>
     <color name="tr_red">#33C0392B</color>
-
 </resources>
