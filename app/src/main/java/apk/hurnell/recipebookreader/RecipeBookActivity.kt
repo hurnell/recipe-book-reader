@@ -86,6 +86,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     private var currentBookId: Long = -1L
     private var scanned: Boolean = false
     private var clearSearchMenuItem: MenuItem? = null
+    private var isbnScanJob: Job? = null
 
     companion object {
         private const val LOG_TAG = "NIGEL_HURNELL"
@@ -181,11 +182,19 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                                     }
                                 }
                             })
-                        val foundIsbn = IsbnFinder().findIsbnInDocument(currentDocument)
-                        repository.updateBookIsbn(bookId, foundIsbn)
 
                         tocSuccess
                     }
+                    isbnScanJob = lifecycleScope.launch(Dispatchers.IO) {
+                        val document = repository.openPdfFast(pdfFile)
+                        try {
+                            val foundIsbn = IsbnFinder().findIsbnInDocument(document)
+                            repository.updateBookIsbn(bookId, foundIsbn)
+                        } finally {
+                            document.destroy()
+                        }
+                    }
+
 
                     if (success) {
                         withContext(Dispatchers.Main) {
