@@ -17,6 +17,7 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             app:contentInsetStart="0dp"
+            app:navigationIconTint="@color/nav_text"
             app:contentInsetStartWithNavigation="0dp"
             app:navigationIcon="@drawable/ic_left">
 
@@ -38,6 +39,7 @@
                     app:boxCornerRadiusTopEnd="5dp"
                     app:boxCornerRadiusTopStart="5dp"
                     app:endIconMode="clear_text"
+                    app:endIconTint="@color/nav_text"
                     app:hintEnabled="false">
 
                     <com.google.android.material.textfield.TextInputEditText
@@ -45,6 +47,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:background="@null"
+                        android:textColor="@color/nav_text"
                         android:gravity="center_vertical"
                         android:imeOptions="actionSearch"
                         android:inputType="text"
@@ -62,7 +65,7 @@
                     android:contentDescription="@string/execute_search"
                     android:src="@drawable/ic_search"
                     android:visibility="invisible"
-                    app:tint="@color/black" />
+                    app:tint="@color/nav_text" />
 
             </LinearLayout>
         </com.google.android.material.appbar.MaterialToolbar>

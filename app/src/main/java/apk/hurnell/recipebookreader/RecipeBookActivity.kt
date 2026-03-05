@@ -1,11 +1,9 @@
 package apk.hurnell.recipebookreader
 
 import android.app.AlertDialog
-import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.res.ColorStateList
-import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
 import android.util.TypedValue
@@ -14,7 +12,8 @@ import android.view.MenuItem
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import android.view.inputmethod.InputMethodManager
+import android.view.Window
+import android.view.WindowInsets
 import android.widget.EditText
 import android.widget.SeekBar
 import android.widget.Toast
@@ -49,7 +48,6 @@ import kotlinx.coroutines.*
 import kotlin.math.floor
 import androidx.core.view.doOnNextLayout
 import androidx.core.view.updateLayoutParams
-import androidx.drawerlayout.widget.DrawerLayout
 import apk.hurnell.recipebookreader.helpers.Coordinates
 import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.helpers.IsbnFinder
@@ -57,8 +55,6 @@ import apk.hurnell.recipebookreader.model.BaseTracker
 import apk.hurnell.recipebookreader.model.BookHistoryItem
 import apk.hurnell.recipebookreader.ui.TocFragmentListener
 import com.artifex.mupdf.fitz.Rect
-import kotlin.math.max
-import kotlin.math.min
 
 data class RecipeBookTracker(
     val portrait: Boolean?,
@@ -79,6 +75,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     private lateinit var bookLocation: String
     private lateinit var repository: PdfRepository
     private var bottomInset: Int = 0
+    private var originalStatusBarHeight: Int = 0
     private lateinit var systemBars: Insets
     private var isPortrait = true
     private var barsVisible = true
@@ -102,8 +99,6 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                 getColor(R.color.pastel_blue)
             )
         )
-        window.statusBarColor = android.graphics.Color.TRANSPARENT
-        window.navigationBarColor = android.graphics.Color.TRANSPARENT
         binding = ActivityRecipeBookBinding.inflate(layoutInflater)
         setContentView(binding.drawerLayout)
 
@@ -230,7 +225,16 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         }
 
     }
+    fun setStatusBarColor(window: Window, color: Int) {
+        window.decorView.setOnApplyWindowInsetsListener { view, insets ->
+            val statusBarInsets = insets.getInsets(WindowInsets.Type.statusBars())
+            view.setBackgroundColor(color)
 
+            // Adjust padding to avoid overlap
+            view.setPadding(0, statusBarInsets.top, 0, 0)
+            insets
+        }
+    }
     private val searchLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -302,7 +306,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     }
 
     private fun buildTracker(): RecipeBookTracker {
-        val pinch = binding.bookRecyclerView as PinchRecyclerView
+        val pinch = binding.bookRecyclerView
 
         return RecipeBookTracker(
             portrait = isPortrait,
@@ -622,6 +626,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         controller.hide(WindowInsetsCompat.Type.systemBars())
         controller.systemBarsBehavior =
             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        setStatusBarColor(window, getColor(R.color.transparent))
     }
 
     private fun handleExternalLink(uri: String?) {
@@ -761,6 +766,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     private fun setupWindowInsets() {
         ViewCompat.setOnApplyWindowInsetsListener(binding.drawerLayout) { _, insets ->
             systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+
             val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
 
             val actionBarHeight = TypedValue.applyDimension(
@@ -769,15 +775,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
             val metrics = resources.displayMetrics
             val currentUw = metrics.widthPixels
             (binding.bookRecyclerView.adapter as? BookAdapter)?.updateUsableWidth(currentUw)
-            binding.recipeBookToolbar.layoutParams.height = actionBarHeight + systemBars.top
             bottomInset = systemBars.bottom.coerceAtLeast(ime.bottom)
-            val topInset = systemBars.top.coerceAtLeast(ime.top)
-            binding.bookRecyclerView.setPadding(
-                binding.bookRecyclerView.paddingLeft,
-                topInset, // top padding = toolbar height
-                binding.bookRecyclerView.paddingRight,
-                binding.bookRecyclerView.paddingBottom
-            )
             binding.bottomBar.setPadding(
                 binding.bottomBar.paddingLeft,
                 binding.bottomBar.paddingTop,
@@ -789,6 +787,16 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                 binding.zoomIt.paddingTop,
                 binding.zoomIt.paddingRight,
                 bottomInset + binding.bottomBar.height
+            )
+            if (systemBars.top != 0) {
+                originalStatusBarHeight = systemBars.top
+            }
+            binding.recipeBookToolbar.layoutParams.height = actionBarHeight + systemBars.top + originalStatusBarHeight
+            binding.recipeBookToolbar.setPadding(
+                binding.recipeBookToolbar.paddingLeft,
+                originalStatusBarHeight,
+                binding.recipeBookToolbar.paddingRight,
+                binding.recipeBookToolbar.paddingBottom
             )
             binding.tocPanel.setPadding(0, 0, 0, bottomInset)
             binding.zoomIt.setPadding(0, 0, 0, bottomInset)
@@ -803,18 +811,22 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
 
     private fun toggleLinks() {
         linkState = (linkState + 1) % 3
-        if (linkState == 0) {
-            val color = ContextCompat.getColor(this, R.color.links_working)
-            binding.stopLinks.imageTintList = ColorStateList.valueOf(color)
-            binding.stopLinks.setImageResource(R.drawable.ic_link_on)
-        } else if (linkState == 1) {
-            val colorOff = ContextCompat.getColor(this, R.color.links_off)
-            binding.stopLinks.imageTintList = ColorStateList.valueOf(colorOff)
-            binding.stopLinks.setImageResource(R.drawable.ic_link_off)
-        } else {
-            val colorOff = ContextCompat.getColor(this, R.color.links_working)
-            binding.stopLinks.imageTintList = ColorStateList.valueOf(colorOff)
-            binding.stopLinks.setImageResource(R.drawable.ic_bookmark_open)
+        when (linkState) {
+            0 -> {
+                val color = ContextCompat.getColor(this, R.color.links_working)
+                binding.stopLinks.imageTintList = ColorStateList.valueOf(color)
+                binding.stopLinks.setImageResource(R.drawable.ic_link_on)
+            }
+            1 -> {
+                val colorOff = ContextCompat.getColor(this, R.color.links_off)
+                binding.stopLinks.imageTintList = ColorStateList.valueOf(colorOff)
+                binding.stopLinks.setImageResource(R.drawable.ic_link_off)
+            }
+            else -> {
+                val colorOff = ContextCompat.getColor(this, R.color.links_working)
+                binding.stopLinks.imageTintList = ColorStateList.valueOf(colorOff)
+                binding.stopLinks.setImageResource(R.drawable.ic_bookmark_open)
+            }
         }
 
     }
