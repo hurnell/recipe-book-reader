@@ -8,8 +8,10 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.util.Log
+import androidx.core.database.getFloatOrNull
 import androidx.core.database.getIntOrNull
 import androidx.core.database.getLongOrNull
+import androidx.core.database.getStringOrNull
 import androidx.core.database.sqlite.transaction
 import com.artifex.mupdf.fitz.Document
 import com.artifex.mupdf.fitz.Outline
@@ -369,7 +371,6 @@ SELECT
     h.parent_path AS breadcrumbs, 
     t.page AS toc_page,
     t.level AS toc_level,
-    t.`offset` AS toc_offset,
     t.scale AS toc_scale,
     t.translate AS toc_translate
 FROM books AS b 
@@ -390,7 +391,7 @@ ORDER BY b.name COLLATE NOCASE, t.page
                 if (cursor.isNull(titleIndex)) continue
                 val rawTitle = cursor.getString(titleIndex)
                 val bookIdIndex = cursor.getColumnIndexOrThrow("book_id")
-                val bookId = if (cursor.isNull(bookIdIndex)) null else cursor.getLong(bookIdIndex)
+                val bookId = cursor.getLongOrNull(bookIdIndex)
 
                 val breadcrumbs = cursor.getString(cursor.getColumnIndexOrThrow("breadcrumbs"))
                 val hierarchyField = if (breadcrumbs.isNullOrBlank()) null else breadcrumbs
@@ -401,15 +402,7 @@ ORDER BY b.name COLLATE NOCASE, t.page
                 val page = cursor.getInt(cursor.getColumnIndexOrThrow("toc_page"))
                 val level = cursor.getInt(cursor.getColumnIndexOrThrow("toc_level"))
 
-                val parentId =
-                    if (cursor.isNull(cursor.getColumnIndexOrThrow("parent_id"))) null else cursor.getInt(
-                        cursor.getColumnIndexOrThrow("parent_id")
-                    )
-
-                val offset =
-                    if (cursor.isNull(cursor.getColumnIndexOrThrow("toc_offset"))) 0f else cursor.getFloat(
-                        cursor.getColumnIndexOrThrow("toc_offset")
-                    )
+                val parentId = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("parent_id"))
 
                 val scale =
                     if (cursor.isNull(cursor.getColumnIndexOrThrow("toc_scale"))) 1f else cursor.getFloat(
@@ -420,10 +413,9 @@ ORDER BY b.name COLLATE NOCASE, t.page
                     if (cursor.isNull(cursor.getColumnIndexOrThrow("toc_translate"))) 0f else cursor.getFloat(
                         cursor.getColumnIndexOrThrow("toc_translate")
                     )
-                val bookmarkId =
-                    if (cursor.isNull(cursor.getColumnIndexOrThrow("toc_bookmark_id"))) null else cursor.getInt(
-                        cursor.getColumnIndexOrThrow("toc_bookmark_id")
-                    )
+                val bookmarkId = cursor.getIntOrNull(
+                    cursor.getColumnIndexOrThrow("toc_bookmark_id")
+                )
                 list.add(
                     TocItem(
                         tocId = tocId,
@@ -436,7 +428,6 @@ ORDER BY b.name COLLATE NOCASE, t.page
                         page = page - 1,
                         level = level,
                         bookmarkId = bookmarkId,
-                        offset = offset,
                         scale = scale,
                         translate = translate
                     )
@@ -739,10 +730,7 @@ ORDER BY b.name COLLATE NOCASE, t.page
     }
 
     fun generateToc(
-        document: Document,
-        bookId: Long,
-        progressCallback: ((percent: Int) -> Unit)? = null,
-        ignoreTocParams: Boolean = false
+        document: Document, bookId: Long, progressCallback: ((percent: Int) -> Unit)? = null
     ): Boolean {
         try {
             val outline = document.loadOutline() ?: return false
@@ -761,30 +749,26 @@ ORDER BY b.name COLLATE NOCASE, t.page
             ) {
                 val stmt = db.compileStatement(
                     """
-                INSERT INTO toc (book_id_fk, parent_id, level, title, page, `offset`, scale, translate)
-                VALUES (?,?,?,?,?,?,?,?)
+                INSERT INTO toc (book_id_fk, parent_id, level, title, page, scale, translate)
+                VALUES (?,?,?,?,?,?,?)
                 """.trimIndent()
                 )
 
                 entries.forEach { entry ->
                     val page = extractPageFromUri(entry.uri)
                     val pageCoordinates = FunctionalStructuredTextWalker().getPageCoordinates(
-                        document, page - 1, ignoreTocParams
+                        document, page - 1
                     )
 
-                    if (!ignoreTocParams) {
-                        ignoredOffset = ignoredOffset?.let { minOf(it, pageCoordinates.leftOffset) }
-                            ?: pageCoordinates.leftOffset
-                        ignoredScale = ignoredScale?.let { minOf(it, pageCoordinates.targetScale) }
-                            ?: pageCoordinates.targetScale
-                        ignoredTranslate = ignoredTranslate?.let {
-                            minOf(
-                                it, pageCoordinates.translatingPercentage
-                            )
-                        } ?: pageCoordinates.translatingPercentage
-                    } else {
-                        pageCoordinates.intercept(ignoredOffset, ignoredScale, ignoredTranslate)
-                    }
+                    ignoredOffset = ignoredOffset?.let { minOf(it, pageCoordinates.leftOffset) }
+                        ?: pageCoordinates.leftOffset
+                    ignoredScale = ignoredScale?.let { minOf(it, pageCoordinates.targetScale) }
+                        ?: pageCoordinates.targetScale
+                    ignoredTranslate = ignoredTranslate?.let {
+                        minOf(
+                            it, pageCoordinates.translatingPercentage
+                        )
+                    } ?: pageCoordinates.translatingPercentage
 
                     stmt.clearBindings()
                     stmt.bindLong(1, bookId)
@@ -792,9 +776,8 @@ ORDER BY b.name COLLATE NOCASE, t.page
                     stmt.bindLong(3, level.toLong())
                     stmt.bindString(4, entry.title ?: "")
                     stmt.bindLong(5, page.toLong())
-                    stmt.bindDouble(6, pageCoordinates.leftOffset.toDouble())
-                    stmt.bindDouble(7, pageCoordinates.targetScale.toDouble())
-                    stmt.bindDouble(8, pageCoordinates.translatingPercentage.toDouble())
+                    stmt.bindDouble(6, pageCoordinates.targetScale.toDouble())
+                    stmt.bindDouble(7, pageCoordinates.translatingPercentage.toDouble())
 
                     val rowId = stmt.executeInsert()
                     processed++
@@ -926,7 +909,6 @@ ORDER BY b.name COLLATE NOCASE, t.page
                 t.page AS page_title, 
                 t.level AS TOC_LEVEL, 
                 t.bookmark_id AS bookmark_id,
-                t.`offset` AS TOC_OFFSET, 
                 t.scale AS toc_scale, 
                 translate AS toc_translate,
                 b.name AS book_tite
@@ -946,15 +928,14 @@ ORDER BY b.name COLLATE NOCASE, t.page
                     Row(
                         id = cursor.getLong(0),
                         bookId = bookId.toLong(),
-                        bookTitle = cursor.getString(9),
-                        parentId = if (cursor.isNull(1)) null else cursor.getLong(1),
+                        bookTitle = cursor.getString(8),
+                        parentId = cursor.getLongOrNull(1),
                         title = cursor.getString(2),
                         page = cursor.getInt(3) - 1,
                         level = cursor.getInt(4),
-                        bookmarkId = if (cursor.isNull(5)) null else cursor.getInt(5),
-                        offset = cursor.getFloat(6),
-                        scale = cursor.getFloat(7),
-                        translate = cursor.getFloat(8),
+                        bookmarkId = cursor.getIntOrNull(5),
+                        scale = cursor.getFloat(6),
+                        translate = cursor.getFloat(7),
                     )
                 )
             }
@@ -968,18 +949,17 @@ ORDER BY b.name COLLATE NOCASE, t.page
         val uniqueKey = "$bookIdStr|${item.title}|${item.page}|${item.offset}"
         val insertSql = """
         INSERT OR IGNORE INTO bookmarks 
-        (book_id_fk, title, page, `offset`, scale, translate, unique_key)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        (book_id_fk, title, page,  scale, translate, unique_key)
+        VALUES (?, ?, ?, ?, ?, ?)
     """.trimIndent()
 
         val rowId = db.compileStatement(insertSql).use { stmt ->
             if (item.bookId != null) stmt.bindLong(1, item.bookId) else stmt.bindNull(1)
             stmt.bindString(2, item.title)
             stmt.bindLong(3, item.page.toLong())
-            stmt.bindDouble(4, item.offset.toDouble())
-            stmt.bindDouble(5, item.scale.toDouble())
-            stmt.bindDouble(6, item.translate.toDouble())
-            stmt.bindString(7, uniqueKey)
+            stmt.bindDouble(4, item.scale.toDouble())
+            stmt.bindDouble(5, item.translate.toDouble())
+            stmt.bindString(6, uniqueKey)
 
             stmt.executeInsert()
         }
@@ -1055,15 +1035,15 @@ ORDER BY b.name COLLATE NOCASE, t.page
                 bookmarks.add(
                     BookmarkItem(
                         tocId = null,
-                        bookmarkId = if (cursor.isNull(0)) null else cursor.getLong(0),
+                        bookmarkId = cursor.getLongOrNull(0),
                         title = cursor.getString(2),
                         bookTitle = cursor.getString(7),
-                        bookId = if (cursor.isNull(1)) null else cursor.getLong(1),
+                        bookId = cursor.getLongOrNull(1),
                         page = cursor.getInt(3),
-                        offset = cursor.getFloat(4),
+                        offset = cursor.getIntOrNull(4),
                         scale = cursor.getFloat(5),
                         translate = cursor.getFloat(6),
-                        bookLocation = if (cursor.isNull(8)) null else cursor.getString(8),
+                        bookLocation = cursor.getStringOrNull(8),
                     )
                 )
             }
@@ -1126,12 +1106,12 @@ ORDER BY b.name COLLATE NOCASE, t.page
             while (cursor.moveToNext()) {
                 history.add(
                     BookHistoryItem(
-                        id = if (cursor.isNull(0)) null else cursor.getLong(0),
-                        bookId = if (cursor.isNull(1)) null else cursor.getLong(1),
+                        id = cursor.getLongOrNull(0),
+                        bookId = cursor.getLongOrNull(1),
                         page = cursor.getInt(2),
-                        offset = if (cursor.isNull(3)) null else cursor.getInt(3),
-                        translationX = if (cursor.isNull(4)) null else cursor.getFloat(4),
-                        scale = if (cursor.isNull(5)) null else cursor.getFloat(5)
+                        offset = cursor.getIntOrNull(3),
+                        translationX = cursor.getFloatOrNull(4),
+                        scale = cursor.getFloatOrNull(5)
                     )
                 )
             }
@@ -1166,15 +1146,15 @@ ORDER BY b.name COLLATE NOCASE, t.page
                 bookmarks.add(
                     BookmarkItem(
                         tocId = null,
-                        bookmarkId = if (cursor.isNull(0)) null else cursor.getLong(0),
+                        bookmarkId = cursor.getLongOrNull(0),
                         title = cursor.getString(2),
                         bookTitle = cursor.getString(7),
-                        bookId = if (cursor.isNull(1)) null else cursor.getLong(1),
+                        bookId = cursor.getLongOrNull(1),
                         page = cursor.getInt(3),
-                        offset = cursor.getFloat(4),
+                        offset = cursor.getIntOrNull(4),
                         scale = cursor.getFloat(5),
                         translate = cursor.getFloat(6),
-                        bookLocation = if (cursor.isNull(7)) null else cursor.getString(7),
+                        bookLocation = cursor.getStringOrNull(7),
                     )
                 )
             }

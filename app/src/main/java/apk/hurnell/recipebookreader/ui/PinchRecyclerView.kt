@@ -74,6 +74,17 @@ class PinchRecyclerView @JvmOverloads constructor(
         )
     }
 
+    fun getTestTranslationX(): Float{
+        return translationX
+    }
+
+    fun getTranslate(): Float{
+        if ((width * (1 - scaleFactor)) == 0f){
+            return 0f
+        }
+        return translationX / (width * (1 - scaleFactor))
+    }
+
     fun handleReturnToRecipeBookTracker(tracker: RecipeBookTracker) {
         scaleFactor = tracker.scale!!
         invalidate()

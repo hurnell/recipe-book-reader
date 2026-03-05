@@ -11,7 +11,6 @@ data class TocItem(
     override val page: Int,
     val level: Int,
     val bookmarkId: Int? = null,
-    override val offset: Float = 0f,
     override val scale: Float = 1f,
     override val translate: Float = 0f,
     val children: List<TocItem> = emptyList(),
@@ -26,7 +25,7 @@ data class TocItem(
             bookLocation = bookLocation,
             bookId = bookId,
             page = page,
-            offset = offset,
+            offset = null,
             scale = scale,
             translate = translate
         )

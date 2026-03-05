@@ -14,7 +14,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.Window
 import android.view.WindowInsets
-import android.widget.EditText
 import android.widget.SeekBar
 import android.widget.Toast
 import androidx.activity.SystemBarStyle
@@ -53,8 +52,10 @@ import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.helpers.IsbnFinder
 import apk.hurnell.recipebookreader.model.BaseTracker
 import apk.hurnell.recipebookreader.model.BookHistoryItem
+import apk.hurnell.recipebookreader.model.BookmarkItem
 import apk.hurnell.recipebookreader.ui.TocFragmentListener
 import com.artifex.mupdf.fitz.Rect
+import com.google.android.material.textfield.TextInputEditText
 
 data class RecipeBookTracker(
     val portrait: Boolean?,
@@ -385,8 +386,10 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
 
     }
 
-    private fun saveBookmark(name: String) {
-        Log.d("BOOKMARK", "Saving bookmark: $name")
+    private fun saveBookmark(bookmark: BookmarkItem) {
+        repository.createBookmark(bookmark)
+        tocFragment.loadBookmarksAsync(false)
+        onBookmarkDataReloaded(false)
     }
 
     private fun setupRecyclerViewTouchListener() {
@@ -440,15 +443,30 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                                 val dialogView =
                                     layoutInflater.inflate(R.layout.dialog_bookmark, null)
                                 val editText =
-                                    dialogView.findViewById<EditText>(R.id.enterBookmarkText)
+                                    dialogView.findViewById<TextInputEditText>(R.id.enterBookmarkText)
                                 editText.setText(text)
+
                                 val dialog = AlertDialog.Builder(this@RecipeBookActivity)
-                                    .setTitle("Create Bookmark $px $py $pagePosition")
+                                    .setTitle("Create Bookmark")
                                     .setView(dialogView)
                                     .setPositiveButton("Create Bookmark") { _, _ ->
                                         val bookmarkText = editText.text.toString()
+
                                         if (bookmarkText.isNotBlank()) {
-                                            saveBookmark(bookmarkText)
+                                            saveBookmark(
+                                                BookmarkItem(
+                                                    tocId = null,
+                                                    bookmarkId = null,
+                                                    title = bookmarkText,
+                                                    bookTitle = null,
+                                                    bookLocation,
+                                                    bookId = currentBookId,
+                                                    page = pagePosition,
+                                                    offset = binding.bookRecyclerView.computeVerticalScrollOffset(),
+                                                    scale = binding.bookRecyclerView.getScaleFactor(),
+                                                    translate = binding.bookRecyclerView.getTranslate()
+                                                )
+                                            )
                                         } else {
                                             Toast.makeText(
                                                 this@RecipeBookActivity,
@@ -456,11 +474,17 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                                                 Toast.LENGTH_SHORT
                                             ).show()
                                         }
-                                    }.setNegativeButton("Cancel") { dialog, _ ->
+                                    }
+                                    .setNegativeButton("Cancel") { dialog, _ ->
                                         dialog.dismiss()
-                                    }.create()
+                                    }
+                                    .create()
 
                                 dialog.show()
+                                dialog.window?.setLayout(
+                                    (resources.displayMetrics.widthPixels * 0.9).toInt(), // 90% of screen width
+                                    ViewGroup.LayoutParams.WRAP_CONTENT // height wraps content
+                                )
                             } else if (!checkIfTopOfPageClicked(
                                     currentDoc, pinchRv, px, py, pageWidth, pagePosition
                                 )

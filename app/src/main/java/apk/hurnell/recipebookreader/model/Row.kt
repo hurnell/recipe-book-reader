@@ -9,7 +9,6 @@ data class Row(
     val bookmarkId: Int?,
     val page: Int,
     val level: Int,
-    val offset: Float,
     val scale: Float,
     val translate: Float
 )

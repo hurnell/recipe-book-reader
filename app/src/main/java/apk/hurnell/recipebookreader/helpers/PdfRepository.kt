@@ -77,10 +77,9 @@ class PdfRepository(
     suspend fun generateTocAsync(
         document: Document,
         bookId: Long,
-        progressCallback: ((percent: Int) -> Unit)? = null,
-        ignoreTocParams: Boolean = false
+        progressCallback: ((percent: Int) -> Unit)? = null
     ) = withContext(Dispatchers.IO) {
-        dbHelper.generateToc(document, bookId, progressCallback, ignoreTocParams)
+        dbHelper.generateToc(document, bookId, progressCallback)
     }
 
     fun getRecentFiles(): List<RecentFile> {

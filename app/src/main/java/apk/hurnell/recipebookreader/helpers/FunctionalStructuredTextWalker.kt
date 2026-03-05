@@ -64,13 +64,9 @@ class FunctionalStructuredTextWalker {
 
     fun getPageCoordinates(
         document: Document,
-        pageNumber: Int,
-        ignoreParams: Boolean = false
+        pageNumber: Int
     ): PageCoordinates {
         val pageCoordinates = PageCoordinates()
-        if (ignoreParams) {
-            return pageCoordinates
-        }
         val page = document.loadPage(pageNumber)
         val bounds = page.bounds
         pageCoordinates.width = bounds.x1 - bounds.x0

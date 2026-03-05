@@ -8,7 +8,7 @@ data class BookmarkItem(
     override val bookLocation: String?,
     override val bookId: Long?,
     override val page: Int,
-    override val offset: Float = 0f,
+    val offset: Int? = null,
     override val scale: Float = 1f,
     override val translate: Float = 0f
 ): BaseBookmarkTocItem

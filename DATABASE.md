@@ -75,7 +75,6 @@ ON t.book_id_fk = b.id;
         level INTEGER,
         title TEXT,
         page INTEGER,
-        offset REAL DEFAULT NULL,
         scale REAL DEFAULT NULL,
         translate REAL DEFAULT NULL,
         bookmark_id INTEGER DEFAULT NULL      
@@ -88,7 +87,7 @@ ON t.book_id_fk = b.id;
     book_id_fk INTEGER DEFAULT NULL,
     title TEXT NOT NULL,
     page INTEGER NOT NULL,
-    offset REAL NOT NULL,
+    offset REAL DEFAULT NULL,
     scale REAL NOT NULL,
     translate REAL NOT NULL,
     unique_key TEXT UNIQUE

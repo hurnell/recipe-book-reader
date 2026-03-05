@@ -232,7 +232,7 @@ class TocFragment : Fragment() {
             .show()
     }
 
-    private fun loadBookmarksAsync(fromToc: Boolean) {
+    fun loadBookmarksAsync(fromToc: Boolean) {
         viewLifecycleOwner.lifecycleScope.launch {
             val list = withContext(Dispatchers.IO) {
                 context?.let { repository.getBookmarksForBook(bookId) } ?: emptyList()
@@ -276,7 +276,6 @@ class TocFragment : Fragment() {
                     bookmarkId = row.bookmarkId,
                     page = row.page,
                     level = row.level,
-                    offset = row.offset,
                     scale = row.scale,
                     translate = row.translate,
                     children = build(row.id),
