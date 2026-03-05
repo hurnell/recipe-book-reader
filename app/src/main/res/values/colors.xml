@@ -15,4 +15,5 @@
     <color name="links_working">#FF16A085</color>
     <color name="links_off">#FFC0392B</color>
     <color name="tr_red">#33C0392B</color>
+    <color name="nav_text">#FF0099CC</color>
 </resources>

@@ -28,14 +28,14 @@
                 android:layout_height="?attr/actionBarSize"
                 android:padding="0dp"
                 app:title="@string/search_toc_entries"
-                app:titleTextColor="@android:color/holo_blue_dark">
+                app:titleTextColor="@color/nav_text">
 
                 <Spinner
                     android:id="@+id/categorySpinner"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="end"
-                    android:backgroundTint="@color/almost_black"
+                    android:backgroundTint="@color/nav_text"
                     android:popupBackground="@android:color/white"
                     android:spinnerMode="dropdown" />
             </androidx.appcompat.widget.Toolbar>

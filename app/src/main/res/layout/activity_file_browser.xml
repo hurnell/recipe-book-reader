@@ -22,7 +22,7 @@
                 android:layout_height="?attr/actionBarSize"
                 android:background="@color/pastel_blue"
                 app:title="@string/file_browser"
-                app:titleTextColor="@android:color/holo_blue_dark" />
+                app:titleTextColor="@color/nav_text" />
 
             <HorizontalScrollView
                 android:id="@+id/breadcrumbScroll"

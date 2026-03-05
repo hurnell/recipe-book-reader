@@ -18,11 +18,11 @@
             app:liftOnScroll="false">
 
             <androidx.appcompat.widget.Toolbar
-                android:id="@+id/toolbar"
+                android:id="@+id/recentFilesToolbar"
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
                 app:title="Recent Books"
-                app:titleTextColor="@android:color/holo_blue_dark" />
+                app:titleTextColor="@color/nav_text" />
         </com.google.android.material.appbar.AppBarLayout>
 
         <androidx.recyclerview.widget.RecyclerView

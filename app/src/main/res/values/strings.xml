@@ -16,7 +16,7 @@
     <string name="book_shelf_description">Book Shelf</string>
     <string name="browse_files">Browse Files</string>
     <string name="open_file_browser">Open File Browser</string>
-    <string name="recipe_reader">Recipe Reader</string>
+    <string name="recipe_reader">Recipe Book Reader</string>
     <string name="scroll_up">Scroll Up</string>
     <string name="scroll_down">Scroll Down</string>
     <string name="scroll_bit">Scroll Bit</string>
@@ -74,5 +74,6 @@
     <string name="execute_search">Execute Search</string>
     <string name="clear_search">Clear Search</string>
     <string name="search_text_input">Search</string>
+    <string name="button_to_close_drawer">Button to close drawer</string>
 
 </resources>

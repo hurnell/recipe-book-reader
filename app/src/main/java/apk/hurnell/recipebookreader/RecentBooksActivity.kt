@@ -33,7 +33,7 @@ class RecentBooksActivity : BaseDrawerActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_recent_files)
 
-        val toolbar: Toolbar = findViewById(R.id.toolbar)
+        val toolbar: Toolbar = findViewById(R.id.recentFilesToolbar)
         setupDrawer(toolbar)
 
         recyclerView = findViewById(R.id.recentRecyclerView)

@@ -446,7 +446,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
             this, drawerLayout, toolbar,
             R.string.navigation_drawer_open, R.string.navigation_drawer_close
         )
-        toggle.drawerArrowDrawable.color = ContextCompat.getColor(this, R.color.almost_black)
+        toggle.drawerArrowDrawable.color = ContextCompat.getColor(this, R.color.nav_text)
         drawerLayout.addDrawerListener(toggle)
         toggle.syncState()
     }
