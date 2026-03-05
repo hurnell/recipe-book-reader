@@ -63,7 +63,7 @@
                 android:indeterminate="false"
                 android:max="100"
                 android:progress="0"
-                android:progressBackgroundTint="@color/links_working"
+                android:progressBackgroundTint="@color/nav_text"
                 android:progressTint="@color/pastel_blue"
                 android:visibility="gone"
                 app:layout_constraintEnd_toEndOf="parent"

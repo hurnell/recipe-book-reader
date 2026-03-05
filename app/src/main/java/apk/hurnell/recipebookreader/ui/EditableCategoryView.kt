@@ -124,7 +124,7 @@ class EditableCategoryView @JvmOverloads constructor(
             editButton.setImageResource(R.drawable.ic_edit)
             cancelButton.visibility = GONE
             val newText = editText.text.toString()
-            if (newText != originalText) {
+            if (newText != originalText && !forceClosed) {
                 val newCategory = categories.find { it.category.equals(newText, false) }
                 originalText = newText
                 if (newCategory != null) {
@@ -134,9 +134,6 @@ class EditableCategoryView @JvmOverloads constructor(
                     onAccept?.invoke(currentBookId, newText, null)
                 }
             }
-
-
-
             textView.text = newText
 
             val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager

@@ -7,12 +7,13 @@ import android.util.AttributeSet
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.inputmethod.InputMethodManager
-import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
 import apk.hurnell.recipebookreader.R
 import androidx.core.content.withStyledAttributes
+import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 
 class EditableTextView @JvmOverloads constructor(
     context: Context,
@@ -22,7 +23,8 @@ class EditableTextView @JvmOverloads constructor(
 
     private val textView: TextView
     private val labelView: TextView
-    private val editText: EditText
+    private val editWrapper: TextInputLayout
+    private val editText: TextInputEditText
     private val editButton: ImageButton
     private val cancelButton: ImageButton
     private var hasLabel = false
@@ -42,6 +44,7 @@ class EditableTextView @JvmOverloads constructor(
         textView = findViewById(R.id.editableTextViewText)
         labelView = findViewById(R.id.editableTextViewLabel)
         labelView.visibility = GONE
+        editWrapper = findViewById(R.id.textChooserWrapper)
         editText = findViewById(R.id.editableTextViewEditView)
         editButton = findViewById(R.id.editButton)
         cancelButton = findViewById(R.id.cancelButton)
@@ -53,7 +56,8 @@ class EditableTextView @JvmOverloads constructor(
 
                 val sizeInPx = ta.getDimension(R.styleable.EditableTextView_textSize, defaultSizePx)
                 context.withStyledAttributes(it, R.styleable.EditableTextView) {
-                    textView.textSize = getDimension(R.styleable.EditableTextView_textSize, defaultSizePx)
+                    textView.textSize =
+                        getDimension(R.styleable.EditableTextView_textSize, defaultSizePx)
                     textView.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, sizeInPx)
                     editText.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, sizeInPx)
                     if (ta.getBoolean(R.styleable.EditableTextView_bold, false)) {
@@ -76,9 +80,6 @@ class EditableTextView @JvmOverloads constructor(
         this.onAccept = listener
         return this
     }
-    override fun toggleEditButton(show: Boolean) {
-        editButton.visibility = if (show) VISIBLE else GONE
-    }
 
     private fun toggleEditMode(forceClosed: Boolean = false) {
         if (forceClosed || isEditing) {
@@ -89,11 +90,11 @@ class EditableTextView @JvmOverloads constructor(
             }
             textView.text = editText.text
             textView.visibility = VISIBLE
-            editText.visibility = GONE
+            editWrapper.visibility = GONE
             editButton.setImageResource(R.drawable.ic_edit)
             cancelButton.visibility = GONE
             val newText = textView.text.toString()
-            if (newText != originalText) {
+            if (newText != originalText && !forceClosed) {
                 originalText = newText
                 onAccept?.invoke(currentBookId, newText)
             }
@@ -102,6 +103,7 @@ class EditableTextView @JvmOverloads constructor(
         } else {
             isEditing = true
             onEditingChanged?.invoke(this, true)
+            editWrapper.visibility = VISIBLE
             editText.setText(textView.text)
             editText.visibility = VISIBLE
             textView.visibility = GONE
@@ -113,6 +115,7 @@ class EditableTextView @JvmOverloads constructor(
             editText.requestFocus()
             val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
             imm.showSoftInput(editText, InputMethodManager.SHOW_IMPLICIT)
+
         }
     }
 
@@ -138,6 +141,7 @@ class EditableTextView @JvmOverloads constructor(
         labelView.text = value
         labelView.visibility = VISIBLE
         hasLabel = true
+        editWrapper.hint = "Choose (or create) $value "
     }
 
     fun setParams(
@@ -184,4 +188,9 @@ class EditableTextView @JvmOverloads constructor(
             }?.filterNotNull()?.joinToString("")
         })
     }
+
+    override fun toggleEditButton(show: Boolean) {
+        editButton.visibility = if (show) VISIBLE else GONE
+    }
+
 }

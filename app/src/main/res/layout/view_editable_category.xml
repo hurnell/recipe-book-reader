@@ -5,60 +5,63 @@
     android:layout_height="wrap_content"
     android:orientation="vertical">
 
-    <!-- Optional Label above the editable row -->
     <TextView
         android:id="@+id/editableCategoryViewLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:paddingTop="6dp"
         android:text="@string/label_for_editable_widget"
-        android:textColor="@color/grey"
+        android:textColor="@color/nav_text"
         android:textSize="12sp"
         android:textStyle="italic"
         android:visibility="visible" />
 
-    <!-- Row with stacked TextView / dropdown + buttons -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <!-- FrameLayout to overlay TextView and Dropdown -->
         <FrameLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:padding="0dp"
-            android:layout_weight="1">
+            android:layout_weight="1"
+            android:padding="0dp">
 
             <TextView
                 android:id="@+id/editableCategoryViewText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:padding="0dp"
                 android:text="@string/general_title"
                 android:textSize="16sp"
-                android:padding="0dp"
                 android:visibility="visible" />
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/categoryChooserWrapper"
                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="40dp"
+                android:padding="0dp"
                 android:visibility="gone"
-                app:endIconMode="dropdown_menu">
+                app:boxCornerRadiusBottomEnd="5dp"
+                app:boxCornerRadiusBottomStart="5dp"
+                app:boxCornerRadiusTopEnd="5dp"
+                app:boxCornerRadiusTopStart="5dp"
+                app:endIconMode="dropdown_menu"
+                app:endIconTint="@color/nav_text">
 
                 <com.google.android.material.textfield.MaterialAutoCompleteTextView
                     android:id="@+id/categoryChooser"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="@string/choose_or_type_new_category" />
+                    android:hint="@string/choose_or_type_new_category"
+                    android:textColor="@color/nav_text" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
         </FrameLayout>
 
-        <!-- Buttons stay at the end of the row -->
         <ImageButton
             android:id="@+id/categoryEditButton"
             android:layout_width="24dp"
@@ -67,7 +70,8 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/generic_editable_text_view_edit_button"
             android:padding="2dp"
-            android:src="@drawable/ic_edit" />
+            android:src="@drawable/ic_edit"
+            app:tint="@color/pastel_blue" />
 
         <ImageButton
             android:id="@+id/categoryCancelButton"

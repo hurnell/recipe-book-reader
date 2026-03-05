@@ -1,6 +1,7 @@
 package apk.hurnell.recipebookreader
 
 import android.os.Bundle
+import android.view.View
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
@@ -45,6 +46,7 @@ class RecentBooksActivity : BaseDrawerActivity() {
             }
         })
         loadingOverlay = findViewById(R.id.loadingOverlay)
+        loadingOverlay.visibility = View.GONE
         adapter = FileAdapter(
             onClick = { file -> onFileClick(file) },
             onLongClick = { file -> showBookInfoOverlay(file) },

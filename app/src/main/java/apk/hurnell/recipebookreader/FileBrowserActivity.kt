@@ -5,6 +5,7 @@ import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.os.Environment
 import android.provider.Settings
+import android.view.View
 import android.widget.Button
 import android.widget.HorizontalScrollView
 import android.widget.ImageView
@@ -69,6 +70,7 @@ class FileBrowserActivity : BaseDrawerActivity() {
         }
 
         loadingOverlay = findViewById(R.id.loadingOverlay)
+        loadingOverlay.visibility = View.GONE
         val toolbar: Toolbar = findViewById(R.id.toolbar)
         setupDrawer(toolbar)
         drawerLayout.closeDrawer(GravityCompat.START, false)

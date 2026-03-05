@@ -77,7 +77,8 @@
                     android:contentDescription="@string/search_online"
                     android:src="@drawable/ic_search"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:tint="@color/pastel_blue" />
 
                 <LinearLayout
                     android:id="@+id/buttonContainer"
@@ -96,7 +97,8 @@
                         android:layout_marginEnd="8dp"
                         android:background="?attr/selectableItemBackgroundBorderless"
                         android:contentDescription="@string/search_online"
-                        android:src="@drawable/ic_online" />
+                        android:src="@drawable/ic_online"
+                        app:tint="@color/pastel_blue" />
 
                     <ImageButton
                         android:id="@+id/btnCloseGallery"
@@ -106,7 +108,7 @@
                         android:background="?attr/selectableItemBackgroundBorderless"
                         android:contentDescription="@string/close_gallery"
                         android:src="@drawable/ic_close"
-                        android:visibility="gone" />
+                        android:visibility="gone"/>
 
                 </LinearLayout>
 

@@ -580,6 +580,8 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         binding.zoomIt.setOnClickListener {
             toggleBars(!barsVisible)
         }
+        val color = ContextCompat.getColor(this, R.color.nav_text)
+        binding.zoomIt.imageTintList = ColorStateList.valueOf(color)
         binding.stopLinks.setOnClickListener {
             toggleLinks()
         }

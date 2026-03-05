@@ -61,6 +61,7 @@ class EveryTocActivity : BaseDrawerActivity() {
         val rootLayout: CoordinatorLayout = findViewById(R.id.rootLayout)
 
         loadingOverlay = findViewById(R.id.loadingOverlay)
+        loadingOverlay.visibility = View.GONE
         val toolbar: Toolbar = findViewById(R.id.everyTocToolbar)
         setupDrawer(toolbar)
         spinner = findViewById(R.id.categorySpinner)

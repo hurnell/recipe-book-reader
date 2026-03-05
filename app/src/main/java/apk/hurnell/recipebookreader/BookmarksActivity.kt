@@ -3,6 +3,7 @@ package apk.hurnell.recipebookreader
 import android.app.AlertDialog
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.widget.Toolbar
@@ -43,6 +44,8 @@ class BookmarksActivity : BaseDrawerActivity() {
         setContentView(R.layout.activity_bookmarks)
 
         loadingOverlay = findViewById(R.id.loadingOverlay)
+        loadingOverlay.visibility = View.GONE
+
         val toolbar: Toolbar = findViewById(R.id.bookmarksToolbar)
 
         recyclerView = findViewById(R.id.bookmarksRecyclerView)

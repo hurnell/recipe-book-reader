@@ -35,7 +35,7 @@ class BookShelfActivity : BaseDrawerActivity() {
         setContentView(R.layout.activity_book_shelf)
 
         loadingOverlay = findViewById(R.id.loadingOverlay)
-
+        loadingOverlay.visibility = View.GONE
         val toolbar: Toolbar = findViewById(R.id.bookShelfToolbar)
         spinner = findViewById(R.id.categorySpinner)
 
