@@ -990,8 +990,14 @@ ORDER BY b.name COLLATE NOCASE, t.page
         }
     }
 
-    fun getAllBookmarks(): List<BookmarkItem> {
+    fun getAllBookmarks(currentCategory: String): List<BookmarkItem> {
         val db = readableDatabase
+        val selectionArgs = if (currentCategory == "All") {
+            null
+        } else {
+            arrayOf(currentCategory)
+        }
+        val categoryFilter = if (currentCategory == "All") "" else "WHERE c.category = ?"
         val cursor = db.rawQuery(
             """
             SELECT 
@@ -1007,8 +1013,10 @@ ORDER BY b.name COLLATE NOCASE, t.page
             FROM bookmarks AS m
             LEFT JOIN books AS  b
             ON m.book_id_fk = b.id
+            LEFT JOIN categories AS c ON b.category = c.id OR b.sub_category = c.id
+            $categoryFilter
             ORDER BY LOWER(b.name), m.page
-        """.trimIndent(), null
+        """.trimIndent(), selectionArgs
         )
         val bookmarks = mutableListOf<BookmarkItem>()
         cursor.use { cursor ->

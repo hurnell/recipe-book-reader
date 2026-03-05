@@ -129,8 +129,8 @@ class PdfRepository(
         return dbHelper.getBookmarksForBook(bookId)
     }
 
-    fun getAllBookmarks(): List<BookmarkItem> {
-        return dbHelper.getAllBookmarks()
+    fun getAllBookmarks(currentCategory: String): List<BookmarkItem> {
+        return dbHelper.getAllBookmarks(currentCategory)
     }
 
 

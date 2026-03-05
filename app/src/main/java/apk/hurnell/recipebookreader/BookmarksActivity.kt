@@ -4,6 +4,7 @@ import android.app.AlertDialog
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.widget.AdapterView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.widget.Toolbar
@@ -25,7 +26,9 @@ import kotlinx.coroutines.launch
 import java.io.File
 
 data class BookmarksTracker(
-    val lastScrollPosition: Int, val lastScrollOffset: Int
+    val currentCategory: String,
+    val lastScrollPosition: Int,
+    val lastScrollOffset: Int
 ) : BaseTracker()
 
 class BookmarksActivity : BaseDrawerActivity() {
@@ -48,6 +51,23 @@ class BookmarksActivity : BaseDrawerActivity() {
 
         val toolbar: Toolbar = findViewById(R.id.bookmarksToolbar)
 
+        spinner = findViewById(R.id.categorySpinner)
+        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(
+                parent: AdapterView<*>,
+                view: View?,
+                position: Int,
+                id: Long
+            ) {
+                currentCategory = parent.getItemAtPosition(position) as String
+                reloadBookmarks(true)
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>) {
+                currentCategory = "All"
+                reloadBookmarks(true)
+            }
+        }
         recyclerView = findViewById(R.id.bookmarksRecyclerView)
         rootLayout = findViewById(R.id.rootLayout)
         recyclerView.layoutManager = LinearLayoutManager(this)
@@ -101,7 +121,7 @@ class BookmarksActivity : BaseDrawerActivity() {
     }
 
     private fun reloadBookmarks(applyAfter: Boolean): List<BookmarkItem> {
-        val bookmarks = repository.getAllBookmarks()
+        val bookmarks = repository.getAllBookmarks(currentCategory)
         if (applyAfter) {
             bookmarkAdapter.submitList(bookmarks)
         }
@@ -126,12 +146,18 @@ class BookmarksActivity : BaseDrawerActivity() {
                 val layoutManager = recyclerView.layoutManager as? LinearLayoutManager
                 lastScrollPosition = tracker.lastScrollPosition
                 lastScrollOffset = tracker.lastScrollOffset
+                currentCategory = tracker.currentCategory
                 layoutManager?.scrollToPositionWithOffset(
                     lastScrollPosition, lastScrollOffset
                 )
+                val position = categories.indexOf(currentCategory)
+                spinner.setSelection(position)
+                reloadBookmarks(true)
             }
         }
         bookmarkAdapter.submitList(bookmarkData)
+
+        refreshCategories()
     }
 
     override fun refreshFilesAndUI() {
@@ -144,7 +170,9 @@ class BookmarksActivity : BaseDrawerActivity() {
         lifecycleScope.launch {
             dataStoreManager.saveLastActivity(this@BookmarksActivity::class.java.name)
             val currentTracker = BookmarksTracker(
-                lastScrollPosition, lastScrollOffset
+                currentCategory,
+                lastScrollPosition,
+                lastScrollOffset
             )
             dataStoreManager.saveTracker(DataStoreManager.BOOKMARKS_KEY, currentTracker)
         }

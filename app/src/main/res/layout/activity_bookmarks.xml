@@ -23,7 +23,18 @@
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
                 app:title="Bookmarks"
-                app:titleTextColor="@color/nav_text" />
+                app:titleTextColor="@color/nav_text" >
+
+
+            <Spinner
+                android:id="@+id/categorySpinner"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:backgroundTint="@color/nav_text"
+                android:popupBackground="@android:color/white"
+                android:spinnerMode="dropdown" />
+            </androidx.appcompat.widget.Toolbar>
         </com.google.android.material.appbar.AppBarLayout>
 
         <androidx.recyclerview.widget.RecyclerView
