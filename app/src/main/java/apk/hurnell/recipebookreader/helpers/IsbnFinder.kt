@@ -4,6 +4,12 @@ import android.util.Log
 import com.artifex.mupdf.fitz.Document
 import com.artifex.mupdf.fitz.Page
 
+data class IsbnResult(
+    val isbn: String,
+    val totalLines: Int,
+    val scanned: Boolean = false
+)
+
 class IsbnFinder {
     companion object {
         private const val LOG_TAG = "NIGEL_HURNELL"
@@ -13,43 +19,38 @@ class IsbnFinder {
         )
     }
 
-    fun findIsbnInDocument(doc: Document): String? {
+    fun findIsbnInDocument(doc: Document): IsbnResult {
         val pagesToScan = mutableListOf<Int>()
-        for (i in 0 until doc.countPages()) {
+        val totalPages = doc.countPages()
+        for (i in 0 until totalPages) {
             pagesToScan.add(i)
         }
-
-        if (doc.countPages() > 10) {
-            pagesToScan.add(doc.countPages() - 1)
-        }
-
+        var isbn = ""
+        var totalLines = 0
         for (pageIndex in pagesToScan) {
             try {
                 val page = doc.loadPage(pageIndex)
-                val searchHits = page.search("ISBN");
-                if (searchHits != null && searchHits.size > 0) {
-                    val d = 123
-                }
-                val text = extractTextFromPage(page)
-
-                val match = ISBN_REGEX.find(text)
+                val result = extractTextFromPage(page)
+                totalLines += result.totalLines
+                val match = ISBN_REGEX.find(result.isbn)
                 if (match != null) {
                     for (i in 1 until match.groupValues.size) {
                         val candidate = match.groupValues[i].trim()
-
                         if (isValidIsbnFormat(candidate)) {
-                            return candidate.replace(" ", "")
+                            isbn = candidate.replace(" ", "")
                         }
                     }
-                }
-                if ("ISBN" in text) {
-                    val a = 123
                 }
             } catch (e: Exception) {
                 Log.e(LOG_TAG, "Error scanning page $pageIndex", e)
             }
         }
-        return null
+        val scanned = totalLines < 2 * totalPages
+        return IsbnResult(
+            isbn,
+            totalLines,
+            scanned
+        )
     }
 
     private fun isValidIsbnFormat(text: String): Boolean {
@@ -59,10 +60,15 @@ class IsbnFinder {
         return text.matches(Regex("[0-9xX\\-\\s]+"))
     }
 
-    private fun extractTextFromPage(page: Page): String {
+    private fun extractTextFromPage(page: Page): IsbnResult {
         val st = page.toStructuredText("preserve-whitespace")
         val content = st.asText()
+        val totalLines = st.blocks.sumOf { it.lines.size }
         st.destroy()
-        return content
+
+        return IsbnResult(
+            content,
+            totalLines
+        )
     }
 }

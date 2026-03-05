@@ -97,6 +97,7 @@ class DatabaseHelper(private val context: Context) :
                 "location",
                 "author",
                 "isbn",
+                "scanned",
                 "last_opened",
                 "toc_created",
                 "toc_unavailable",
@@ -113,6 +114,7 @@ class DatabaseHelper(private val context: Context) :
                     location = cursor.getString(cursor.getColumnIndexOrThrow("location")),
                     author = cursor.getString(cursor.getColumnIndexOrThrow("author")),
                     isbn = cursor.getString(cursor.getColumnIndexOrThrow("isbn")),
+                    scanned = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("scanned")) == 1,
                     lastOpened = cursor.getLongOrNull(cursor.getColumnIndexOrThrow("last_opened")),
                     tocCreated = cursor.getLongOrNull(cursor.getColumnIndexOrThrow("toc_created")),
                     tocUnavailable = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("toc_unavailable")),
@@ -842,6 +844,7 @@ ORDER BY b.name COLLATE NOCASE, t.page
                 "location",
                 "author",
                 "isbn",
+                "scanned",
                 "last_opened",
                 "toc_created",
                 "toc_unavailable",
@@ -858,6 +861,7 @@ ORDER BY b.name COLLATE NOCASE, t.page
                     location = cursor.getString(cursor.getColumnIndexOrThrow("location")),
                     author = cursor.getString(cursor.getColumnIndexOrThrow("author")),
                     isbn = cursor.getString(cursor.getColumnIndexOrThrow("isbn")),
+                    scanned = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("scanned")) == 1,
                     lastOpened = cursor.getLongOrNull(cursor.getColumnIndexOrThrow("last_opened")),
                     tocCreated = cursor.getLongOrNull(cursor.getColumnIndexOrThrow("toc_created")),
                     tocUnavailable = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("toc_unavailable")),
@@ -869,10 +873,12 @@ ORDER BY b.name COLLATE NOCASE, t.page
         }
     }
 
-    fun updateBookIsbn(bookId: Long, foundIsbn: String) {
+    fun updateBookIsbn(bookId: Long, foundIsbn: IsbnResult) {
         val db = writableDatabase
         val values = ContentValues().apply {
-            put("isbn", foundIsbn)
+            put("isbn", foundIsbn.isbn)
+            val scanned = if (foundIsbn.scanned) 1 else 0
+            put("scanned", scanned)
         }
         db.update("books", values, "id = ?", arrayOf(bookId.toString()))
     }

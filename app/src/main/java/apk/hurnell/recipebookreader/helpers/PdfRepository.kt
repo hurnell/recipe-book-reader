@@ -103,7 +103,7 @@ class PdfRepository(
         return dbHelper.getFilteredEveryToc(currentText, currentCategory)
     }
 
-    suspend fun updateBookIsbn(bookId: Long, foundIsbn: String) {
+    suspend fun updateBookIsbn(bookId: Long, foundIsbn: IsbnResult) {
         return withContext(Dispatchers.IO) {
             DatabaseHelper(context).updateBookIsbn(bookId, foundIsbn)
         }

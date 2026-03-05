@@ -84,6 +84,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     private var document: Document? = null
     private var triedToClose: Boolean = false
     private var currentBookId: Long = -1L
+    private var scanned: Boolean = false
     private var clearSearchMenuItem: MenuItem? = null
 
     companion object {
@@ -154,6 +155,9 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                     finish()
                     return@launch
                 }
+                binding.recipeBookToolbar.menu
+                    .findItem(R.id.action_search)
+                    ?.isVisible = !book.scanned
                 loadBookHistory(bookId)
                 if (!book.name.isNullOrEmpty()) {
                     binding.recipeBookToolbar.title = book.name
@@ -178,10 +182,8 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                                 }
                             })
                         val foundIsbn = IsbnFinder().findIsbnInDocument(currentDocument)
-                        if (foundIsbn != null) {
-                            repository.updateBookIsbn(bookId, foundIsbn)
-                            Log.d(LOG_TAG, "Found and updated ISBN: $foundIsbn")
-                        }
+                        repository.updateBookIsbn(bookId, foundIsbn)
+
                         tocSuccess
                     }
 
