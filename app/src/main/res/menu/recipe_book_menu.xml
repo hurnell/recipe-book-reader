@@ -7,11 +7,11 @@
         android:title="@string/clear_search"
         android:visible="false"
         app:showAsAction="ifRoom"
-        app:iconTint="@color/almost_black"/>
+        app:iconTint="@color/nav_text"/>
     <item
         android:id="@+id/action_search"
         android:icon="@drawable/ic_search"
         android:title="@string/search"
         app:showAsAction="ifRoom"
-        app:iconTint="@color/almost_black" />
+        app:iconTint="@color/nav_text" />
 </menu>

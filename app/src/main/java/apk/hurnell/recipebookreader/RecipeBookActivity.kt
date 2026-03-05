@@ -163,7 +163,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                 }
                 loadBookHistory(bookId)
                 if (!book.name.isNullOrEmpty()) {
-                    binding.toolbar.title = book.name
+                    binding.recipeBookToolbar.title = book.name
                 }
                 if (repository.hasToc(bookId)) {
                     initializeTocFragment(bookId)
@@ -209,9 +209,9 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                 finish()
             }
         }
-        binding.toolbar.inflateMenu(R.menu.recipe_book_menu)
+        binding.recipeBookToolbar.inflateMenu(R.menu.recipe_book_menu)
 
-        binding.toolbar.setOnMenuItemClickListener { item ->
+        binding.recipeBookToolbar.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 R.id.action_search -> {
                     val intent = Intent(this, SearchActivity::class.java)
@@ -263,7 +263,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
 
                 // Re-find the item if it was lost during configuration change
                 if (clearSearchMenuItem == null) {
-                    clearSearchMenuItem = binding.toolbar.menu.findItem(R.id.action_clear_search)
+                    clearSearchMenuItem = binding.recipeBookToolbar.menu.findItem(R.id.action_clear_search)
                 }
                 clearSearchMenuItem?.isVisible = true
 
@@ -496,8 +496,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     }
 
     private fun setupStaticListeners() {
-        binding.toolbar.setNavigationOnClickListener { finish() }
-        binding.toolbar.setNavigationIconTint(Color.BLACK)
+        binding.recipeBookToolbar.setNavigationOnClickListener { finish() }
 
         binding.btnRotate.setOnClickListener {
             isPortrait = !isPortrait
@@ -770,7 +769,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
             val metrics = resources.displayMetrics
             val currentUw = metrics.widthPixels
             (binding.bookRecyclerView.adapter as? BookAdapter)?.updateUsableWidth(currentUw)
-            binding.toolbar.layoutParams.height = actionBarHeight + systemBars.top
+            binding.recipeBookToolbar.layoutParams.height = actionBarHeight + systemBars.top
             bottomInset = systemBars.bottom.coerceAtLeast(ime.bottom)
             val topInset = systemBars.top.coerceAtLeast(ime.top)
             binding.bookRecyclerView.setPadding(
@@ -826,10 +825,10 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         val imeHeight = ViewCompat.getRootWindowInsets(binding.root)
             ?.getInsets(WindowInsetsCompat.Type.ime())
             ?.bottom ?: 0
-        val translationTop = if (show) 0f else -binding.toolbar.height.toFloat()
+        val translationTop = if (show) 0f else -binding.recipeBookToolbar.height.toFloat()
         val translationBottom = if (show) 0f else binding.bottomBar.height.toFloat() - imeHeight
 
-        binding.toolbar.animate().translationY(translationTop).setDuration(300).start()
+        binding.recipeBookToolbar.animate().translationY(translationTop).setDuration(300).start()
         binding.bottomBar.animate().translationY(translationBottom).setDuration(300).start()
         binding.btnRotate.animate().translationY(translationBottom).setDuration(300).start()
         binding.zoomIt.animate().translationY(translationBottom).setDuration(300).start()

@@ -30,7 +30,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="end"
-                    android:backgroundTint="@color/almost_black"
+                    android:backgroundTint="@color/nav_text"
                     android:popupBackground="@android:color/white"
                     android:spinnerMode="dropdown" />
             </androidx.appcompat.widget.Toolbar>

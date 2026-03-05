@@ -7,12 +7,14 @@
         android:icon="@drawable/ic_toc_svg"
         android:title="@string/table_of_contents"
         android:visible="false"
+        app:iconTint="@color/nav_text"
         app:showAsAction="ifRoom" />
 
     <item
         android:id="@+id/action_show_bookmarks"
         android:icon="@drawable/ic_bookmark_open"
         android:title="@string/show_bookmarks"
+        app:iconTint="@color/nav_text"
         app:showAsAction="ifRoom" />
 
 </menu>
