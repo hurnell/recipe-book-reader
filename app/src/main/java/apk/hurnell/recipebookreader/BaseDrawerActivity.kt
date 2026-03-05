@@ -27,7 +27,6 @@ import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.adapters.CoverPickerAdapter
-import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.helpers.GetCoverUrlHelper
 import apk.hurnell.recipebookreader.helpers.PdfRepository
 import apk.hurnell.recipebookreader.model.BaseBookmarkTocItem
@@ -38,7 +37,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
-import apk.hurnell.recipebookreader.model.TocItem
 import com.bumptech.glide.Glide
 import com.google.gson.Gson
 import java.io.FileOutputStream
@@ -99,10 +97,11 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
     }
 
     protected fun refreshCategories() {
-        val usedCategories = repository.getUsedCategories()
+
+        val usedCategories = repository.getUsedCategories(this::class.simpleName)
 
         val set = LinkedHashSet<String>()
-        set.add("All") // always first
+        set.add("All")
         usedCategories.forEach { if (it.isNotBlank()) set.add(it) }
 
         categories = set.toMutableList()
@@ -235,12 +234,11 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
 
     private fun saveCoverAsPng(url: String, sha: String): Boolean {
         return try {
-            // 1. Fetch the bitmap from Glide synchronously (must be on IO thread)
             val bitmap = Glide.with(this)
                 .asBitmap()
                 .load(url)
                 .submit()
-                .get() // This waits for the download to finish
+                .get()
 
             saveBitmapAsCover(bitmap, sha)
             true
@@ -256,7 +254,6 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
             val thumbnailFile = File(this.filesDir, hashName)
 
             FileOutputStream(thumbnailFile).use { out ->
-                // Use 100 quality for PNG (though quality is ignored for PNG as it is lossless)
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
                 out.flush()
             }

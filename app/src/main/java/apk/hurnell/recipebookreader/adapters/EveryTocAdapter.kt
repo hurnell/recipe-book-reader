@@ -11,7 +11,6 @@ import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.R
 import apk.hurnell.recipebookreader.model.TocItem
 
-// 1. Extension function defined at the top-level
 fun TextView.isEllipsized(): Boolean {
     val l = this.layout
     return if (l != null) {
@@ -35,8 +34,16 @@ class EveryTocAdapter(
     }
 
     override fun onBindViewHolder(holder: TocViewHolder, position: Int) {
-        holder.bind(getItem(position), onClickTitle, onClickBook, onClickHierarchy, onLongClickTitle, onClickBookmark)
+        holder.bind(
+            getItem(position),
+            onClickTitle,
+            onClickBook,
+            onClickHierarchy,
+            onLongClickTitle,
+            onClickBookmark
+        )
     }
+
     class TocViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val tocText: TextView = itemView.findViewById(R.id.tocText)
         private val bookName: TextView = itemView.findViewById(R.id.bookName)
@@ -62,7 +69,6 @@ class EveryTocAdapter(
                 hierarchy.visibility = View.VISIBLE
             }
 
-            // 2. Use the extension function inside the listeners
             tocText.setOnClickListener {
                 onClickTitle(item)
             }
@@ -84,14 +90,17 @@ class EveryTocAdapter(
             }
             if (item.bookmarkId != null) {
                 hasBookmark.setImageResource(R.drawable.ic_bookmark_closed)
-            }else {
+            } else {
                 hasBookmark.setImageResource(R.drawable.ic_bookmark_open)
             }
         }
     }
 
     class DiffCallback : DiffUtil.ItemCallback<TocItem>() {
-        override fun areItemsTheSame(oldItem: TocItem, newItem: TocItem): Boolean = oldItem.tocId == newItem.tocId
-        override fun areContentsTheSame(oldItem: TocItem, newItem: TocItem): Boolean = oldItem == newItem
+        override fun areItemsTheSame(oldItem: TocItem, newItem: TocItem): Boolean =
+            oldItem.tocId == newItem.tocId
+
+        override fun areContentsTheSame(oldItem: TocItem, newItem: TocItem): Boolean =
+            oldItem == newItem
     }
 }

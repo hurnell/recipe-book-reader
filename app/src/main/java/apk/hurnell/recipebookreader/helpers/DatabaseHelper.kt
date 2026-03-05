@@ -54,12 +54,12 @@ class DatabaseHelper(private val context: Context) :
     }
 
     override fun getWritableDatabase(): SQLiteDatabase {
-        copyDatabaseIfNeeded()  // Copy database lazily, when DB is first accessed
+        copyDatabaseIfNeeded()
         return super.getWritableDatabase()
     }
 
     override fun getReadableDatabase(): SQLiteDatabase {
-        copyDatabaseIfNeeded()  // Same here
+        copyDatabaseIfNeeded()
         return super.getReadableDatabase()
     }
 
@@ -239,15 +239,12 @@ class DatabaseHelper(private val context: Context) :
         var subCategoryId: Int? = null
 
         if (!keywords.isNullOrBlank()) {
-            // Split by comma into key=value pairs
             val pairs = keywords.split(",")
             for (pair in pairs) {
                 val keyValue = pair.split("=").map { it.trim() }
                 if (keyValue.size == 2) {
                     val key = keyValue[0]
                     val value = keyValue[1]
-
-                    // Prepare query
                     val query = "SELECT id FROM categories WHERE category=?"
 
                     when (key) {
@@ -387,18 +384,15 @@ ORDER BY b.name COLLATE NOCASE, t.page
 
         cursor.use { cursor ->
             while (cursor.moveToNext()) {
-                // 1. Check for null title first
                 val titleIndex = cursor.getColumnIndexOrThrow("toc_title")
                 if (cursor.isNull(titleIndex)) continue
                 val rawTitle = cursor.getString(titleIndex)
                 val bookIdIndex = cursor.getColumnIndexOrThrow("book_id")
                 val bookId = if (cursor.isNull(bookIdIndex)) null else cursor.getLong(bookIdIndex)
 
-                // 2. Fix the breadcrumbs/hierarchy logic
                 val breadcrumbs = cursor.getString(cursor.getColumnIndexOrThrow("breadcrumbs"))
                 val hierarchyField = if (breadcrumbs.isNullOrBlank()) null else breadcrumbs
 
-                // 3. Extract other fields
                 val bookTitle = cursor.getString(cursor.getColumnIndexOrThrow("book_name"))
                 val bookLocation = cursor.getString(cursor.getColumnIndexOrThrow("book_location"))
                 val tocId = cursor.getLong(cursor.getColumnIndexOrThrow("toc_id"))
@@ -428,8 +422,6 @@ ORDER BY b.name COLLATE NOCASE, t.page
                     if (cursor.isNull(cursor.getColumnIndexOrThrow("toc_bookmark_id"))) null else cursor.getInt(
                         cursor.getColumnIndexOrThrow("toc_bookmark_id")
                     )
-
-                // 4. Build the Item
                 list.add(
                     TocItem(
                         tocId = tocId,
@@ -437,8 +429,8 @@ ORDER BY b.name COLLATE NOCASE, t.page
                         bookTitle = bookTitle,
                         bookLocation = bookLocation,
                         parentId = parentId,
-                        title = rawTitle,        // Just the clean title
-                        hierarchy = hierarchyField, // Just the parents
+                        title = rawTitle,
+                        hierarchy = hierarchyField,
                         page = page - 1,
                         level = level,
                         bookmarkId = bookmarkId,
@@ -535,7 +527,7 @@ ORDER BY b.name COLLATE NOCASE, t.page
     ): Boolean {
         return try {
             val hashName = "${sha}.png"
-            val thumbnailFile = File(this.context.filesDir, hashName)  // <--- use 'this.context'
+            val thumbnailFile = File(this.context.filesDir, hashName)
             if (thumbnailFile.exists()) return true
 
             val firstPage = FunctionalStructuredTextWalker().getPageCoordinates(document, 0)
@@ -629,7 +621,45 @@ ORDER BY b.name COLLATE NOCASE, t.page
         return list
     }
 
-    fun getUsedCategories(): List<String> {
+    fun getCategoriesForBookmarks(): List<String> {
+        val db = readableDatabase
+        val list = mutableListOf<String>()
+        val sql = """
+            SELECT c.category  AS used_categories
+            FROM books AS b
+            LEFT JOIN categories AS c
+              ON c.id = b.category
+			  LEFT JOIN bookmarks AS m
+			  ON m.book_id_fk = b.id
+            WHERE c.category IS NOT NULL  AND m.id IS NOT NULL
+            
+            UNION
+            
+            SELECT sc.category
+            FROM books AS b
+            LEFT JOIN categories AS sc
+              ON sc.id = b.sub_category
+			  LEFT JOIN bookmarks AS sm
+			  ON sm.book_id_fk = b.id
+            WHERE sc.category IS NOT NULL AND sm.id IS NOT NULL
+            
+            ORDER BY used_categories
+        """.trimIndent()
+        val cursor = db.rawQuery(
+            sql, null
+        )
+        cursor.use {
+            while (it.moveToNext()) {
+                list.add(it.getString(0))
+            }
+        }
+        return list
+    }
+
+    fun getUsedCategories(activityName: String?): List<String> {
+        if (activityName == "BookmarksActivity") {
+            return getCategoriesForBookmarks()
+        }
         val db = readableDatabase
         val list = mutableListOf<String>()
         val sql = """
@@ -856,7 +886,6 @@ ORDER BY b.name COLLATE NOCASE, t.page
         }
         val categoryFilter = if (currentCategory == "All") "" else "AND c.category = ?"
 
-        // We wrap the core logic in a COUNT(*) to let SQLite do the heavy lifting
         val sql = """
         SELECT COUNT(*) FROM (
             WITH RECURSIVE toc_hierarchy AS (
@@ -876,7 +905,7 @@ ORDER BY b.name COLLATE NOCASE, t.page
 
         return db.compileStatement(sql).run {
             bindAllArgsAsStrings(selectionArgs)
-            simpleQueryForLong() // Returns the first column of the first row
+            simpleQueryForLong()
         }
     }
 
@@ -931,7 +960,6 @@ ORDER BY b.name COLLATE NOCASE, t.page
         val db = writableDatabase
         val bookIdStr = item.bookId?.toString() ?: "NULL"
         val uniqueKey = "$bookIdStr|${item.title}|${item.page}|${item.offset}"
-        // Check if duplicate exists first
         val insertSql = """
         INSERT OR IGNORE INTO bookmarks 
         (book_id_fk, title, page, `offset`, scale, translate, unique_key)
@@ -965,16 +993,12 @@ ORDER BY b.name COLLATE NOCASE, t.page
 
         return try {
             val deletedRows = db.delete(
-                "bookmarks",
-                "id = ?",
-                arrayOf(item.bookmarkId.toString())
+                "bookmarks", "id = ?", arrayOf(item.bookmarkId.toString())
             )
 
             if (deletedRows > 0) {
-                // 2️⃣ Update toc to remove reference
                 db.execSQL(
-                    "UPDATE toc SET bookmark_id = NULL WHERE id = ?",
-                    arrayOf(item.tocId)
+                    "UPDATE toc SET bookmark_id = NULL WHERE id = ?", arrayOf(item.tocId)
                 )
 
                 db.setTransactionSuccessful()
@@ -1015,6 +1039,7 @@ ORDER BY b.name COLLATE NOCASE, t.page
             ON m.book_id_fk = b.id
             LEFT JOIN categories AS c ON b.category = c.id OR b.sub_category = c.id
             $categoryFilter
+            GROUP BY m.id
             ORDER BY LOWER(b.name), m.page
         """.trimIndent(), selectionArgs
         )
@@ -1063,10 +1088,7 @@ ORDER BY b.name COLLATE NOCASE, t.page
             put("scale", historyItem.scale)
         }
         db.update(
-            "history",
-            values,
-            "id = ?",
-            arrayOf(historyItem.id.toString())
+            "history", values, "id = ?", arrayOf(historyItem.id.toString())
         )
         return getBookHistory(historyItem.bookId!!)
     }
@@ -1157,9 +1179,7 @@ ORDER BY b.name COLLATE NOCASE, t.page
     fun clearBookHistory(bookId: Long) {
         val db = writableDatabase
         db.delete(
-            "history",
-            "book_id_fk = ?",
-            arrayOf(bookId.toString())
+            "history", "book_id_fk = ?", arrayOf(bookId.toString())
         )
 
     }

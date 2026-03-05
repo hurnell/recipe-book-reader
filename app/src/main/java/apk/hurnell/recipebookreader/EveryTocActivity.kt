@@ -257,14 +257,14 @@ class EveryTocActivity : BaseDrawerActivity() {
                 var bv = View.VISIBLE
 
                 currentSearchTerm = filterInput.text.toString().trim()
-                if (filterInput.text.isNullOrEmpty()){
+                if (filterInput.text.isNullOrEmpty()) {
                     bv = View.INVISIBLE
                     adapter.submitList(null)
                     resultCountTextView.text = ""
                     currentSearchTerm = ""
                 }
                 searchToc.visibility = bv
-                searchJob?.cancel() // Cancel the previous search if user typed again
+                searchJob?.cancel()
                 searchJob = lifecycleScope.launch {
                     delay(300)
 
@@ -273,7 +273,7 @@ class EveryTocActivity : BaseDrawerActivity() {
                             repository.searchBooks(
                                 currentSearchTerm,
                                 currentCategory
-                            ) // Your DB call here
+                            )
                         }
                         currentCount = "$count"
                     } else {

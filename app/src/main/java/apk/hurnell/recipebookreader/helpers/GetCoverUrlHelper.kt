@@ -30,17 +30,9 @@ class GetCoverUrlHelper {
     suspend fun getAllAvailableCovers(book: Book): List<String> {
         val allUrls = mutableListOf<String>()
 
-        // STRATEGY 1: Search by ISBN (Highest Accuracy)
         if (!book.isbn.isNullOrBlank()) {
-            // Try Google Books by ISBN
             val googleIsbnResults = fetchGoogleBooksByIsbn(book.isbn)
             allUrls.addAll(googleIsbnResults)
-
-            // Try LibraryThing
-            //allUrls.addAll(fetchLibraryThingCover(book.isbn))
-
-            // Try OpenLibrary by ISBN
-            //allUrls.addAll(fetchLibraryThingCover(book.isbn))
         }
         if (book.name != null && book.author != null) {
             allUrls.addAll(
@@ -60,7 +52,6 @@ class GetCoverUrlHelper {
         return@withContext performGoogleSearch(query)
     }
 
-    // 2. Search by Title/Author (Fallback)
     suspend fun fetchGoogleBooksByTitleAuthor(title: String, author: String): List<String> =
         withContext(Dispatchers.IO) {
             val encodedTitle = URLEncoder.encode(title, StandardCharsets.UTF_8.toString())
@@ -69,7 +60,6 @@ class GetCoverUrlHelper {
             return@withContext performGoogleSearch(query)
         }
 
-    // Internal helper to avoid repeating code
     private suspend fun performGoogleSearch(query: String): List<String> {
         return try {
             val urlString = "https://www.googleapis.com/books/v1/volumes?q=$query"
@@ -78,7 +68,7 @@ class GetCoverUrlHelper {
             } as HttpURLConnection
             val responseJson = connection.inputStream.bufferedReader().readText()
 
-                val googleResponse = Gson().fromJson(responseJson, GoogleBooksResponse::class.java)
+            val googleResponse = Gson().fromJson(responseJson, GoogleBooksResponse::class.java)
 
 
             googleResponse.items?.mapNotNull { item ->
@@ -98,7 +88,6 @@ class GetCoverUrlHelper {
         val api = retrofit.create(OpenLibraryApi::class.java)
         return try {
             val response = api.searchBook(title, author)
-            // Map the IDs into full URL strings
             response.docs.mapNotNull { doc ->
                 doc.cover_i?.let { id -> "https://covers.openlibrary.org/b/id/$id-L.jpg" }
             }
@@ -109,16 +98,8 @@ class GetCoverUrlHelper {
     }
 
     suspend fun fetchLibraryThingCover(isbn: String): List<String> = withContext(Dispatchers.IO) {
-        // 1. Clean the ISBN (no hyphens)
         val cleanIsbn = isbn.replace("-", "").replace(" ", "")
-
-        // 2. LibraryThing offers sizes: small, medium, large.
-        // We'll try to get the large one.
         val url = "https://covers.librarything.com/devkey/YOUR_KEY/large/isbn/$cleanIsbn"
-
-        // Note: LibraryThing returns a 1x1 transparent pixel if the cover is NOT found.
-        // To be safe, we should check if the image actually exists or just return the URL
-        // for Glide to attempt to load.
 
         return@withContext listOf(url)
     }
@@ -126,21 +107,17 @@ class GetCoverUrlHelper {
     suspend fun fetchGoogleBooksCovers(title: String, author: String): List<String> =
         withContext(Dispatchers.IO) {
             try {
-                // 1. Manually escape the strings for the query
                 val encodedTitle = URLEncoder.encode(title, StandardCharsets.UTF_8.toString())
                 val encodedAuthor = URLEncoder.encode(author, StandardCharsets.UTF_8.toString())
 
                 val urlString =
                     "https://www.googleapis.com/books/v1/volumes?q=intitle:\"$encodedTitle\"+inauthor:\"$encodedAuthor\""
 
-                // 2. Fetch the data (using basic URL connection or Retrofit)
                 val connection = URL(urlString).openConnection() as HttpURLConnection
                 val responseJson = connection.inputStream.bufferedReader().readText()
 
-                // 3. Parse with Gson
                 val googleResponse = Gson().fromJson(responseJson, GoogleBooksResponse::class.java)
 
-                // 4. Extract all thumbnail URLs and convert to HTTPS
                 googleResponse.items?.mapNotNull { item ->
                     item.volumeInfo.imageLinks?.thumbnail?.replace("http://", "https://")
                 } ?: emptyList()

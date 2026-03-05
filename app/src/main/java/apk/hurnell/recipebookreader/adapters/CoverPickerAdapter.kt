@@ -17,7 +17,6 @@ class CoverPickerAdapter(
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        // You'll need a simple layout: item_cover_option.xml with an ImageView
         val view =
             LayoutInflater.from(parent.context).inflate(R.layout.item_cover_option, parent, false)
         return ViewHolder(view)
@@ -26,7 +25,6 @@ class CoverPickerAdapter(
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val url = urls[position]
 
-        // Use Glide or Picasso to load the URL into the holder.imageView
         Glide.with(holder.itemView.context).load(url).into(holder.imageView)
 
         holder.itemView.setOnClickListener { onCoverSelected(url) }

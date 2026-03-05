@@ -280,7 +280,7 @@ class TocFragment : Fragment() {
                     scale = row.scale,
                     translate = row.translate,
                     children = build(row.id),
-                    isExpanded = expandedMap[row.id] ?: false  // Restore state here
+                    isExpanded = expandedMap[row.id] ?: false
                 )
             } ?: emptyList()
         }

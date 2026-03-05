@@ -91,8 +91,8 @@ class PdfRepository(
         return dbHelper.getBookInfoForItemPath(path)
     }
 
-    fun getUsedCategories(): Collection<String> {
-        return dbHelper.getUsedCategories()
+    fun getUsedCategories(activityName: String?): Collection<String> {
+        return dbHelper.getUsedCategories(activityName)
     }
 
     fun getBookShelfBooks(): List<FileItem> {

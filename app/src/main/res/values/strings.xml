@@ -75,5 +75,6 @@
     <string name="clear_search">Clear Search</string>
     <string name="search_text_input">Search</string>
     <string name="button_to_close_drawer">Button to close drawer</string>
+    <string name="page_number">Page %1$d</string>
 
 </resources>

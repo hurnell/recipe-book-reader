@@ -102,12 +102,11 @@ class BookAdapter(
 
         val highlightPaint = Paint().apply {
             color = ContextCompat.getColor(holder.itemView.context, R.color.book_highlight)
-            alpha = 90 // Transparency (0-255)
+            alpha = 90
             style = Paint.Style.FILL
         }
 
         searchHighlights[position]?.forEach { rect ->
-            // Transform PDF coordinates to Bitmap pixels
             val left = rect.x0 * scale
             val top = rect.y0 * scale
             val right = rect.x1 * scale

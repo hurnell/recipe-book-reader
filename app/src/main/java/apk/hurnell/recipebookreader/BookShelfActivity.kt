@@ -4,14 +4,11 @@ import android.os.Bundle
 import android.view.View
 import android.widget.AdapterView
 import androidx.appcompat.widget.Toolbar
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.adapters.BookShelfAdapter
 import apk.hurnell.recipebookreader.helpers.DataStoreManager
-import apk.hurnell.recipebookreader.helpers.PdfRepository
 import apk.hurnell.recipebookreader.model.BaseTracker
 import apk.hurnell.recipebookreader.model.FileItem
 import kotlinx.coroutines.flow.firstOrNull
@@ -76,7 +73,7 @@ class BookShelfActivity : BaseDrawerActivity() {
 
     }
 
-    private fun updateFromSavedSettings(currentCategory: String, acceptZero: Boolean = true){
+    private fun updateFromSavedSettings(currentCategory: String, acceptZero: Boolean = true) {
         refreshCategories()
         val position = categories.indexOf(currentCategory)
         spinner.setSelection(position)
@@ -100,7 +97,6 @@ class BookShelfActivity : BaseDrawerActivity() {
 
     override fun refreshFilesAndUI() {
         populateShelf(currentCategory)
-        categories.addAll(repository.getUsedCategories())
         refreshCategories()
     }
 
@@ -133,18 +129,14 @@ class BookShelfActivity : BaseDrawerActivity() {
                         it.bookInfo?.subCategory == category
             }
         }.sortedWith(compareBy<FileItem> {
-            // Items without a subcategory go last
             it.bookInfo?.subCategory.isNullOrEmpty()
         }.thenBy {
-            // Items with subcategory are sorted alphabetically
             it.bookInfo?.subCategory ?: ""
         }.thenBy {
-            // If subcategory is same, sort by main category
             it.bookInfo?.mainCategory ?: ""
         })
         val minSlots = filteredBooks.size.coerceAtLeast(15)
 
-        // Round up to nearest multiple of 3
         val totalSlotsNeeded = if (minSlots % 3 == 0) {
             minSlots
         } else {

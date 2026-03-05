@@ -9,7 +9,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.R
-import apk.hurnell.recipebookreader.model.FileItem // Adjust based on your package
+import apk.hurnell.recipebookreader.model.FileItem
 import com.google.android.material.card.MaterialCardView
 import java.io.File
 
@@ -26,12 +26,29 @@ class BookShelfAdapter(
     }
 
     override fun onBindViewHolder(holder: RowViewHolder, position: Int) {
-        // 3. Use getItem(position) provided by ListAdapter
         val rowItems = getItem(position)
 
-        bindBook(holder.book1Cover, holder.book1Warning, rowItems.getOrNull(0), onClick, onLongClick)
-        bindBook(holder.book2Cover, holder.book2Warning, rowItems.getOrNull(1), onClick, onLongClick)
-        bindBook(holder.book3Cover, holder.book3Warning, rowItems.getOrNull(2), onClick, onLongClick)
+        bindBook(
+            holder.book1Cover,
+            holder.book1Warning,
+            rowItems.getOrNull(0),
+            onClick,
+            onLongClick
+        )
+        bindBook(
+            holder.book2Cover,
+            holder.book2Warning,
+            rowItems.getOrNull(1),
+            onClick,
+            onLongClick
+        )
+        bindBook(
+            holder.book3Cover,
+            holder.book3Warning,
+            rowItems.getOrNull(2),
+            onClick,
+            onLongClick
+        )
     }
 
     private fun bindBook(
@@ -66,7 +83,7 @@ class BookShelfAdapter(
             cardContainer.visibility = View.VISIBLE
         } else {
             imageView.setImageDrawable(null)
-            imageView.visibility = View.INVISIBLE // keeps spacing; use GONE if you want collapse
+            imageView.visibility = View.INVISIBLE
             imageView.setOnClickListener(null)
             cardContainer.visibility = View.INVISIBLE
             warningView.visibility = View.INVISIBLE
@@ -82,15 +99,20 @@ class BookShelfAdapter(
 
     class RowDiffCallback : DiffUtil.ItemCallback<List<FileItem?>>() {
         override fun areItemsTheSame(oldItem: List<FileItem?>, newItem: List<FileItem?>): Boolean {
-            val oldId = oldItem.map { it?.file?.absolutePath }.joinToString()
-            val newId = newItem.map { it?.file?.absolutePath }.joinToString()
+            val oldId = oldItem.joinToString { it?.file?.absolutePath.toString() }
+            val newId = newItem.joinToString { it?.file?.absolutePath.toString() }
             return oldId == newId
         }
 
-        override fun areContentsTheSame(oldItem: List<FileItem?>, newItem: List<FileItem?>): Boolean {
-            val oldId = oldItem.map { it?.file?.absolutePath }.joinToString()
-            val newId = newItem.map { it?.file?.absolutePath }.joinToString()
-            return oldId == newId
+        override fun areContentsTheSame(
+            oldItem: List<FileItem?>,
+            newItem: List<FileItem?>
+        ): Boolean {
+            val oldId = oldItem.joinToString { it?.file?.absolutePath.toString() }
+            val newId = newItem.joinToString { it?.file?.absolutePath.toString() }
+            val oldLastModified = oldItem.map { it?.file?.lastModified() }.joinToString()
+            val newLastModified = newItem.map { it?.file?.lastModified() }.joinToString()
+            return oldId == newId && oldLastModified == newLastModified
         }
     }
 
@@ -98,8 +120,11 @@ class BookShelfAdapter(
         val book1Cover: ImageView = view.findViewById<View>(R.id.book1).findViewById(R.id.bookCover)
         val book2Cover: ImageView = view.findViewById<View>(R.id.book2).findViewById(R.id.bookCover)
         val book3Cover: ImageView = view.findViewById<View>(R.id.book3).findViewById(R.id.bookCover)
-        val book1Warning: ImageView = view.findViewById<View>(R.id.book1).findViewById(R.id.bookWarning)
-        val book2Warning: ImageView = view.findViewById<View>(R.id.book2).findViewById(R.id.bookWarning)
-        val book3Warning: ImageView = view.findViewById<View>(R.id.book3).findViewById(R.id.bookWarning)
+        val book1Warning: ImageView =
+            view.findViewById<View>(R.id.book1).findViewById(R.id.bookWarning)
+        val book2Warning: ImageView =
+            view.findViewById<View>(R.id.book2).findViewById(R.id.bookWarning)
+        val book3Warning: ImageView =
+            view.findViewById<View>(R.id.book3).findViewById(R.id.bookWarning)
     }
 }

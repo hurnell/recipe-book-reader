@@ -23,9 +23,7 @@ import apk.hurnell.recipebookreader.model.FileItem
 import java.io.File
 import androidx.core.graphics.scale
 import androidx.datastore.preferences.core.Preferences
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.model.BaseTracker
 import com.google.gson.Gson
@@ -112,7 +110,6 @@ class FileBrowserActivity : BaseDrawerActivity() {
         val dataStoreManager = DataStoreManager(applicationContext)
 
         lifecycleScope.launch {
-            // Get the first emitted value from the Flow
             val lastActivityName = dataStoreManager.lastActivityFlow.first()
             val simpleActivities = arrayOf(
                 "apk.hurnell.recipebookreader.BookmarksActivity",
@@ -133,7 +130,6 @@ class FileBrowserActivity : BaseDrawerActivity() {
                         navigateToSavedRecipeBookState()
                     }
                 } catch (e: ClassNotFoundException) {
-                    // Handle case where activity no longer exists
                 }
             }
         }
@@ -194,7 +190,7 @@ class FileBrowserActivity : BaseDrawerActivity() {
             .create()
 
         btnCancel.setOnClickListener {
-            originalBitmap.recycle() // Clean up memory if they cancel
+            originalBitmap.recycle()
             dialog.dismiss()
         }
 

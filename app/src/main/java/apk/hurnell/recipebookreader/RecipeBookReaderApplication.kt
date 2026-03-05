@@ -12,11 +12,9 @@ class RecipeBookReaderApplication : Application() {
         super.onCreate()
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             override fun onActivityResumed(activity: Activity) {
-                // Whenever an activity comes to the front, remember it
                 lastActiveActivityName = activity.javaClass.simpleName
             }
 
-            // You must override these, but can leave them empty
             override fun onActivityCreated(activity: Activity, p1: Bundle?) {}
             override fun onActivityStarted(activity: Activity) {}
             override fun onActivityPaused(activity: Activity) {}
@@ -24,5 +22,6 @@ class RecipeBookReaderApplication : Application() {
             override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
             override fun onActivityDestroyed(activity: Activity) {}
         })
-        ProcessLifecycleOwner.get().lifecycle.addObserver(AppLifecycleListener(this))    }
+        ProcessLifecycleOwner.get().lifecycle.addObserver(AppLifecycleListener(this))
+    }
 }

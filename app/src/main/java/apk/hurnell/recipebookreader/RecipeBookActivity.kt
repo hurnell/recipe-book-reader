@@ -95,8 +95,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
 
         enableEdgeToEdge(
             navigationBarStyle = SystemBarStyle.light(
-                getColor(R.color.pastel_blue),
-                getColor(R.color.pastel_blue)
+                getColor(R.color.pastel_blue), getColor(R.color.pastel_blue)
             )
         )
         binding = ActivityRecipeBookBinding.inflate(layoutInflater)
@@ -141,9 +140,8 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                 document = currentDocument
                 onDocumentReady(currentDocument, tocItem, recipeBookTracked)
 
-                // Get or create book in DB
-                val book = repository.getOrCreateBook(pdfFile, pdfFilePath, currentDocument)
-                    ?: run {
+                val book =
+                    repository.getOrCreateBook(pdfFile, pdfFilePath, currentDocument) ?: run {
                         Log.e(LOG_TAG, "Failed to create or fetch book")
                         finish()
                         return@launch
@@ -170,9 +168,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
 
                     val success = withContext(Dispatchers.IO) {
                         val tocSuccess = repository.generateTocAsync(
-                            currentDocument,
-                            bookId,
-                            progressCallback = { percent: Int ->
+                            currentDocument, bookId, progressCallback = { percent: Int ->
                                 lifecycleScope.launch(Dispatchers.Main) {
                                     binding.horizontalLoader.progress = percent
                                     if (percent >= 100) {
@@ -180,8 +176,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                                         binding.btnShowToc.visibility = View.VISIBLE
                                     }
                                 }
-                            }
-                        )
+                            })
                         val foundIsbn = IsbnFinder().findIsbnInDocument(currentDocument)
                         if (foundIsbn != null) {
                             repository.updateBookIsbn(bookId, foundIsbn)
@@ -215,7 +210,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                     true
                 }
 
-                R.id.action_clear_search -> { // Add this click listener here too!
+                R.id.action_clear_search -> {
                     clearSearchHighlights()
                     true
                 }
@@ -225,16 +220,17 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         }
 
     }
+
     fun setStatusBarColor(window: Window, color: Int) {
         window.decorView.setOnApplyWindowInsetsListener { view, insets ->
             val statusBarInsets = insets.getInsets(WindowInsets.Type.statusBars())
             view.setBackgroundColor(color)
 
-            // Adjust padding to avoid overlap
             view.setPadding(0, statusBarInsets.top, 0, 0)
             insets
         }
     }
+
     private val searchLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -249,25 +245,22 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                 val coordinatesType =
                     object : com.google.gson.reflect.TypeToken<Coordinates>() {}.type
                 val coordinates: Coordinates = gson.fromJson(coordinatesJson, coordinatesType)
-                // Pass to adapter
+
                 (binding.bookRecyclerView.adapter as? BookAdapter)?.setHighlight(
-                    pageIndex,
-                    rectangles
+                    pageIndex, rectangles
                 )
                 binding.bookRecyclerView.scrollToPosition(pageIndex)
                 binding.bookRecyclerView.setScaleFactor(
-                    coordinates.scale,
-                    pageIndex,
-                    coordinates.percentage
+                    coordinates.scale, pageIndex, coordinates.percentage
                 )
                 updatePageText(pageIndex, totalPages)
                 binding.pageSeekBar.progress = pageIndex
 
-                toggleBars(true) // Show bars so user sees the 'X' button
+                toggleBars(true)
 
-                // Re-find the item if it was lost during configuration change
                 if (clearSearchMenuItem == null) {
-                    clearSearchMenuItem = binding.recipeBookToolbar.menu.findItem(R.id.action_clear_search)
+                    clearSearchMenuItem =
+                        binding.recipeBookToolbar.menu.findItem(R.id.action_clear_search)
                 }
                 clearSearchMenuItem?.isVisible = true
 
@@ -297,7 +290,6 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         val adapter = binding.bookRecyclerView.adapter as? BookAdapter
         adapter?.clearHighlight()
 
-        // Hide the 'X' button now that highlights are gone
         clearSearchMenuItem?.isVisible = false
     }
 
@@ -322,9 +314,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         tocFragment = TocFragment.newInstance(id.toInt()) { item ->
             binding.bookRecyclerView.scrollToPosition(item.page)
             val historyItem = binding.bookRecyclerView.setScaleFactor(
-                item.scale.coerceAtMost(3.0f),
-                item.page,
-                item.translate
+                item.scale.coerceAtMost(3.0f), item.page, item.translate
             )
             binding.bookRecyclerView.post {
                 historyItem.bookId = currentBookId
@@ -335,15 +325,12 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
             toggleBars(false)
             updatePageText(item.page, totalPages)
         }
-        supportFragmentManager.beginTransaction()
-            .replace(R.id.tocFragmentContainer, tocFragment)
+        supportFragmentManager.beginTransaction().replace(R.id.tocFragmentContainer, tocFragment)
             .commit()
     }
 
     private fun onDocumentReady(
-        doc: Document,
-        tocItem: TocItem?,
-        recipeBookTracked: RecipeBookTracker?
+        doc: Document, tocItem: TocItem?, recipeBookTracked: RecipeBookTracker?
     ) {
         val metrics = resources.displayMetrics
         val horizontalBars = if (::systemBars.isInitialized) systemBars.right else 0
@@ -365,9 +352,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
             binding.bookRecyclerView.scrollToPosition(tocItem.page)
             binding.bookRecyclerView.doOnNextLayout {
                 binding.bookRecyclerView.setScaleFactor(
-                    tocItem.scale.coerceAtMost(3.0f),
-                    tocItem.page,
-                    tocItem.translate
+                    tocItem.scale.coerceAtMost(3.0f), tocItem.page, tocItem.translate
                 )
                 toggleBars(false)
                 updatePageText(tocItem.page, totalPages)
@@ -390,7 +375,6 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     }
 
     private fun saveBookmark(name: String) {
-        // Logic to save to your PdfRepository or database
         Log.d("BOOKMARK", "Saving bookmark: $name")
     }
 
@@ -433,16 +417,14 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                         delay(200L)
 
                         val hasMoved =
-                            abs(pinchRv.computeVerticalScrollOffset() - initialOffset) > 5 ||
-                                    abs(pinchRv.translationX - initialTransX) > 5 ||
-                                    abs(pinchRv.getScaleFactor() - initialScale) > 0.01f
+                            abs(pinchRv.computeVerticalScrollOffset() - initialOffset) > 5 || abs(
+                                pinchRv.translationX - initialTransX
+                            ) > 5 || abs(pinchRv.getScaleFactor() - initialScale) > 0.01f
 
                         if (!hasMoved) {
                             if (linkState == 2) {
                                 val text = getTextNearClickPoint(
-                                    document, pagePosition,
-                                    px,
-                                    py
+                                    document, pagePosition, px, py
                                 )
                                 val dialogView =
                                     layoutInflater.inflate(R.layout.dialog_bookmark, null)
@@ -463,29 +445,17 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                                                 Toast.LENGTH_SHORT
                                             ).show()
                                         }
-                                    }
-                                    .setNegativeButton("Cancel") { dialog, _ ->
+                                    }.setNegativeButton("Cancel") { dialog, _ ->
                                         dialog.dismiss()
-                                    }
-                                    .create()
+                                    }.create()
 
                                 dialog.show()
                             } else if (!checkIfTopOfPageClicked(
-                                    currentDoc,
-                                    pinchRv,
-                                    px,
-                                    py,
-                                    pageWidth,
-                                    pagePosition
+                                    currentDoc, pinchRv, px, py, pageWidth, pagePosition
                                 )
                             ) {
                                 checkFollowLinks(
-                                    pinchRv,
-                                    px,
-                                    py,
-                                    pageWidth,
-                                    currentDoc,
-                                    pagePosition
+                                    pinchRv, px, py, pageWidth, currentDoc, pagePosition
                                 )
                             }
                         }
@@ -667,12 +637,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     }
 
     private fun checkFollowLinks(
-        rv: PinchRecyclerView,
-        x: Float,
-        y: Float,
-        w: Float,
-        document: Document?,
-        pageNumber: Int
+        rv: PinchRecyclerView, x: Float, y: Float, w: Float, document: Document?, pageNumber: Int
     ) {
         if (document == null) return
         val page = document.loadPage(pageNumber)
@@ -702,10 +667,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     }
 
     private fun getTextNearClickPoint(
-        document: Document?,
-        currentPage: Int,
-        x: Float,
-        y: Float
+        document: Document?, currentPage: Int, x: Float, y: Float
     ): String {
         if (document == null) {
             return ""
@@ -717,7 +679,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                 val bbox = line.bbox
                 val xHit = bbox.x0 <= x && bbox.x1 >= x
                 val yHit = bbox.y0 <= y && bbox.y1 >= y
-                if (xHit && yHit ){
+                if (xHit && yHit) {
                     val lineBuilder = StringBuilder()
                     line.chars?.forEach { char -> lineBuilder.append(char.c.toChar()) }
                     return lineBuilder.toString().trim()
@@ -793,7 +755,8 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
             if (systemBars.top != 0) {
                 originalStatusBarHeight = systemBars.top
             }
-            binding.recipeBookToolbar.layoutParams.height = actionBarHeight + systemBars.top + originalStatusBarHeight
+            binding.recipeBookToolbar.layoutParams.height =
+                actionBarHeight + systemBars.top + originalStatusBarHeight
             binding.recipeBookToolbar.setPadding(
                 binding.recipeBookToolbar.paddingLeft,
                 originalStatusBarHeight,
@@ -819,11 +782,13 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                 binding.stopLinks.imageTintList = ColorStateList.valueOf(color)
                 binding.stopLinks.setImageResource(R.drawable.ic_link_on)
             }
+
             1 -> {
                 val colorOff = ContextCompat.getColor(this, R.color.links_off)
                 binding.stopLinks.imageTintList = ColorStateList.valueOf(colorOff)
                 binding.stopLinks.setImageResource(R.drawable.ic_link_off)
             }
+
             else -> {
                 val colorOff = ContextCompat.getColor(this, R.color.links_working)
                 binding.stopLinks.imageTintList = ColorStateList.valueOf(colorOff)
@@ -837,8 +802,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         if (barsVisible == show) return
         barsVisible = show
         val imeHeight = ViewCompat.getRootWindowInsets(binding.root)
-            ?.getInsets(WindowInsetsCompat.Type.ime())
-            ?.bottom ?: 0
+            ?.getInsets(WindowInsetsCompat.Type.ime())?.bottom ?: 0
         val translationTop = if (show) 0f else -binding.recipeBookToolbar.height.toFloat()
         val translationBottom = if (show) 0f else binding.bottomBar.height.toFloat() - imeHeight
 

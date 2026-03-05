@@ -39,7 +39,7 @@ class FileAdapter(
         private val fileName: TextView = itemView.findViewById(R.id.fileName)
         private val innerCount: TextView = itemView.findViewById(R.id.innerCount)
 
-        fun updateIconLayout(fileIcon: ImageView, hasCover: Boolean){
+        fun updateIconLayout(fileIcon: ImageView, hasCover: Boolean) {
             val layoutParams = fileIcon.layoutParams
 
             val context = fileIcon.context
@@ -70,7 +70,7 @@ class FileAdapter(
             if (extension == "pdf") {
                 return R.drawable.ic_pdf_file
             }
-            if (extension == "png"){
+            if (extension == "png") {
                 return R.drawable.ic_png_file
             }
             return R.drawable.ic_jpg_file
@@ -112,15 +112,12 @@ class FileAdapter(
                     val thumbnailFile = File(itemView.context.filesDir, "${info.sha}.png")
 
                     if (thumbnailFile.exists()) {
-                        // 1️⃣ Load bitmap from file
                         val bitmap = BitmapFactory.decodeFile(thumbnailFile.absolutePath)
 
-                        // 2️⃣ Set bitmap to ImageView
                         fileIcon.setImageBitmap(bitmap)
                         updateIconLayout(fileIcon, true)
 
                     } else {
-                        // Fallback icon if thumbnail not yet created
                         fileIcon.setImageResource(R.drawable.ic_pdf_file)
                     }
                 }
@@ -129,7 +126,7 @@ class FileAdapter(
 
             itemView.setOnClickListener { onClick(item.file) }
             itemView.setOnLongClickListener {
-                if (item.bookInfo != null){
+                if (item.bookInfo != null) {
                     onLongClick?.invoke(item.file)
                 }
                 true
@@ -137,6 +134,7 @@ class FileAdapter(
         }
 
     }
+
     class DiffCallback : DiffUtil.ItemCallback<FileItem>() {
         override fun areItemsTheSame(oldItem: FileItem, newItem: FileItem): Boolean {
             return oldItem.file.absolutePath == newItem.file.absolutePath

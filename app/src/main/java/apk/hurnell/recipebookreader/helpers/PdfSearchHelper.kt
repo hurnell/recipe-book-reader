@@ -18,7 +18,7 @@ data class Coordinates(
 data class SearchResult(
     val pageIndex: Int,
     val text: String,
-    val blockRects: List<Rect>,
+    val blockRectangles: List<Rect>,
     val coordinates: Coordinates
 )
 
@@ -30,7 +30,6 @@ class PdfSearchHelper(private val document: Document) {
         for (i in 0 until pageCount) {
             val currentIndex = (startPage + i) % pageCount
 
-            // Perform the combined search and snippet extraction in one go
             val result = processPage(currentIndex, query)
 
             if (result != null) {
@@ -45,7 +44,7 @@ class PdfSearchHelper(private val document: Document) {
             try {
                 val structuredText = page.toStructuredText()
                 val matchingLines = mutableListOf<String>()
-                val foundRectangles = mutableListOf<com.artifex.mupdf.fitz.Rect>()
+                val foundRectangles = mutableListOf<Rect>()
 
                 var minX = 1000000f
                 var maxX = 0f

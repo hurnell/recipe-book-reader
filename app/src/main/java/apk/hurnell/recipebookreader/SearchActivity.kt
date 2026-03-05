@@ -1,7 +1,6 @@
 package apk.hurnell.recipebookreader
 
 import android.app.appsearch.SearchResult
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -70,7 +69,7 @@ class SearchActivity : AppCompatActivity() {
             val data = Intent()
             data.putExtra("SELECTED_PAGE", result.pageIndex)
             val gson = com.google.gson.Gson()
-            val rectanglesJson = gson.toJson(result.blockRects)
+            val rectanglesJson = gson.toJson(result.blockRectangles)
             data.putExtra("BLOCK_RECTANGLES_JSON", rectanglesJson)
             val pageCoordinatesJson = gson.toJson(result.coordinates)
             data.putExtra("PAGE_COORDINATES", pageCoordinatesJson)
@@ -114,12 +113,11 @@ class SearchActivity : AppCompatActivity() {
         }
     }
     private fun hideKeyboard() {
-        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
         imm.hideSoftInputFromWindow(binding.searchEditText.windowToken, 0)
     }
 
     private fun setupToolbar() {
-        // Back button in toolbar
         binding.searchToolbar.setNavigationOnClickListener { finish() }
 
         binding.searchEditText.setOnEditorActionListener { _, actionId, _ ->
@@ -139,15 +137,10 @@ class SearchActivity : AppCompatActivity() {
                 adapter.addResult(result)
             }
             binding.searchProgressBar.visibility = View.GONE
-            if (adapter.itemCount == 0) {
-                // Toast or View to show "No results found"
-            }
         }
     }
 
-    private suspend fun searchThroughPages(query: String): List<SearchResult> {
-        // Here you would call your mCore.searchPage(index, query)
-        // because this is in Dispatchers.Default, it won't freeze the UI
+    private fun searchThroughPages(query: String): List<SearchResult> {
         return listOf()
     }
 }
