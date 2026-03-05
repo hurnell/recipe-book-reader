@@ -97,6 +97,17 @@ class BookShelfAdapter(
         }
     }
 
+    fun updateCoverForSha(updatedSha: String) {
+        val newList = currentList.map { row ->
+            row.map { item ->
+                if (item != null && item.bookInfo?.sha == updatedSha) {
+                    item.copy(lastModified = System.currentTimeMillis())
+                } else item
+            }
+        }
+        submitList(newList)
+    }
+
     class RowDiffCallback : DiffUtil.ItemCallback<List<FileItem?>>() {
         override fun areItemsTheSame(oldItem: List<FileItem?>, newItem: List<FileItem?>): Boolean {
             val oldId = oldItem.joinToString { it?.file?.absolutePath.toString() }
@@ -110,8 +121,8 @@ class BookShelfAdapter(
         ): Boolean {
             val oldId = oldItem.joinToString { it?.file?.absolutePath.toString() }
             val newId = newItem.joinToString { it?.file?.absolutePath.toString() }
-            val oldLastModified = oldItem.map { it?.file?.lastModified() }.joinToString()
-            val newLastModified = newItem.map { it?.file?.lastModified() }.joinToString()
+            val oldLastModified = oldItem.map { it?.lastModified }.joinToString()
+            val newLastModified = newItem.map { it?.lastModified }.joinToString()
             return oldId == newId && oldLastModified == newLastModified
         }
     }

@@ -164,7 +164,10 @@ class BookShelfActivity : BaseDrawerActivity() {
             lastScrollOffset = 0
         }
     }
-
+    fun updateCoverForShaInAdapter(updatedSha: String) {
+        // Update only items that match this SHA
+       bookRowAdapter.updateCoverForSha(updatedSha)
+    }
     private fun shelfShowBookInfoOverlay(pdfFile: File) {
         showBookInfoOverlay(pdfFile)
     }

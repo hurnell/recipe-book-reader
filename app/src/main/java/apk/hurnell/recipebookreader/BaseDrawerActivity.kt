@@ -165,6 +165,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         if (result.resultCode == RESULT_OK) {
             val updatedSha = result.data?.getStringExtra("updated_sha")
             refreshCoverForSha(updatedSha)
+
         }
     }
 
@@ -399,7 +400,11 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
 
     protected fun refreshCoverForSha(updatedSha: String?) {
         if (updatedSha != null && bookPreviewImage != null) {
+
             setResetPreviewImage(updatedSha, bookPreviewImage!!)
+            if (this is BookShelfActivity) {
+                this.updateCoverForShaInAdapter(updatedSha)
+            }
         }
     }
 
