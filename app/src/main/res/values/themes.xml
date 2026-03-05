@@ -16,5 +16,5 @@
         <item name="colorOnSurface">#000000</item>
     </style>
     <style name="ThemeOverlay.App.DarkAccent" parent="">
-        <item name="colorPrimary">@color/dark_blue</item> </style>
+        <item name="colorPrimary">@color/border_blue</item> </style>
 </resources>

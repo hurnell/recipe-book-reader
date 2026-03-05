@@ -37,7 +37,6 @@ class EveryTocAdapter(
     override fun onBindViewHolder(holder: TocViewHolder, position: Int) {
         holder.bind(getItem(position), onClickTitle, onClickBook, onClickHierarchy, onLongClickTitle, onClickBookmark)
     }
-
     class TocViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val tocText: TextView = itemView.findViewById(R.id.tocText)
         private val bookName: TextView = itemView.findViewById(R.id.bookName)

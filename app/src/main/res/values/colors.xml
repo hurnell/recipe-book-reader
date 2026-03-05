@@ -10,6 +10,7 @@
     <color name="pastel_blue">#FFC6E2E7</color>
     <color name="book_highlight">#FFC0392B</color>
     <color name="dark_blue">#FF111844</color>
+    <color name="border_blue">#FF6c95b0</color>
     <color name="transparent">#00000000</color>
     <color name="links_working">#FF16A085</color>
     <color name="links_off">#FFC0392B</color>

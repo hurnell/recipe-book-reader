@@ -73,5 +73,6 @@
     <string name="search">Search</string>
     <string name="execute_search">Execute Search</string>
     <string name="clear_search">Clear Search</string>
+    <string name="search_text_input">Search</string>
 
 </resources>

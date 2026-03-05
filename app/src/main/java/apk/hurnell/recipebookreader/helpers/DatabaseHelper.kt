@@ -380,6 +380,7 @@ LEFT JOIN categories AS c ON b.category = c.id OR b.sub_category = c.id
 WHERE t.title LIKE ? 
 $categoryFilter
 GROUP BY t.id
+ORDER BY b.name COLLATE NOCASE, t.page
 """.trimIndent()
 
         val cursor = db.rawQuery(sql, selectionArgs)
@@ -1006,7 +1007,7 @@ GROUP BY t.id
             FROM bookmarks AS m
             LEFT JOIN books AS  b
             ON m.book_id_fk = b.id
-            ORDER BY m.page
+            ORDER BY LOWER(b.name), m.page
         """.trimIndent(), null
         )
         val bookmarks = mutableListOf<BookmarkItem>()

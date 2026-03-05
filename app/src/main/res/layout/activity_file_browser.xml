@@ -29,6 +29,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:fillViewport="true"
+                android:background="@color/white"
                 android:scrollbars="none">
 
                 <LinearLayout
@@ -44,6 +45,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:clipToPadding="false"
+                android:background="@color/white"
                 android:padding="8dp" />
         </LinearLayout>
 

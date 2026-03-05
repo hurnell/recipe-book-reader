@@ -57,6 +57,8 @@ import apk.hurnell.recipebookreader.model.BaseTracker
 import apk.hurnell.recipebookreader.model.BookHistoryItem
 import apk.hurnell.recipebookreader.ui.TocFragmentListener
 import com.artifex.mupdf.fitz.Rect
+import kotlin.math.max
+import kotlin.math.min
 
 data class RecipeBookTracker(
     val portrait: Boolean?,
@@ -442,6 +444,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                                     layoutInflater.inflate(R.layout.dialog_bookmark, null)
                                 val editText =
                                     dialogView.findViewById<EditText>(R.id.enterBookmarkText)
+                                editText.setText(text)
                                 val dialog = AlertDialog.Builder(this@RecipeBookActivity)
                                     .setTitle("Create Bookmark $px $py $pagePosition")
                                     .setView(dialogView)
@@ -525,6 +528,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         binding.btnShowToc.setOnClickListener {
             binding.drawerLayout.openDrawer(GravityCompat.START)
             tocFragment.setShowingToc(true)
+            toggleBars(false)
         }
 
         binding.bottomBar.setOnClickListener {
@@ -534,6 +538,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         binding.btnShowBookmarks.setOnClickListener {
             binding.drawerLayout.openDrawer(GravityCompat.START)
             tocFragment.setShowingToc(false)
+            toggleBars(false)
         }
 
         binding.btnCloseApp.setOnClickListener {
@@ -695,8 +700,25 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         currentPage: Int,
         x: Float,
         y: Float
-    ) {
-
+    ): String {
+        if (document == null) {
+            return ""
+        }
+        val page = document.loadPage(currentPage)
+        val structuredText = page.toStructuredText()
+        structuredText.blocks?.forEach { block ->
+            block.lines?.forEach { line ->
+                val bbox = line.bbox
+                val xHit = bbox.x0 <= x && bbox.x1 >= x
+                val yHit = bbox.y0 <= y && bbox.y1 >= y
+                if (xHit && yHit ){
+                    val lineBuilder = StringBuilder()
+                    line.chars?.forEach { char -> lineBuilder.append(char.c.toChar()) }
+                    return lineBuilder.toString().trim()
+                }
+            }
+        }
+        return ""
     }
 
     private fun checkIfTopOfPageClicked(

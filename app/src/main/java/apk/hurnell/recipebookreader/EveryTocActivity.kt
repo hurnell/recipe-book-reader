@@ -21,6 +21,7 @@ import android.content.Context
 import android.util.Log
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
+import androidx.core.widget.addTextChangedListener
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -47,7 +48,6 @@ class EveryTocActivity : BaseDrawerActivity() {
     private lateinit var adapter: EveryTocAdapter
     private lateinit var filterInput: EditText
     private lateinit var resultCountTextView: TextView
-    private lateinit var clearSearch: ImageButton
     private lateinit var searchToc: ImageButton
     private lateinit var recyclerView: RecyclerView
     private var lastScrollPosition = 0
@@ -146,7 +146,6 @@ class EveryTocActivity : BaseDrawerActivity() {
             }
         })
         filterInput = findViewById(R.id.filterInput)
-
         searchToc = findViewById(R.id.searchToc)
         searchToc.setOnClickListener {
             it.hideKeyboard()
@@ -163,20 +162,7 @@ class EveryTocActivity : BaseDrawerActivity() {
             }
         }
         resultCountTextView = findViewById(R.id.resultCountTextView)
-        clearSearch = findViewById(R.id.clearSearch)
         addTextWatcher()
-        clearSearch.setOnClickListener {
-            it.hideKeyboard()
-            filterInput.text.clear()
-            clearSearch.visibility = View.GONE
-            searchToc.visibility = View.GONE
-            currentCount = ""
-            resultCountTextView.text = currentCount
-            adapter.submitList(null)
-            lastScrollPosition = 0
-            lastScrollOffset = 0
-            currentSearchTerm = ""
-        }
         applySavedSettings()
 
     }
@@ -266,13 +252,20 @@ class EveryTocActivity : BaseDrawerActivity() {
                     filterInput.setSelection(selection.coerceAtMost(filtered.length))
                     isUpdating = false
                 }
-                val bv = if (filterInput.text.toString().isEmpty()) View.INVISIBLE else View.VISIBLE
-                clearSearch.visibility = bv
+
+                var bv = View.VISIBLE
+
+                currentSearchTerm = filterInput.text.toString().trim()
+                if (filterInput.text.isNullOrEmpty()){
+                    bv = View.INVISIBLE
+                    adapter.submitList(null)
+                    resultCountTextView.text = ""
+                    currentSearchTerm = ""
+                }
                 searchToc.visibility = bv
                 searchJob?.cancel() // Cancel the previous search if user typed again
                 searchJob = lifecycleScope.launch {
                     delay(300)
-                    currentSearchTerm = filterInput.text.toString().trim()
 
                     if (currentSearchTerm.isNotEmpty()) {
                         val count = withContext(Dispatchers.IO) {
@@ -282,6 +275,8 @@ class EveryTocActivity : BaseDrawerActivity() {
                             ) // Your DB call here
                         }
                         currentCount = "$count"
+                    } else {
+                        currentCount = ""
                     }
                     resultCountTextView.text = currentCount
 
