@@ -50,6 +50,7 @@ import androidx.core.view.updateLayoutParams
 import apk.hurnell.recipebookreader.helpers.Coordinates
 import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.helpers.IsbnFinder
+import apk.hurnell.recipebookreader.model.BaseBookmarkTocItem
 import apk.hurnell.recipebookreader.model.BaseTracker
 import apk.hurnell.recipebookreader.model.BookHistoryItem
 import apk.hurnell.recipebookreader.model.BookmarkItem
@@ -104,9 +105,9 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         binding = ActivityRecipeBookBinding.inflate(layoutInflater)
         setContentView(binding.drawerLayout)
 
-        val tocJson = intent.getStringExtra("TOC_ITEM_JSON")
-        val tocItem = if (tocJson != null) {
-            Gson().fromJson(tocJson, TocItem::class.java)
+        val bookmarkTocJson = intent.getStringExtra("BOOKMARK_TOC_ITEM_JSON")
+        val bookmarkTocItem = if (bookmarkTocJson != null) {
+            Gson().fromJson(bookmarkTocJson, TocItem::class.java)
         } else {
             null
         }
@@ -141,7 +142,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                     return@launch
                 }
                 document = currentDocument
-                onDocumentReady(currentDocument, tocItem, recipeBookTracked)
+                onDocumentReady(currentDocument, bookmarkTocItem, recipeBookTracked)
 
                 val book =
                     repository.getOrCreateBook(pdfFile, pdfFilePath, currentDocument) ?: run {
@@ -330,7 +331,16 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
             )
             binding.bookRecyclerView.post {
                 historyItem.bookId = currentBookId
-                historyItem.offset = binding.bookRecyclerView.computeVerticalScrollOffset()
+                var actualOffset = binding.bookRecyclerView.computeVerticalScrollOffset()
+                if (item.offset != null) {
+                    val requestedOffset = item.offset
+                    val diff = requestedOffset?.minus(actualOffset)
+                    if (diff != 0) {
+                        binding.bookRecyclerView.scrollBy(0, diff!!)
+                    }
+                    actualOffset = requestedOffset
+                }
+                historyItem.offset = actualOffset
                 history = repository.addBookHistoryItem(historyItem)
             }
             binding.drawerLayout.closeDrawer(GravityCompat.START)
@@ -342,7 +352,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     }
 
     private fun onDocumentReady(
-        doc: Document, tocItem: TocItem?, recipeBookTracked: RecipeBookTracker?
+        doc: Document, bookmarkTocItem: BaseBookmarkTocItem?, recipeBookTracked: RecipeBookTracker?
     ) {
         val metrics = resources.displayMetrics
         val horizontalBars = if (::systemBars.isInitialized) systemBars.right else 0
@@ -354,20 +364,32 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         totalPages = doc.countPages()
         binding.pageSeekBar.max = if (totalPages > 0) totalPages - 1 else 0
         var currentPage = 0
-        if (tocItem != null) {
-            currentPage = tocItem.page
+        if (bookmarkTocItem != null) {
+            currentPage = bookmarkTocItem.page
         }
         updatePageText(currentPage, totalPages)
 
         setupRecyclerViewTouchListener()
-        if (tocItem != null) {
-            binding.bookRecyclerView.scrollToPosition(tocItem.page)
-            binding.bookRecyclerView.doOnNextLayout {
-                binding.bookRecyclerView.setScaleFactor(
-                    tocItem.scale.coerceAtMost(3.0f), tocItem.page, tocItem.translate
-                )
-                toggleBars(false)
-                updatePageText(tocItem.page, totalPages)
+        if (bookmarkTocItem != null) {
+            val pinchRv = binding.bookRecyclerView
+            pinchRv.scrollToPosition(bookmarkTocItem.page)
+            binding.bookRecyclerView.setScaleFactor(
+                bookmarkTocItem.scale.coerceAtMost(3.0f),
+                bookmarkTocItem.page,
+                bookmarkTocItem.translate
+            )
+            toggleBars(false)
+            updatePageText(bookmarkTocItem.page, totalPages)
+            if (bookmarkTocItem.offset != null) {
+                binding.bookRecyclerView.post {
+                    val requestedOffset = bookmarkTocItem.offset
+                    val actualOffset = binding.bookRecyclerView.computeVerticalScrollOffset()
+                    val diff = requestedOffset?.minus(actualOffset)
+
+                    if (diff != 0) {
+                        binding.bookRecyclerView.scrollBy(0, diff!!)
+                    }
+                }
             }
         }
 
@@ -440,12 +462,25 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                                 val text = getTextNearClickPoint(
                                     document, pagePosition, px, py
                                 )
+                                val o = pinchRv.computeVerticalScrollOffset()
+                                Log.i("NIGEL_HURNELL", "Offset is $o")
                                 val dialogView =
                                     layoutInflater.inflate(R.layout.dialog_bookmark, null)
                                 val editText =
                                     dialogView.findViewById<TextInputEditText>(R.id.enterBookmarkText)
                                 editText.setText(text)
-
+                                val currentBookmarkItem = BookmarkItem(
+                                    tocId = null,
+                                    bookmarkId = null,
+                                    title = "",
+                                    bookTitle = null,
+                                    bookLocation,
+                                    bookId = currentBookId,
+                                    page = pagePosition,
+                                    offset = pinchRv.computeVerticalScrollOffset(),
+                                    scale = pinchRv.getScaleFactor(),
+                                    translate = pinchRv.getTranslate()
+                                )
                                 val dialog = AlertDialog.Builder(this@RecipeBookActivity)
                                     .setTitle("Create Bookmark")
                                     .setView(dialogView)
@@ -453,19 +488,9 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                                         val bookmarkText = editText.text.toString()
 
                                         if (bookmarkText.isNotBlank()) {
+                                            currentBookmarkItem.title = bookmarkText
                                             saveBookmark(
-                                                BookmarkItem(
-                                                    tocId = null,
-                                                    bookmarkId = null,
-                                                    title = bookmarkText,
-                                                    bookTitle = null,
-                                                    bookLocation,
-                                                    bookId = currentBookId,
-                                                    page = pagePosition,
-                                                    offset = binding.bookRecyclerView.computeVerticalScrollOffset(),
-                                                    scale = binding.bookRecyclerView.getScaleFactor(),
-                                                    translate = binding.bookRecyclerView.getTranslate()
-                                                )
+                                                currentBookmarkItem
                                             )
                                         } else {
                                             Toast.makeText(
@@ -484,6 +509,9 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                                 dialog.window?.setLayout(
                                     (resources.displayMetrics.widthPixels * 0.9).toInt(), // 90% of screen width
                                     ViewGroup.LayoutParams.WRAP_CONTENT // height wraps content
+                                )
+                                dialog.window?.setSoftInputMode(
+                                    android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN
                                 )
                             } else if (!checkIfTopOfPageClicked(
                                     currentDoc, pinchRv, px, py, pageWidth, pagePosition
