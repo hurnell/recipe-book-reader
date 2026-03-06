@@ -71,7 +71,7 @@ class TocFragment : Fragment() {
         val tocItem = toolbar.menu.findItem(R.id.action_show_toc)!!
         val bookmarkItem = toolbar.menu.findItem(R.id.action_show_bookmarks)!!
         tocItem.isVisible = !showToc
-        bookmarkItem.isVisible = showToc
+        bookmarkItem.isVisible = showToc && !bookmarkData.isEmpty()
         tocSearchBar.visibility = if (showToc) View.VISIBLE else View.GONE
         tocRecyclerView.visibility = if (showToc) View.VISIBLE else View.GONE
         bookmarkRecyclerView.visibility = if (showToc) View.GONE else View.VISIBLE
@@ -234,7 +234,7 @@ class TocFragment : Fragment() {
             bookmarkAdapter?.updateData(bookmarkData)
             listener?.onBookmarkDataReloaded(bookmarkData.isEmpty())
             val bookmarkItem = toolbar.menu.findItem(R.id.action_show_bookmarks)!!
-            bookmarkItem.isVisible = !bookmarkData.isEmpty()
+            bookmarkItem.isVisible = bookmarkData.isNotEmpty()
             if (!fromToc && bookmarkData.isEmpty()) {
                 toggleVisibleChoices(true)
             }
