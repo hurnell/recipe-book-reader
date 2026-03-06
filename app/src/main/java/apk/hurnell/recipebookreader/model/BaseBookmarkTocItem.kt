@@ -6,6 +6,7 @@ interface  BaseBookmarkTocItem {
      val bookTitle: String?
      val bookLocation: String?
      val page: Int
+     val offset: Int?
      val scale: Float
      val translate: Float
 }
