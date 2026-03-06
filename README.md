@@ -15,3 +15,8 @@ Physical Resolution: 1080×2340 pixels.
 Viewport Size (dp): 360×780 dp.
 
 Density Bucket: xxhdpi (~425-480 ppi).
+
+
+```shell
+adb shell ime reset
+```
