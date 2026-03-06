@@ -841,7 +841,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         linkState = (linkState + 1) % 3
         when (linkState) {
             0 -> {
-                val color = ContextCompat.getColor(this, R.color.links_working)
+                val color = ContextCompat.getColor(this, R.color.nav_text)
                 binding.stopLinks.imageTintList = ColorStateList.valueOf(color)
                 binding.stopLinks.setImageResource(R.drawable.ic_link_on)
             }
@@ -853,7 +853,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
             }
 
             else -> {
-                val colorOff = ContextCompat.getColor(this, R.color.links_working)
+                val colorOff = ContextCompat.getColor(this, R.color.nav_text)
                 binding.stopLinks.imageTintList = ColorStateList.valueOf(colorOff)
                 binding.stopLinks.setImageResource(R.drawable.ic_bookmark_open)
             }

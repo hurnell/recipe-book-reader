@@ -205,7 +205,7 @@
             app:layout_constraintEnd_toStartOf="@+id/zoomIt"
             app:maxImageSize="18dp"
             app:srcCompat="@drawable/ic_link_on"
-            app:tint="@color/links_working"
+            app:tint="@color/nav_text"
             tools:ignore="AccessibilityClassName" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
