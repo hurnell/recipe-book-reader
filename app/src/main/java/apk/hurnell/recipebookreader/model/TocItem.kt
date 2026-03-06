@@ -9,6 +9,7 @@ data class TocItem(
     val title: String,
     val hierarchy: String? = null,
     override val page: Int,
+    override val offset: Int? = null,
     val level: Int,
     val bookmarkId: Int? = null,
     override val scale: Float = 1f,
