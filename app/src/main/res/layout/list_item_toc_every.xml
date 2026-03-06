@@ -26,6 +26,7 @@
             android:singleLine="true"
             android:text="@string/table_of_contents_text"
             android:textSize="16sp"
+            android:textColor="@color/almost_black"
             app:layout_constraintBottom_toTopOf="@+id/bookName"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -39,7 +40,8 @@
             android:src="@drawable/ic_bookmark_open"
             app:layout_constraintBottom_toBottomOf="@+id/bookName"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="@+id/bookName" />
+            app:layout_constraintTop_toTopOf="@+id/bookName"
+            app:tint="@color/almost_black" />
 
         <TextView
             android:id="@+id/bookName"
@@ -50,6 +52,7 @@
             android:padding="5dp"
             android:singleLine="true"
             android:text="@string/name_of_the_book"
+            android:textColor="@color/almost_black"
             android:textSize="16sp"
             app:layout_constraintBottom_toTopOf="@+id/hierarchy"
             app:layout_constraintEnd_toEndOf="parent"
@@ -65,6 +68,7 @@
             android:singleLine="true"
             android:text="@string/indication_of_toc_item_hierarchy"
             android:textSize="16sp"
+            android:textColor="@color/almost_black"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent" />

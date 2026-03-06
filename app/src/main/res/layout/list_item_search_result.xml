@@ -19,7 +19,7 @@
             android:id="@+id/txtPageNumber"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Page 12"
+            android:text="@string/page_12"
             android:textColor="?attr/colorPrimary"
             android:textSize="12sp"
             android:textStyle="bold" />
@@ -31,7 +31,7 @@
             android:layout_marginTop="4dp"
             android:ellipsize="end"
             android:maxLines="3"
-            android:text="...add 2 cups of flour and mix until smooth..."
+            android:text="@string/placeholder_for_search_book_text_item"
             android:textColor="?attr/colorOnSurface"
             android:textSize="14sp" />
     </LinearLayout>
