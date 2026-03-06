@@ -949,17 +949,19 @@ ORDER BY b.name COLLATE NOCASE, t.page
         val uniqueKey = "$bookIdStr|${item.title}|${item.page}|${item.offset}"
         val insertSql = """
         INSERT OR IGNORE INTO bookmarks 
-        (book_id_fk, title, page,  scale, translate, unique_key)
-        VALUES (?, ?, ?, ?, ?, ?)
+        (book_id_fk, title, page, `offset`,  scale, translate, unique_key)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
     """.trimIndent()
+
 
         val rowId = db.compileStatement(insertSql).use { stmt ->
             if (item.bookId != null) stmt.bindLong(1, item.bookId) else stmt.bindNull(1)
             stmt.bindString(2, item.title)
             stmt.bindLong(3, item.page.toLong())
-            stmt.bindDouble(4, item.scale.toDouble())
-            stmt.bindDouble(5, item.translate.toDouble())
-            stmt.bindString(6, uniqueKey)
+            if (item.offset != null) stmt.bindLong(4, item.offset.toLong()) else stmt.bindNull(4)
+            stmt.bindDouble(5, item.scale.toDouble())
+            stmt.bindDouble(6, item.translate.toDouble())
+            stmt.bindString(7, uniqueKey)
 
             stmt.executeInsert()
         }
