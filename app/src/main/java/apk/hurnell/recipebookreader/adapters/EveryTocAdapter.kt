@@ -29,7 +29,7 @@ class EveryTocAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TocViewHolder {
         val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.every_toc_item, parent, false)
+            .inflate(R.layout.list_item_toc_every, parent, false)
         return TocViewHolder(view)
     }
 

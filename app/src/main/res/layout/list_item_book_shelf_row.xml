@@ -10,7 +10,7 @@
 
     <include
         android:id="@+id/book1"
-        layout="@layout/book_shelf_item"
+        layout="@layout/list_item_book_shelf_item"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         app:layout_constraintEnd_toStartOf="@+id/book2"
@@ -20,7 +20,7 @@
 
     <include
         android:id="@+id/book2"
-        layout="@layout/book_shelf_item"
+        layout="@layout/list_item_book_shelf_item"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         app:layout_constraintEnd_toStartOf="@+id/book3"
@@ -29,7 +29,7 @@
 
     <include
         android:id="@+id/book3"
-        layout="@layout/book_shelf_item"
+        layout="@layout/list_item_book_shelf_item"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         app:layout_constraintEnd_toEndOf="parent"

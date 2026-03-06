@@ -106,8 +106,8 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
 
         categories = set.toMutableList()
 
-        val adapter = ArrayAdapter(this, R.layout.spinner_item, categories)
-        adapter.setDropDownViewResource(R.layout.spinner_item)
+        val adapter = ArrayAdapter(this, R.layout.list_item_spinner_item, categories)
+        adapter.setDropDownViewResource(R.layout.list_item_spinner_item)
         spinner.adapter = adapter
     }
 

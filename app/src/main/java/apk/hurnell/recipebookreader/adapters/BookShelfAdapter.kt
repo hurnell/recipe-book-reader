@@ -21,7 +21,7 @@ class BookShelfAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RowViewHolder {
         val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.book_shelf_row, parent, false)
+            .inflate(R.layout.list_item_book_shelf_row, parent, false)
         return RowViewHolder(view)
     }
 

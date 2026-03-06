@@ -68,7 +68,8 @@
                 android:layout_height="match_parent"
                 android:layout_marginEnd="16dp"
                 android:contentDescription="@string/recently_viewed_books"
-                android:src="@drawable/ic_recent_files" />
+                android:src="@drawable/ic_recent_files"
+                app:tint="@color/icon_tint" />
 
             <Button
                 android:id="@+id/btnRecentBooks"
@@ -78,7 +79,7 @@
                 android:gravity="start|center_vertical"
                 android:text="@string/recent_books"
                 android:textAllCaps="false"
-                android:textColor="@color/almost_black" />
+                android:textColor="@color/dark_text" />
         </LinearLayout>
 
         <View
@@ -97,7 +98,8 @@
                 android:layout_height="match_parent"
                 android:layout_marginEnd="16dp"
                 android:contentDescription="@string/book_shelf_description"
-                android:src="@drawable/ic_book_shelf" />
+                android:src="@drawable/ic_book_shelf"
+                app:tint="@color/icon_tint" />
 
             <Button
                 android:id="@+id/btnBookShelf"
@@ -107,7 +109,7 @@
                 android:gravity="start|center_vertical"
                 android:text="@string/book_shelf"
                 android:textAllCaps="false"
-                android:textColor="@color/almost_black" />
+                android:textColor="@color/dark_text" />
         </LinearLayout>
 
         <View
@@ -126,7 +128,8 @@
                 android:layout_height="match_parent"
                 android:layout_marginEnd="16dp"
                 android:contentDescription="@string/open_file_browser"
-                android:src="@drawable/ic_book_browser" />
+                android:src="@drawable/ic_book_browser"
+                app:tint="@color/icon_tint" />
 
             <Button
                 android:id="@+id/btnBrowseFiles"
@@ -136,7 +139,7 @@
                 android:gravity="start|center_vertical"
                 android:text="@string/browse_files"
                 android:textAllCaps="false"
-                android:textColor="@color/almost_black" />
+                android:textColor="@color/dark_text" />
         </LinearLayout>
 
         <View
@@ -155,7 +158,8 @@
                 android:layout_height="match_parent"
                 android:layout_marginEnd="16dp"
                 android:contentDescription="@string/open_file_browser"
-                android:src="@drawable/ic_toc_svg" />
+                android:src="@drawable/ic_toc_svg"
+                app:tint="@color/icon_tint"/>
 
             <Button
                 android:id="@+id/btnSearchEveryToc"
@@ -165,7 +169,7 @@
                 android:gravity="start|center_vertical"
                 android:text="@string/search_tables_of_contents"
                 android:textAllCaps="false"
-                android:textColor="@color/almost_black" />
+                android:textColor="@color/dark_text" />
         </LinearLayout>
 
         <View
@@ -184,7 +188,8 @@
                 android:layout_height="match_parent"
                 android:layout_marginEnd="16dp"
                 android:contentDescription="@string/open_file_browser"
-                android:src="@drawable/ic_bookmark_open" />
+                android:src="@drawable/ic_bookmark_open"
+                app:tint="@color/icon_tint" />
 
             <Button
                 android:id="@+id/btnBookmarks"
@@ -194,7 +199,7 @@
                 android:gravity="start|center_vertical"
                 android:text="@string/bookmarks"
                 android:textAllCaps="false"
-                android:textColor="@color/almost_black" />
+                android:textColor="@color/dark_text" />
         </LinearLayout>
 
     </LinearLayout>

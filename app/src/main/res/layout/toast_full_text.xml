@@ -13,5 +13,6 @@
         android:textSize="16sp"
         android:maxLines="20"
         android:ellipsize="none"
+        android:text="@string/placeholder_toast_full_text"
         android:scrollHorizontally="false" />
 </LinearLayout>

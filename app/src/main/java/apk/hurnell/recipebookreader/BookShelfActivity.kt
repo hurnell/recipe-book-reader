@@ -50,7 +50,7 @@ class BookShelfActivity : BaseDrawerActivity() {
             }
 
             override fun onNothingSelected(parent: AdapterView<*>) {
-                populateShelf("All")
+                populateShelf(currentCategory)
             }
         }
 
@@ -97,7 +97,8 @@ class BookShelfActivity : BaseDrawerActivity() {
 
     override fun refreshFilesAndUI() {
         populateShelf(currentCategory)
-        refreshCategories()
+        val position = categories.indexOf(currentCategory)
+        spinner.setSelection(position)
     }
 
     private fun trackRecyclerViewOffset() {
@@ -119,7 +120,7 @@ class BookShelfActivity : BaseDrawerActivity() {
     private fun populateShelf(category: String, acceptZero: Boolean = true) {
         val categoryChanged = currentCategory != category
         currentCategory = category
-        val allBooks: List<FileItem> = getBookShelfBooks()
+        val allBooks: List<FileItem> = getBookShelfBooks(category)
 
         val filteredBooks = if (category == "All") {
             allBooks
@@ -172,8 +173,8 @@ class BookShelfActivity : BaseDrawerActivity() {
         showBookInfoOverlay(pdfFile)
     }
 
-    private fun getBookShelfBooks(): List<FileItem> {
-        return repository.getBookShelfBooks()
+    private fun getBookShelfBooks(category: String): List<FileItem> {
+        return repository.getBookShelfBooks(category)
     }
 
     override fun onPause() {

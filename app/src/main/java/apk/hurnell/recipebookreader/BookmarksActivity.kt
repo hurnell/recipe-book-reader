@@ -3,6 +3,7 @@ package apk.hurnell.recipebookreader
 import android.app.AlertDialog
 import android.os.Bundle
 import android.view.View
+import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.TextView
 import android.widget.Toast
@@ -16,6 +17,7 @@ import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.model.BaseTracker
 import apk.hurnell.recipebookreader.model.BookmarkItem
 import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.io.File
@@ -81,6 +83,8 @@ class BookmarksActivity : BaseDrawerActivity() {
             }
         }, onDeleteClick = { item ->
             checkDeleteBookmark(item)
+        }, onEditClick = { item ->
+            editBookmark(item)
         }, onLongClick = { item ->
             displayClickResult(item.title, rootLayout)
         })
@@ -95,6 +99,51 @@ class BookmarksActivity : BaseDrawerActivity() {
             snackBar.view.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)
         textView.maxLines = 5
         snackBar.show()
+    }
+
+    private fun editBookmark(item: BookmarkItem) {
+        val dialogView =
+            layoutInflater.inflate(R.layout.dialog_bookmark, null)
+        val editText =
+            dialogView.findViewById<TextInputEditText>(R.id.enterBookmarkText)
+        editText.setText(item.title)
+        val dialog = AlertDialog.Builder(this@BookmarksActivity)
+            .setTitle("Update Bookmark")
+            .setView(dialogView)
+            .setPositiveButton("Update") { _, _ ->
+                val bookmarkText = editText.text.toString()
+
+                if (bookmarkText.isNotBlank()) {
+                    item.title = bookmarkText
+                    completeBookmarkEdit(
+                        item
+                    )
+                } else {
+                    Toast.makeText(
+                        this@BookmarksActivity,
+                        "Name cannot be empty",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+            .setNegativeButton("Cancel") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .create()
+
+        dialog.show()
+        dialog.window?.setLayout(
+            (resources.displayMetrics.widthPixels * 0.9).toInt(), // 90% of screen width
+            ViewGroup.LayoutParams.WRAP_CONTENT // height wraps content
+        )
+        dialog.window?.setSoftInputMode(
+            android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN
+        )
+    }
+
+    private fun completeBookmarkEdit(item: BookmarkItem){
+        val bookmarks = repository.updateBookmark(item, currentCategory)
+        bookmarkAdapter.submitList(bookmarks)
     }
 
     private fun checkDeleteBookmark(item: BookmarkItem) {

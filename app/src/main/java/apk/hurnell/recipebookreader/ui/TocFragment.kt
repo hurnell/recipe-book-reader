@@ -28,6 +28,7 @@ import kotlinx.coroutines.withContext
 import apk.hurnell.recipebookreader.model.TocItem
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.textfield.TextInputEditText
 
 class TocFragment : Fragment() {
     private lateinit var tocRecyclerView: RecyclerView
@@ -102,8 +103,7 @@ class TocFragment : Fragment() {
         bookmarkRecyclerView = view.findViewById(R.id.bookmarkRecyclerView)
         tocFragmentRootLayout = view.findViewById(R.id.tocFragmentRootLayout)
         tocSearchBar = view.findViewById(R.id.tocSearchBar)
-        val searchField = view.findViewById<EditText>(R.id.searchField)
-        val btnClear = view.findViewById<ImageButton>(R.id.btnClear)
+        val searchField = view.findViewById<TextInputEditText>(R.id.searchField)
         val btnToggle = view.findViewById<ImageButton>(R.id.btnToggle)
 
         tocRecyclerView.layoutManager = LinearLayoutManager(requireContext())
@@ -122,17 +122,10 @@ class TocFragment : Fragment() {
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 adapter?.filter(s.toString())
                 tocRecyclerView.scrollToPosition(0)
-                btnClear.visibility = if (s.isNullOrEmpty()) View.GONE else View.VISIBLE
             }
 
             override fun afterTextChanged(s: Editable?) {}
         })
-
-        btnClear.setOnClickListener {
-            searchField.text.clear()
-            hideKeyboard()
-            searchField.clearFocus()
-        }
         return view
     }
 

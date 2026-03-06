@@ -3,7 +3,7 @@ package apk.hurnell.recipebookreader.adapters
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import apk.hurnell.recipebookreader.databinding.ItemSearchResultBinding
+import apk.hurnell.recipebookreader.databinding.ListItemSearchResultBinding
 import apk.hurnell.recipebookreader.helpers.SearchResult
 import  apk.hurnell.recipebookreader.R
 
@@ -25,7 +25,7 @@ class SearchAdapter(private val onResultClick: (SearchResult) -> Unit) :
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding =
-            ItemSearchResultBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+            ListItemSearchResultBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         return ViewHolder(binding)
     }
 
@@ -39,5 +39,5 @@ class SearchAdapter(private val onResultClick: (SearchResult) -> Unit) :
 
     override fun getItemCount() = results.size
 
-    class ViewHolder(val binding: ItemSearchResultBinding) : RecyclerView.ViewHolder(binding.root)
+    class ViewHolder(val binding: ListItemSearchResultBinding) : RecyclerView.ViewHolder(binding.root)
 }

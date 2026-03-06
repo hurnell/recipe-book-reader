@@ -13,6 +13,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.widget.Toolbar
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
@@ -310,12 +311,17 @@ class FileBrowserActivity : BaseDrawerActivity() {
             val textView = TextView(this).apply {
                 text = if (file.absolutePath == rootDir.absolutePath) "Root" else file.name
                 setPadding(16, 8, 16, 8)
+                setTextColor(ContextCompat.getColor(context, R.color.dark_text))
                 setOnClickListener { if (file != currentDir) showFiles(file) }
             }
             breadcrumbLayout.addView(textView)
 
             if (index != pathList.lastIndex) {
-                breadcrumbLayout.addView(TextView(this).apply { text = ">" })
+                val pointer = TextView(this).apply {
+                    text = ">"
+                    setTextColor(ContextCompat.getColor(context, R.color.dark_text))
+                }
+                breadcrumbLayout.addView(pointer)
             }
         }
         breadcrumbScroll.post { breadcrumbScroll.fullScroll(HorizontalScrollView.FOCUS_RIGHT) }

@@ -2,6 +2,7 @@
 <com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="12dp"
@@ -35,8 +36,9 @@
             android:layout_weight="1"
             android:ellipsize="end"
             android:maxLines="1"
+            android:text="@string/placeholder_for_all_bookmark_title"
             android:padding="5dp"
-            android:textColor="@color/almost_black"
+            android:textColor="@color/dark_text"
             android:textSize="16sp" />
 
 
@@ -44,25 +46,27 @@
             android:id="@+id/editBookmark"
             android:layout_width="24dp"
             android:layout_height="24dp"
+            android:layout_marginVertical="8dp"
+            android:layout_marginStart="8dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/button_to_delete_bookmark"
             android:padding="12dp"
-            android:layout_marginVertical="8dp"
-            android:layout_marginStart="8dp"
-            app:tint="@color/pastel_blue"
-            android:src="@drawable/ic_edit" />
+            android:src="@drawable/ic_edit"
+            app:tint="@color/icon_tint"
+            tools:ignore="TouchTargetSizeCheck,ImageContrastCheck" />
 
 
         <ImageButton
             android:id="@+id/deleteBookmark"
             android:layout_width="24dp"
             android:layout_height="24dp"
+            android:layout_margin="8dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/button_to_edit_bookmark"
             android:padding="12dp"
-            android:layout_margin="8dp"
-            app:tint="@color/pastel_blue"
-            android:src="@drawable/ic_bookmark_closed" />
+            android:src="@drawable/ic_bookmark_closed"
+            app:tint="@color/icon_tint"
+            tools:ignore="TouchTargetSizeCheck,ImageContrastCheck" />
 
     </LinearLayout>
     <LinearLayout
@@ -82,10 +86,10 @@
             android:layout_height="wrap_content"
             android:ellipsize="end"
             android:layout_weight="1"
-
+            android:text="@string/placeholder_list_item_bookmark_all_title"
             android:padding="8dp"
             android:maxLines="1"
-            android:textColor="@color/almost_black"
+            android:textColor="@color/dark_text"
             android:textSize="14sp" />
 
         <TextView
@@ -98,7 +102,7 @@
             android:text="@string/placeholder_for_bookmark_page"
 
             android:layout_marginStart="8dp"
-            android:textColor="@color/pastel_blue"
+            android:textColor="@color/dark_text"
             android:textSize="16sp" />
 
     </LinearLayout>

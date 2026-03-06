@@ -14,6 +14,7 @@ import apk.hurnell.recipebookreader.model.BookmarkItem
 class AllBookmarkAdapter(
     private val onClick: (BookmarkItem) -> Unit,
     private val onDeleteClick: (BookmarkItem) -> Unit,
+    private val onEditClick: (BookmarkItem) -> Unit,
     private val onLongClick: (BookmarkItem) -> Unit,
 ) : ListAdapter<BookmarkItem, AllBookmarkAdapter.BookmarkViewHolder>(AllBookmarksDiffCallback) {
 
@@ -21,22 +22,30 @@ class AllBookmarkAdapter(
         val bookmarkTitle: TextView = view.findViewById(R.id.bookmarkTitle)
         val bookmarkPage: TextView = view.findViewById(R.id.bookmarkPage)
         val deleteBookmarkIcon: ImageButton = view.findViewById(R.id.deleteBookmark)
+        val editBookmarkIcon: ImageButton = view.findViewById(R.id.editBookmark)
         val bookmarkBookTitle: TextView = view.findViewById(R.id.bookmarkBookTitle)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BookmarkViewHolder {
         val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.list_item_all_bookmark, parent, false)
+            .inflate(R.layout.list_item_bookmark_all, parent, false)
         return BookmarkViewHolder(view)
     }
 
-    override fun onBindViewHolder(holder: BookmarkViewHolder, position: Int) {
+    override fun onBindViewHolder(
+        holder: BookmarkViewHolder,
+        position: Int
+    ) {
         val item = getItem(position)
         holder.bookmarkTitle.text = item.title
         holder.bookmarkPage.text = item.page.toString()
         holder.bookmarkBookTitle.text = item.bookTitle
         holder.bookmarkTitle.setOnClickListener { onClick(item) }
         holder.deleteBookmarkIcon.setOnClickListener { onDeleteClick(item) }
+        holder.editBookmarkIcon.setOnClickListener {
+            item.position = position
+            onEditClick(item)
+        }
         holder.bookmarkTitle.setOnLongClickListener {
             onLongClick.invoke(item)
             true

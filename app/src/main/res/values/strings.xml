@@ -5,7 +5,7 @@
     <string name="show_table_of_contents">show table of contents</string>
     <string name="expand">Expand Toc Level</string>
     <string name="file_icon">File Icon</string>
-    <string name="file_name">File name</string>
+    <string name="file_name">Place holder for file name</string>
     <string name="file_browser">File Browser</string>
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
@@ -76,5 +76,15 @@
     <string name="search_text_input">Search</string>
     <string name="button_to_close_drawer">Button to close drawer</string>
     <string name="page_number">Page %1$d</string>
+    <string name="page_12">Page 12</string>
+    <string name="placeholder_for_search_book_text_item">…add 2 cups of flour and mix until smooth…</string>
+    <string name="button_to_delete_bookmark">Delete bookmark</string>
+    <string name="button_to_edit_bookmark">Edit bookmark</string>
+    <string name="placeholder_for_bookmark_page">146</string>
+    <string name="placeholder_for_all_bookmark_title">Placeholder bookmark list item bookmark all</string>
+    <string name="placeholder_list_item_bookmark_all_title">Placeholder for book title list item bookmark all</string>
+    <string name="placeholder_for_list_item_toc_title">Placeholder for list item toc title</string>
+    <string name="placeholder_toast_full_text">Placeholder toast full text</string>
+    <string name="placeholder_for_editable_text">Placeholder for editable text</string>
 
 </resources>

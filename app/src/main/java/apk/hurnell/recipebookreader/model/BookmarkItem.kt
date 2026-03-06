@@ -10,5 +10,6 @@ data class BookmarkItem(
     override val page: Int,
     override val offset: Int? = null,
     override val scale: Float = 1f,
-    override val translate: Float = 0f
+    override val translate: Float = 0f,
+    var position: Int? = null
 ): BaseBookmarkTocItem

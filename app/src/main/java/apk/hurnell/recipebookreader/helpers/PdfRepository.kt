@@ -94,8 +94,8 @@ class PdfRepository(
         return dbHelper.getUsedCategories(activityName)
     }
 
-    fun getBookShelfBooks(): List<FileItem> {
-        return dbHelper.getBookShelfBooks()
+    fun getBookShelfBooks(category: String): List<FileItem> {
+        return dbHelper.getBookShelfBooks(category)
     }
 
     fun getFilteredEveryToc(currentText: String, currentCategory: String): MutableList<TocItem> {
@@ -118,6 +118,9 @@ class PdfRepository(
 
     fun createBookmark(item: BookmarkItem): Boolean {
         return dbHelper.createBookmark(item)
+    }
+    fun updateBookmark(item: BookmarkItem, currentCategory: String): List<BookmarkItem>  {
+        return dbHelper.updateBookmark(item, currentCategory)
     }
 
     fun deleteBookmark(item: BookmarkItem): Boolean {

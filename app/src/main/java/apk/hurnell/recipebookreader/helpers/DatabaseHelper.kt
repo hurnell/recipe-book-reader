@@ -698,9 +698,16 @@ ORDER BY b.name COLLATE NOCASE, t.page
         }
     }
 
-    fun getBookShelfBooks(): List<FileItem> {
+    fun getBookShelfBooks(currentCategory: String): List<FileItem> {
         val db = readableDatabase
         val list = mutableListOf<FileItem>()
+
+        val selectionArgs = if (currentCategory == "All") {
+            null
+        } else {
+            arrayOf(currentCategory, currentCategory)
+        }
+        val categoryFilter = if (currentCategory == "All") "" else "WHERE c.category = ? OR sc.category = ?"
         val sql = """
             SELECT DISTINCT b.sha AS book_sha, b.name AS book_name, c.category AS main_category, sc.category AS sub_category , b.location as book_location, b.author as author_name
             FROM  books AS b
@@ -708,10 +715,11 @@ ORDER BY b.name COLLATE NOCASE, t.page
             ON c.id = b.category
             LEFT JOIN  categories AS sc
             ON sc.id = b.sub_category
+            $categoryFilter
             ORDER BY (b.sub_category IS NULL) ASC, b.sub_category ASC, (b.category  IS NULL) ASC, b.category  ASC, b.author;
         """.trimIndent()
         val cursor = db.rawQuery(
-            sql, null
+            sql, selectionArgs
         )
         cursor.use { cursor ->
             while (cursor.moveToNext()) {
@@ -973,6 +981,15 @@ ORDER BY b.name COLLATE NOCASE, t.page
             db.update("toc", values, "id = ?", arrayOf(item.tocId.toString()))
         }
         return success
+    }
+
+    fun updateBookmark(item: BookmarkItem, currentCategory: String): List<BookmarkItem>  {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put("title", item.title)
+        }
+        db.update("bookmarks", values, "id = ?", arrayOf(item.bookmarkId.toString()))
+        return getAllBookmarks(currentCategory)
     }
 
     fun deleteBookmark(item: BookmarkItem): Boolean {
