@@ -997,20 +997,16 @@ ORDER BY b.name COLLATE NOCASE, t.page
         db.beginTransaction()
 
         return try {
-            val deletedRows = db.delete(
+            db.delete(
                 "bookmarks", "id = ?", arrayOf(item.bookmarkId.toString())
             )
 
-            if (deletedRows > 0) {
-                db.execSQL(
-                    "UPDATE toc SET bookmark_id = NULL WHERE id = ?", arrayOf(item.tocId)
-                )
+            db.execSQL(
+                "UPDATE toc SET bookmark_id = NULL WHERE id = ?", arrayOf(item.tocId)
+            )
 
-                db.setTransactionSuccessful()
-                true
-            } else {
-                false
-            }
+            db.setTransactionSuccessful()
+            true
         } catch (e: Exception) {
             e.printStackTrace()
             false
