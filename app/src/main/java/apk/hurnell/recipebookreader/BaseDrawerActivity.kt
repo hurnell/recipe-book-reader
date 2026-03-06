@@ -111,19 +111,19 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         spinner.adapter = adapter
     }
 
-    protected fun processAndOpenBook(pdfFile: File, tocItem: BaseBookmarkTocItem? = null, recipeBookState: RecipeBookTracker? = null ) {
+    protected fun processAndOpenBook(pdfFile: File, bookmarkTocItem: BaseBookmarkTocItem? = null, recipeBookState: RecipeBookTracker? = null ) {
         loadingOverlay.visibility = View.VISIBLE
 
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val tocJson = tocItem?.let { Gson().toJson(it) }
+                val bookmarkTocJson = bookmarkTocItem?.let { Gson().toJson(it) }
                 withContext(Dispatchers.Main) {
                     loadingOverlay.visibility = View.GONE
                     val intent =
                         Intent(this@BaseDrawerActivity, RecipeBookActivity::class.java).apply {
                             putExtra("PDF_PATH", pdfFile.absolutePath)
-                            if (tocJson != null) {
-                                putExtra("TOC_ITEM_JSON", tocJson)
+                            if (bookmarkTocJson != null) {
+                                putExtra("BOOKMARK_TOC_ITEM_JSON", bookmarkTocJson)
                             }
                         }
                     startActivity(intent)
