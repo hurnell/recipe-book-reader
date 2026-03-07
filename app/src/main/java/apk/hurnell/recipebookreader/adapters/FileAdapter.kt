@@ -2,10 +2,8 @@ package apk.hurnell.recipebookreader.adapters
 
 import android.graphics.BitmapFactory
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
-import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -14,6 +12,7 @@ import apk.hurnell.recipebookreader.R
 import apk.hurnell.recipebookreader.helpers.PdfRepository
 import apk.hurnell.recipebookreader.model.BookInfo
 import apk.hurnell.recipebookreader.model.FileItem
+import apk.hurnell.recipebookreader.databinding.ListItemFileBinding
 import kotlin.io.extension
 
 
@@ -25,19 +24,15 @@ class FileAdapter(
 ) : ListAdapter<FileItem, FileAdapter.FileViewHolder>(DiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FileViewHolder {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.list_item_file, parent, false)
-        return FileViewHolder(view)
+        val binding = ListItemFileBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        return FileViewHolder(binding)
     }
 
     override fun onBindViewHolder(holder: FileViewHolder, position: Int) {
         holder.bind(getItem(position), onClick, onLongClick, repository, pdfOnly)
     }
 
-    class FileViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        private val fileIcon: ImageView = itemView.findViewById(R.id.fileIcon)
-        private val fileName: TextView = itemView.findViewById(R.id.fileName)
-        private val innerCount: TextView = itemView.findViewById(R.id.innerCount)
+    class FileViewHolder(val binding: ListItemFileBinding) : RecyclerView.ViewHolder(binding.root) {
 
         fun updateIconLayout(fileIcon: ImageView, hasCover: Boolean) {
             val layoutParams = fileIcon.layoutParams
@@ -83,7 +78,7 @@ class FileAdapter(
             repository: PdfRepository,
             pdfOnly: Boolean
         ) {
-            fileName.text = item.displayName
+            binding.fileName.text = item.displayName
 
             val countText = if (item.file.isDirectory) {
                 val children = item.file.listFiles()?.filter { child ->
@@ -95,30 +90,30 @@ class FileAdapter(
                 ""
             }
             var bookInfo: BookInfo? = null
-            innerCount.text = countText
+            binding.innerCount.text = countText
             if (!item.file.isDirectory) {
                 bookInfo = repository.getBookInfoForItemPath(item.file.path)
             }
             if (item.file.isDirectory) {
-                updateIconLayout(fileIcon, false)
-                fileIcon.setImageResource(R.drawable.ic_folder)
+                updateIconLayout(binding.fileIcon, false)
+                binding.fileIcon.setImageResource(R.drawable.ic_folder)
             } else if (bookInfo == null) {
-                updateIconLayout(fileIcon, false)
+                updateIconLayout(binding.fileIcon, false)
 
-                fileIcon.setImageResource(getIconResource(item.file))
+                binding.fileIcon.setImageResource(getIconResource(item.file))
             } else {
-                fileName.text = bookInfo.name
+                binding.fileName.text = bookInfo.name
                 bookInfo.let { info ->
                     val thumbnailFile = File(itemView.context.filesDir, "${info.sha}.png")
 
                     if (thumbnailFile.exists()) {
                         val bitmap = BitmapFactory.decodeFile(thumbnailFile.absolutePath)
 
-                        fileIcon.setImageBitmap(bitmap)
-                        updateIconLayout(fileIcon, true)
+                        binding.fileIcon.setImageBitmap(bitmap)
+                        updateIconLayout(binding.fileIcon, true)
 
                     } else {
-                        fileIcon.setImageResource(R.drawable.ic_pdf_file)
+                        binding.fileIcon.setImageResource(R.drawable.ic_pdf_file)
                     }
                 }
             }

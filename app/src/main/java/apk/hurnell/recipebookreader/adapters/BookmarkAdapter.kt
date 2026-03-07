@@ -1,12 +1,9 @@
 package apk.hurnell.recipebookreader.adapters
 
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageButton
-import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import apk.hurnell.recipebookreader.R
+import apk.hurnell.recipebookreader.databinding.ListItemBookmarkBinding
 import apk.hurnell.recipebookreader.model.BookmarkItem
 
 class BookmarkAdapter(
@@ -16,16 +13,13 @@ class BookmarkAdapter(
     private val onLongClick: (BookmarkItem) -> Unit
 ) : RecyclerView.Adapter<BookmarkAdapter.BookmarkViewHolder>() {
 
-    class BookmarkViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val bookmarkTitle: TextView = view.findViewById(R.id.bookmarkTitle)
-        val bookmarkPage: TextView = view.findViewById(R.id.bookmarkPage)
-        val deleteBookmarkIcon: ImageButton = view.findViewById(R.id.deleteBookmark)
-    }
+    class BookmarkViewHolder(val binding: ListItemBookmarkBinding) :
+        RecyclerView.ViewHolder(binding.root)
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BookmarkViewHolder {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.list_item_bookmark, parent, false)
-        return BookmarkViewHolder(view)
+        val binding =
+            ListItemBookmarkBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        return BookmarkViewHolder(binding)
     }
 
     override fun onBindViewHolder(
@@ -33,11 +27,11 @@ class BookmarkAdapter(
         position: Int
     ) {
         val item = fullList[position]
-        holder.bookmarkTitle.text = item.title
-        holder.bookmarkPage.text = item.page.toString()
-        holder.bookmarkTitle.setOnClickListener { onClick(item) }
-        holder.deleteBookmarkIcon.setOnClickListener { onDeleteClick(item) }
-        holder.bookmarkTitle.setOnLongClickListener {
+        holder.binding.bookmarkTitle.text = item.title
+        holder.binding.bookmarkPage.text = item.page.toString()
+        holder.binding.bookmarkTitle.setOnClickListener { onClick(item) }
+        holder.binding.deleteBookmark.setOnClickListener { onDeleteClick(item) }
+        holder.binding.bookmarkTitle.setOnLongClickListener {
             onLongClick.invoke(item)
             true
         }

@@ -3,13 +3,13 @@ package apk.hurnell.recipebookreader.adapters
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.R
 import apk.hurnell.recipebookreader.model.TocItem
+import apk.hurnell.recipebookreader.databinding.ListItemTocEveryBinding
 
 fun TextView.isEllipsized(): Boolean {
     val l = this.layout
@@ -28,73 +28,48 @@ class EveryTocAdapter(
 ) : ListAdapter<TocItem, EveryTocAdapter.TocViewHolder>(DiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TocViewHolder {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.list_item_toc_every, parent, false)
-        return TocViewHolder(view)
+        val binding =
+            ListItemTocEveryBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        return TocViewHolder(binding)
     }
 
     override fun onBindViewHolder(holder: TocViewHolder, position: Int) {
-        holder.bind(
-            getItem(position),
-            onClickTitle,
-            onClickBook,
-            onClickHierarchy,
-            onLongClickTitle,
-            onClickBookmark
-        )
-    }
+        val item = getItem(position)
+        holder.binding.tocText.text = item.title
+        holder.binding.bookName.text = item.bookTitle ?: ""
+        val hierarchyText = item.hierarchy ?: ""
+        if (hierarchyText.isEmpty()) {
+            holder.binding.hierarchy.visibility = View.GONE
+        } else {
+            holder.binding.hierarchy.text = hierarchyText
+            holder.binding.hierarchy.visibility = View.VISIBLE
+        }
+        holder.binding.tocText.setOnClickListener {
+            onClickTitle(item)
+        }
+        holder.binding.tocText.setOnLongClickListener {
+            if (holder.binding.tocText.isEllipsized()) onLongClickTitle.invoke(item)
+            true
+        }
+        holder.binding.bookName.setOnClickListener {
+            if (holder.binding.bookName.isEllipsized()) onClickBook(item)
+        }
 
-    class TocViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        private val tocText: TextView = itemView.findViewById(R.id.tocText)
-        private val bookName: TextView = itemView.findViewById(R.id.bookName)
-        private val hierarchy: TextView = itemView.findViewById(R.id.hierarchy)
-        private val hasBookmark: ImageView = itemView.findViewById(R.id.hasBookmark)
-
-        fun bind(
-            item: TocItem,
-            onClickTitle: (TocItem) -> Unit,
-            onClickBook: (TocItem) -> Unit,
-            onClickHierarchy: (TocItem) -> Unit,
-            onLongClickTitle: (TocItem) -> Unit,
-            onClickBookmark: (TocItem) -> Unit,
-        ) {
-            tocText.text = item.title
-            bookName.text = item.bookTitle ?: ""
-            val hierarchyText = item.hierarchy ?: ""
-
-            if (hierarchyText.isEmpty()) {
-                hierarchy.visibility = View.GONE
-            } else {
-                hierarchy.text = hierarchyText
-                hierarchy.visibility = View.VISIBLE
-            }
-
-            tocText.setOnClickListener {
-                onClickTitle(item)
-            }
-
-            tocText.setOnLongClickListener {
-                if (tocText.isEllipsized()) onLongClickTitle.invoke(item)
-                true
-            }
-
-            bookName.setOnClickListener {
-                if (bookName.isEllipsized()) onClickBook(item)
-            }
-
-            hierarchy.setOnClickListener {
-                if (hierarchy.isEllipsized()) onClickHierarchy(item)
-            }
-            hasBookmark.setOnClickListener {
-                onClickBookmark(item)
-            }
-            if (item.bookmarkId != null) {
-                hasBookmark.setImageResource(R.drawable.ic_bookmark_closed)
-            } else {
-                hasBookmark.setImageResource(R.drawable.ic_bookmark_open)
-            }
+        holder.binding.hierarchy.setOnClickListener {
+            if (holder.binding.hierarchy.isEllipsized()) onClickHierarchy(item)
+        }
+        holder.binding.hasBookmark.setOnClickListener {
+            onClickBookmark(item)
+        }
+        if (item.bookmarkId != null) {
+            holder.binding.hasBookmark.setImageResource(R.drawable.ic_bookmark_closed)
+        } else {
+            holder.binding.hasBookmark.setImageResource(R.drawable.ic_bookmark_open)
         }
     }
+
+    class TocViewHolder(val binding: ListItemTocEveryBinding) :
+        RecyclerView.ViewHolder(binding.root)
 
     class DiffCallback : DiffUtil.ItemCallback<TocItem>() {
         override fun areItemsTheSame(oldItem: TocItem, newItem: TocItem): Boolean =

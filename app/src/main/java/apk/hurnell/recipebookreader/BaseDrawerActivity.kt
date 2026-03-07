@@ -14,7 +14,6 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Spinner
-import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
@@ -58,7 +57,6 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
     protected var bookInfoOverlay: ScrollView? = null
     protected var bookTitle: EditableTextView? = null
     protected var bookAuthor: EditableTextView? = null
-    protected var bookSavePath: TextView? = null
     protected var bookCategory: EditableCategoryView? = null
     protected var bookSubCategory: EditableCategoryView? = null
     protected var bookPreviewImage: ImageView? = null
@@ -148,7 +146,6 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         overlayContainer = findViewById(R.id.overlayContainer)
         bookInfoOverlay = findViewById(R.id.bookInfoOverlay)
         bookPreviewImage = findViewById(R.id.bookPreviewImage)
-        bookSavePath = findViewById(R.id.bookSavePath)
         isbnNumber = findViewById(R.id.isbnNumber)
         bookTitle = findViewById(R.id.bookTitle)
         bookAuthor = findViewById(R.id.bookAuthor)
@@ -361,7 +358,6 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                         toggleOtherButtons(view, !isEditing)
                     }
                     setResetPreviewImage(book.sha!!, previewImage)
-                    bookSavePath?.text = book.location
                     overlayContainer?.visibility = View.VISIBLE
                     bookInfoOverlay?.scaleX = 0.8f
                     bookInfoOverlay?.scaleY = 0.8f

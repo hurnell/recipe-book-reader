@@ -14,7 +14,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.Window
 import android.view.WindowInsets
+import android.widget.FrameLayout
 import android.widget.SeekBar
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
@@ -90,6 +92,8 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     private var clearSearchMenuItem: MenuItem? = null
     private var isbnScanJob: Job? = null
 
+    private  var copyTextContainer: FrameLayout? = null
+    private var copyText: TextView? = null
     companion object {
         private const val LOG_TAG = "NIGEL_HURNELL"
     }
@@ -122,6 +126,11 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
 
         setupStaticListeners()
 
+        copyTextContainer = findViewById(R.id.copyTextContainer)
+        copyTextContainer?.setOnClickListener {
+            copyTextContainer?.visibility = View.GONE
+        }
+        copyText = findViewById(R.id.copyText)
         val pdfFilePath = intent.getStringExtra("PDF_PATH")
         if (pdfFilePath == null) {
             Log.e(LOG_TAG, "No PDF path provided")
@@ -460,7 +469,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                         if (!hasMoved) {
                             if (linkState == 2) {
                                 val text = getTextNearClickPoint(
-                                    document, pagePosition, px, py
+                                    document, pagePosition, px, py, true
                                 )
                                 val o = pinchRv.computeVerticalScrollOffset()
                                 Log.i("NIGEL_HURNELL", "Offset is $o")
@@ -513,6 +522,15 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                                 dialog.window?.setSoftInputMode(
                                     android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN
                                 )
+                            } else if (linkState == 3) {
+                                val text = getTextNearClickPoint(
+                                    document, pagePosition, px, py, false
+                                )
+                                if (text.isNotEmpty()) {
+                                    copyTextContainer?.visibility = View.VISIBLE
+                                    copyText?.text = text
+                                }
+                                Log.i(LOG_TAG, text)
                             } else if (!checkIfTopOfPageClicked(
                                     currentDoc, pinchRv, px, py, pageWidth, pagePosition
                                 )
@@ -729,8 +747,18 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         }
     }
 
+    private fun checkHit(bbox: Rect, x: Float, y: Float): Boolean {
+        val xHit = bbox.x0 <= x && bbox.x1 >= x
+        val yHit = bbox.y0 <= y && bbox.y1 >= y
+        return xHit && yHit
+    }
+
     private fun getTextNearClickPoint(
-        document: Document?, currentPage: Int, x: Float, y: Float
+        document: Document?,
+        currentPage: Int,
+        x: Float,
+        y: Float,
+        byLine: Boolean
     ): String {
         if (document == null) {
             return ""
@@ -738,16 +766,25 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         val page = document.loadPage(currentPage)
         val structuredText = page.toStructuredText()
         structuredText.blocks?.forEach { block ->
+            val blockBuilder = StringBuilder()
+            val blockWidth = block.bbox.x1 - block.bbox.x0
             block.lines?.forEach { line ->
-                val bbox = line.bbox
-                val xHit = bbox.x0 <= x && bbox.x1 >= x
-                val yHit = bbox.y0 <= y && bbox.y1 >= y
-                if (xHit && yHit) {
+                val lineWidth = line.bbox.x1 - line.bbox.x0
+                line.chars?.forEach { char -> blockBuilder.append(char.c.toChar()) }
+                val append = if (lineWidth < 0.9 * blockWidth) "\n" else " "
+                blockBuilder.append(append)
+                if (checkHit(line.bbox, x, y)) {
                     val lineBuilder = StringBuilder()
                     line.chars?.forEach { char -> lineBuilder.append(char.c.toChar()) }
-                    return lineBuilder.toString().trim()
+                    if (byLine) {
+                        return lineBuilder.toString().trim()
+                    }
                 }
             }
+            if(checkHit(block.bbox, x, y)){
+                return blockBuilder.toString().trim()
+            }
+
         }
         return ""
     }
@@ -837,25 +874,36 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         binding.pageIndicator.text = getString(R.string.page_indicator, current + 1, total)
     }
 
+    private fun getLinkColor(): Int {
+        if (linkState == 1) {
+            return ContextCompat.getColor(this, R.color.links_off)
+        } else {
+            return ContextCompat.getColor(this, R.color.nav_text)
+        }
+    }
+
     private fun toggleLinks() {
-        linkState = (linkState + 1) % 3
+        linkState = (linkState + 1) % 4
+        val color = getLinkColor()
         when (linkState) {
             0 -> {
-                val color = ContextCompat.getColor(this, R.color.nav_text)
                 binding.stopLinks.imageTintList = ColorStateList.valueOf(color)
                 binding.stopLinks.setImageResource(R.drawable.ic_link_on)
             }
 
             1 -> {
-                val colorOff = ContextCompat.getColor(this, R.color.links_off)
-                binding.stopLinks.imageTintList = ColorStateList.valueOf(colorOff)
+                binding.stopLinks.imageTintList = ColorStateList.valueOf(color)
                 binding.stopLinks.setImageResource(R.drawable.ic_link_off)
             }
 
+            2 -> {
+                binding.stopLinks.imageTintList = ColorStateList.valueOf(color)
+                binding.stopLinks.setImageResource(R.drawable.ic_bookmark_closed)
+            }
+
             else -> {
-                val colorOff = ContextCompat.getColor(this, R.color.nav_text)
-                binding.stopLinks.imageTintList = ColorStateList.valueOf(colorOff)
-                binding.stopLinks.setImageResource(R.drawable.ic_bookmark_open)
+                binding.stopLinks.imageTintList = ColorStateList.valueOf(color)
+                binding.stopLinks.setImageResource(R.drawable.ic_copy)
             }
         }
 

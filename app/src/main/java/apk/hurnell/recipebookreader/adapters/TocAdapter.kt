@@ -3,11 +3,10 @@ package apk.hurnell.recipebookreader.adapters
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
-import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.R
 import apk.hurnell.recipebookreader.model.TocItem
+import apk.hurnell.recipebookreader.databinding.ListItemTocBinding
 
 class TocAdapter(
     private var fullList: List<TocItem>,
@@ -58,20 +57,16 @@ class TocAdapter(
         notifyDataSetChanged()
     }
 
-    class TocViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val tvTitle: TextView = view.findViewById(R.id.tvTitle)
-        val ivArrow: ImageView = view.findViewById(R.id.ivArrow)
-    }
+    class TocViewHolder(val binding: ListItemTocBinding) : RecyclerView.ViewHolder(binding.root)
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TocViewHolder {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.list_item_toc, parent, false)
-        return TocViewHolder(view)
+        val binding = ListItemTocBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        return TocViewHolder(binding)
     }
 
     override fun onBindViewHolder(holder: TocViewHolder, position: Int) {
         val item = visibleItems[position]
-        holder.tvTitle.text = item.title
+        holder.binding.tvTitle.text = item.title
 
         val density = holder.itemView.resources.displayMetrics.density
         val level = if (currentQuery.isEmpty()) item.level else 0
@@ -80,20 +75,20 @@ class TocAdapter(
         holder.itemView.setPadding(left, 0, 0, 0)
 
         if (item.children.isEmpty() || currentQuery.isNotEmpty()) {
-            holder.ivArrow.visibility = View.INVISIBLE
+            holder.binding.ivArrow.visibility = View.INVISIBLE
         } else {
-            holder.ivArrow.visibility = View.VISIBLE
-            holder.ivArrow.setImageResource(
+            holder.binding.ivArrow.visibility = View.VISIBLE
+            holder.binding.ivArrow.setImageResource(
                 if (item.isExpanded) R.drawable.ic_expand_more else R.drawable.ic_chevron_right
             )
-            holder.ivArrow.setOnClickListener {
+            holder.binding.ivArrow.setOnClickListener {
                 item.isExpanded = !item.isExpanded
                 updateVisibleItems()
             }
         }
 
-        holder.tvTitle.setOnClickListener { onClick(item) }
-        holder.tvTitle.setOnLongClickListener {
+        holder.binding.tvTitle.setOnClickListener { onClick(item) }
+        holder.binding.tvTitle.setOnLongClickListener {
             onLongClick.invoke(item)
             true
         }

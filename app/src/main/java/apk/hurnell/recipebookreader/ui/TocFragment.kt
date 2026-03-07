@@ -6,7 +6,6 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.*
-import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -26,16 +25,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import apk.hurnell.recipebookreader.model.TocItem
-import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputEditText
+import apk.hurnell.recipebookreader.databinding.FragmentTocBinding
 
 class TocFragment : Fragment() {
-    private lateinit var tocRecyclerView: RecyclerView
-    private lateinit var bookmarkRecyclerView: RecyclerView
-    private lateinit var tocSearchBar: LinearLayout
+    private var _binding: FragmentTocBinding? = null
+    private val binding get() = _binding!!
     private lateinit var tocFragmentRootLayout: ConstraintLayout
-    private lateinit var toolbar: MaterialToolbar
     private lateinit var repository: PdfRepository
     private var bookId: Int = -1
     private var onPageSelected: ((BaseBookmarkTocItem) -> Unit)? = null
@@ -65,26 +62,29 @@ class TocFragment : Fragment() {
             throw RuntimeException("$context must implement TocFragmentListener")
         }
     }
+    object TocMenuIds {
+        var SHOW_TOC = R.id.action_show_toc
+        var SHOW_BOOKMARKS = R.id.action_show_bookmarks
+    }
 
     private fun toggleVisibleChoices(showToc: Boolean) {
 
-        val tocItem = toolbar.menu.findItem(R.id.action_show_toc)!!
-        val bookmarkItem = toolbar.menu.findItem(R.id.action_show_bookmarks)!!
+        val tocItem = binding.tocToolbar.menu.findItem(TocMenuIds.SHOW_TOC)
+        val bookmarkItem = binding.tocToolbar.menu.findItem(TocMenuIds.SHOW_BOOKMARKS)
         tocItem.isVisible = !showToc
         bookmarkItem.isVisible = showToc && !bookmarkData.isEmpty()
-        tocSearchBar.visibility = if (showToc) View.VISIBLE else View.GONE
-        tocRecyclerView.visibility = if (showToc) View.VISIBLE else View.GONE
-        bookmarkRecyclerView.visibility = if (showToc) View.GONE else View.VISIBLE
-        toolbar.title = if (showToc) "TOC" else "Bookmarks"
+        binding.tocSearchBar.visibility = if (showToc) View.VISIBLE else View.GONE
+        binding.tocRecyclerView.visibility = if (showToc) View.VISIBLE else View.GONE
+        binding.bookmarkRecyclerView.visibility = if (showToc) View.GONE else View.VISIBLE
+        binding.tocToolbar.title = if (showToc) "TOC" else "Bookmarks"
     }
 
     private fun setupToolbar(view: View) {
-        toolbar = view.findViewById(R.id.tocToolbar)
-        toolbar.inflateMenu(R.menu.toc_toolbar_menu)
-        toolbar.setNavigationOnClickListener {
+        binding.tocToolbar.inflateMenu(R.menu.toc_toolbar_menu)
+        binding.tocToolbar.setNavigationOnClickListener {
             requireActivity().onBackPressedDispatcher.onBackPressed()
         }
-        toolbar.setOnMenuItemClickListener { item ->
+        binding.tocToolbar.setOnMenuItemClickListener { item ->
             toggleVisibleChoices(
                 item.itemId == R.id.action_show_toc
             )
@@ -97,17 +97,14 @@ class TocFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
+        _binding = FragmentTocBinding.inflate(inflater, container, false)
         val view = inflater.inflate(R.layout.fragment_toc, container, false)
         setupToolbar(view)
-        tocRecyclerView = view.findViewById(R.id.tocRecyclerView)
-        bookmarkRecyclerView = view.findViewById(R.id.bookmarkRecyclerView)
-        tocFragmentRootLayout = view.findViewById(R.id.tocFragmentRootLayout)
-        tocSearchBar = view.findViewById(R.id.tocSearchBar)
         val searchField = view.findViewById<TextInputEditText>(R.id.searchField)
         val btnToggle = view.findViewById<ImageButton>(R.id.btnToggle)
 
-        tocRecyclerView.layoutManager = LinearLayoutManager(requireContext())
-        bookmarkRecyclerView.layoutManager = LinearLayoutManager(requireContext())
+        binding.tocRecyclerView.layoutManager = LinearLayoutManager(requireContext())
+        binding.bookmarkRecyclerView.layoutManager = LinearLayoutManager(requireContext())
         btnToggle.setOnClickListener {
             allExpanded = !allExpanded
             toggleAll(tocData, allExpanded)
@@ -121,12 +118,13 @@ class TocFragment : Fragment() {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 adapter?.filter(s.toString())
-                tocRecyclerView.scrollToPosition(0)
+                binding.tocRecyclerView.scrollToPosition(0)
             }
 
             override fun afterTextChanged(s: Editable?) {}
         })
-        return view
+
+        return binding.root
     }
 
     private fun getExpandedStateMap(items: List<TocItem>): Map<Long, Boolean> {
@@ -187,9 +185,8 @@ class TocFragment : Fragment() {
             }
         )
 
-        val tocRecyclerView = view.findViewById<RecyclerView>(R.id.tocRecyclerView)
-        tocRecyclerView.adapter = adapter
-        bookmarkRecyclerView.adapter = bookmarkAdapter
+        binding.tocRecyclerView.adapter = adapter
+        binding.bookmarkRecyclerView.adapter = bookmarkAdapter
         loadTocAsync()
         loadBookmarksAsync(true)
         toggleVisibleChoices(true)
@@ -233,7 +230,7 @@ class TocFragment : Fragment() {
             bookmarkData = list
             bookmarkAdapter?.updateData(bookmarkData)
             listener?.onBookmarkDataReloaded(bookmarkData.isEmpty())
-            val bookmarkItem = toolbar.menu.findItem(R.id.action_show_bookmarks)!!
+            val bookmarkItem = binding.tocToolbar.menu.findItem(R.id.action_show_bookmarks)!!
             bookmarkItem.isVisible = bookmarkData.isNotEmpty()
             if (!fromToc && bookmarkData.isEmpty()) {
                 toggleVisibleChoices(true)
@@ -295,5 +292,9 @@ class TocFragment : Fragment() {
 
     fun setShowingToc(tocShowing: Boolean) {
         toggleVisibleChoices(tocShowing)
+    }
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 }

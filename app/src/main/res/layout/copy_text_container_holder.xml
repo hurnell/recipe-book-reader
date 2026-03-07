@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/copyTextContainer"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clickable="true"
+    android:focusable="true"
+    android:padding="0dp"
+    android:visibility="gone">
+    <ScrollView
+        android:layout_width="300dp"
+        android:layout_height="250dp"
+        android:layout_gravity="center"
+        android:background="@drawable/overlay_background"
+        android:clipToPadding="false"
+        android:padding="20dp"
+        android:scrollbars="none"
+        tools:ignore="UselessParent">
+
+
+        <TextView
+            android:id="@+id/copyText"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:textIsSelectable="true" />
+    </ScrollView>
+</FrameLayout>

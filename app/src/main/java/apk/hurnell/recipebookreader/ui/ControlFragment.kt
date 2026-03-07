@@ -5,8 +5,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
-import android.widget.ImageButton
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
@@ -15,15 +13,17 @@ import apk.hurnell.recipebookreader.BookShelfActivity
 import apk.hurnell.recipebookreader.BookmarksActivity
 import apk.hurnell.recipebookreader.EveryTocActivity
 import apk.hurnell.recipebookreader.FileBrowserActivity
-import apk.hurnell.recipebookreader.R
 import apk.hurnell.recipebookreader.RecentBooksActivity
+import apk.hurnell.recipebookreader.databinding.FragmentControlBinding
 
 class ControlFragment : Fragment() {
+    private lateinit var binding: FragmentControlBinding
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
-    ): View? {
-        return inflater.inflate(R.layout.fragment_control, container, false)
+    ): View {
+        binding = FragmentControlBinding.inflate(inflater, container, false)
+        return binding.root
     }
 
     fun getCurrentActivity(): String? {
@@ -33,24 +33,18 @@ class ControlFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        val btnRecentBooks = view.findViewById<Button>(R.id.btnRecentBooks)
-        val btnBookShelf = view.findViewById<Button>(R.id.btnBookShelf)
-        val btnBrowseFiles = view.findViewById<Button>(R.id.btnBrowseFiles)
-        val btnSearchEveryToc = view.findViewById<Button>(R.id.btnSearchEveryToc)
-        val btnBookmarks = view.findViewById<Button>(R.id.btnBookmarks)
-        val btnCloseDrawer = view.findViewById<ImageButton>(R.id.btnCloseDrawer)
-        btnRecentBooks.setOnClickListener {
+        binding.btnRecentBooks.setOnClickListener {
             if (getCurrentActivity() != "RecentBooksActivity") {
                 navigateTo(RecentBooksActivity::class.java)
             }
         }
-        btnBookShelf.setOnClickListener {
+        binding.btnBookShelf.setOnClickListener {
             if (getCurrentActivity() != "BookShelfActivity") {
                 navigateTo(BookShelfActivity::class.java)
             }
         }
 
-        btnBrowseFiles.setOnClickListener {
+        binding.btnBrowseFiles.setOnClickListener {
             if (getCurrentActivity() != "FileBrowserActivity") {
                 val current = activity ?: return@setOnClickListener
                 val drawer = (current as? BaseDrawerActivity)?.drawerLayout
@@ -80,18 +74,17 @@ class ControlFragment : Fragment() {
             }
         }
 
-        btnSearchEveryToc.setOnClickListener {
-            val c = getCurrentActivity()
+        binding.btnSearchEveryToc.setOnClickListener {
             if (getCurrentActivity() != "EveryTocActivity") {
                 navigateTo(EveryTocActivity::class.java)
             }
         }
-        btnBookmarks.setOnClickListener {
+        binding.btnBookmarks.setOnClickListener {
             if (getCurrentActivity() != "BookmarksActivity") {
                 navigateTo(BookmarksActivity::class.java)
             }
         }
-        btnCloseDrawer.setOnClickListener {
+        binding.btnCloseDrawer.setOnClickListener {
             val baseActivity = activity as? BaseDrawerActivity
             baseActivity?.drawerLayout?.closeDrawer(GravityCompat.START)
         }

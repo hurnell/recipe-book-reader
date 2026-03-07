@@ -207,6 +207,8 @@
             app:srcCompat="@drawable/ic_link_on"
             app:tint="@color/nav_text"
             tools:ignore="AccessibilityClassName" />
+        <include
+            layout="@layout/copy_text_container_holder"/>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <com.google.android.material.navigation.NavigationView

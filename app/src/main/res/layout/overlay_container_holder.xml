@@ -151,17 +151,8 @@
                 android:layout_marginStart="16dp"
                 android:layout_marginEnd="16dp"
                 app:bold="false"
-                app:textSize="16sp" />
-
-            <TextView
-                android:id="@+id/bookSavePath"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_marginTop="10dp"
-                android:layout_marginEnd="16dp"
                 android:layout_marginBottom="16dp"
-                app:textSize="12sp" />
+                app:textSize="16sp" />
 
         </LinearLayout>
     </ScrollView>
