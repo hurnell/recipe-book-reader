@@ -142,7 +142,6 @@ class EditableCategoryView @JvmOverloads constructor(
             binding.categoryChooser.requestFocus()
             val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
             imm.showSoftInput(binding.categoryChooser, InputMethodManager.SHOW_IMPLICIT)
-
         }
     }
 

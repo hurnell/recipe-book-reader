@@ -20,7 +20,8 @@ class BookShelfAdapter(
 
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RowViewHolder {
-        val binding = ListItemBookShelfRowBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        val binding =
+            ListItemBookShelfRowBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         return RowViewHolder(binding)
     }
 
@@ -29,7 +30,7 @@ class BookShelfAdapter(
         val books = listOf(holder.book1, holder.book2, holder.book3)
 
         books.forEachIndexed { index, binding ->
-            bindBook(binding, rowItems.getOrNull(index) , onClick, onLongClick)
+            bindBook(binding, rowItems.getOrNull(index), onClick, onLongClick)
         }
     }
 
@@ -110,18 +111,10 @@ class BookShelfAdapter(
         }
     }
 
-    class RowViewHolder(binding: ListItemBookShelfRowBinding) : RecyclerView.ViewHolder(binding.root) {
+    class RowViewHolder(binding: ListItemBookShelfRowBinding) :
+        RecyclerView.ViewHolder(binding.root) {
         val book1 = binding.book1
         val book2 = binding.book2
         val book3 = binding.book3
-        /*val book1Cover: ImageView = view.findViewById<View>(R.id.book1).findViewById(R.id.bookCover)
-        val book2Cover: ImageView = view.findViewById<View>(R.id.book2).findViewById(R.id.bookCover)
-        val book3Cover: ImageView = view.findViewById<View>(R.id.book3).findViewById(R.id.bookCover)
-        val book1Warning: ImageView =
-            view.findViewById<View>(R.id.book1).findViewById(R.id.bookWarning)
-        val book2Warning: ImageView =
-            view.findViewById<View>(R.id.book2).findViewById(R.id.bookWarning)
-        val book3Warning: ImageView =
-            view.findViewById<View>(R.id.book3).findViewById(R.id.bookWarning)*/
     }
 }
