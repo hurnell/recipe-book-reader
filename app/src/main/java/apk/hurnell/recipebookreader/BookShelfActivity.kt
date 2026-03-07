@@ -8,6 +8,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.adapters.BookShelfAdapter
+import apk.hurnell.recipebookreader.databinding.ActivityBookShelfBinding
 import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.model.BaseTracker
 import apk.hurnell.recipebookreader.model.FileItem
@@ -22,22 +23,23 @@ data class BookShelfTracker(
 ) : BaseTracker()
 
 class BookShelfActivity : BaseDrawerActivity() {
+
+    private var _binding: ActivityBookShelfBinding? = null
+    private val binding get() = _binding!!
     private lateinit var bookRowAdapter: BookShelfAdapter
-    private lateinit var recyclerView: RecyclerView
     private var lastScrollPosition = 0
     private var lastScrollOffset = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_book_shelf)
 
-        loadingOverlay = findViewById(R.id.loadingOverlay)
+        _binding = ActivityBookShelfBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        loadingOverlay = binding.loadingOverlay
         loadingOverlay.visibility = View.GONE
-        val toolbar: Toolbar = findViewById(R.id.bookShelfToolbar)
-        spinner = findViewById(R.id.categorySpinner)
+        spinner =binding.categorySpinner
 
-
-        recyclerView = findViewById(R.id.shelfRecyclerView)
         spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(
                 parent: AdapterView<*>,
@@ -54,10 +56,10 @@ class BookShelfActivity : BaseDrawerActivity() {
             }
         }
 
-        setupDrawer(toolbar)
-        recyclerView.layoutManager = LinearLayoutManager(this)
-        recyclerView.itemAnimator = null
-        recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+        setupDrawer(binding.bookShelfToolbar)
+        binding.shelfRecyclerView.layoutManager = LinearLayoutManager(this)
+        binding.shelfRecyclerView.itemAnimator = null
+        binding.shelfRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 super.onScrolled(recyclerView, dx, dy)
                 trackRecyclerViewOffset()
@@ -67,7 +69,7 @@ class BookShelfActivity : BaseDrawerActivity() {
             onClick = { file -> onBookClicked(file) },
             onLongClick = { file -> shelfShowBookInfoOverlay(file) }
         )
-        recyclerView.adapter = bookRowAdapter
+        binding.shelfRecyclerView.adapter = bookRowAdapter
 
         applySavedSettings()
 
@@ -102,7 +104,7 @@ class BookShelfActivity : BaseDrawerActivity() {
     }
 
     private fun trackRecyclerViewOffset() {
-        val layoutManager = recyclerView.layoutManager as? LinearLayoutManager ?: return
+        val layoutManager = binding.shelfRecyclerView.layoutManager as? LinearLayoutManager ?: return
         val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
         val firstVisibleView = layoutManager.findViewByPosition(firstVisibleItemPosition)
         val offset = firstVisibleView?.top ?: 0
@@ -154,12 +156,12 @@ class BookShelfActivity : BaseDrawerActivity() {
 
         if (!categoryChanged || !acceptZero) {
             bookRowAdapter.submitList(chunkedList) {
-                val layoutManager = recyclerView.layoutManager as? LinearLayoutManager
+                val layoutManager = binding.shelfRecyclerView.layoutManager as? LinearLayoutManager
                 layoutManager?.scrollToPositionWithOffset(lastScrollPosition, lastScrollOffset)
             }
         } else {
             bookRowAdapter.submitList(chunkedList) {
-                recyclerView.scrollToPosition(0)
+                binding.shelfRecyclerView.scrollToPosition(0)
             }
             lastScrollPosition = 0
             lastScrollOffset = 0

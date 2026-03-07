@@ -29,6 +29,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.adapters.BookAdapter
 import apk.hurnell.recipebookreader.databinding.ActivityRecipeBookBinding
+import apk.hurnell.recipebookreader.databinding.CopyTextContainerHolderBinding
 import apk.hurnell.recipebookreader.helpers.FunctionalStructuredTextWalker
 import apk.hurnell.recipebookreader.ui.PinchRecyclerView
 import androidx.activity.OnBackPressedCallback
@@ -47,8 +48,8 @@ import java.io.File
 import kotlin.math.abs
 import kotlinx.coroutines.*
 import kotlin.math.floor
-import androidx.core.view.doOnNextLayout
 import androidx.core.view.updateLayoutParams
+import apk.hurnell.recipebookreader.databinding.DialogBookmarkBinding
 import apk.hurnell.recipebookreader.helpers.Coordinates
 import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.helpers.IsbnFinder
@@ -92,8 +93,9 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     private var clearSearchMenuItem: MenuItem? = null
     private var isbnScanJob: Job? = null
 
-    private  var copyTextContainer: FrameLayout? = null
+    private var copyTextContainer: FrameLayout? = null
     private var copyText: TextView? = null
+
     companion object {
         private const val LOG_TAG = "NIGEL_HURNELL"
     }
@@ -125,12 +127,12 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         setupSystemBars()
 
         setupStaticListeners()
-
-        copyTextContainer = findViewById(R.id.copyTextContainer)
+        val copyTextBinding = CopyTextContainerHolderBinding.inflate(layoutInflater)
+        copyTextContainer = copyTextBinding.copyTextContainer
         copyTextContainer?.setOnClickListener {
             copyTextContainer?.visibility = View.GONE
         }
-        copyText = findViewById(R.id.copyText)
+        copyText = copyTextBinding.copyText
         val pdfFilePath = intent.getStringExtra("PDF_PATH")
         if (pdfFilePath == null) {
             Log.e(LOG_TAG, "No PDF path provided")
@@ -471,13 +473,8 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                                 val text = getTextNearClickPoint(
                                     document, pagePosition, px, py, true
                                 )
-                                val o = pinchRv.computeVerticalScrollOffset()
-                                Log.i("NIGEL_HURNELL", "Offset is $o")
-                                val dialogView =
-                                    layoutInflater.inflate(R.layout.dialog_bookmark, null)
-                                val editText =
-                                    dialogView.findViewById<TextInputEditText>(R.id.enterBookmarkText)
-                                editText.setText(text)
+                                val dialogBinding = DialogBookmarkBinding.inflate(layoutInflater)
+                                dialogBinding.enterBookmarkText.setText(text)
                                 val currentBookmarkItem = BookmarkItem(
                                     tocId = null,
                                     bookmarkId = null,
@@ -492,9 +489,10 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                                 )
                                 val dialog = AlertDialog.Builder(this@RecipeBookActivity)
                                     .setTitle("Create Bookmark")
-                                    .setView(dialogView)
+                                    .setView(dialogBinding.root)
                                     .setPositiveButton("Create Bookmark") { _, _ ->
-                                        val bookmarkText = editText.text.toString()
+                                        val bookmarkText =
+                                            dialogBinding.enterBookmarkText.text.toString()
 
                                         if (bookmarkText.isNotBlank()) {
                                             currentBookmarkItem.title = bookmarkText
@@ -781,7 +779,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                     }
                 }
             }
-            if(checkHit(block.bbox, x, y)){
+            if (checkHit(block.bbox, x, y)) {
                 return blockBuilder.toString().trim()
             }
 

@@ -7,12 +7,13 @@ import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.widget.Toolbar
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.adapters.AllBookmarkAdapter
+import apk.hurnell.recipebookreader.databinding.ActivityBookmarksBinding
+import apk.hurnell.recipebookreader.databinding.DialogBookmarkBinding
 import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.model.BaseTracker
 import apk.hurnell.recipebookreader.model.BookmarkItem
@@ -30,9 +31,9 @@ data class BookmarksTracker(
 
 class BookmarksActivity : BaseDrawerActivity() {
 
-    private lateinit var recyclerView: RecyclerView
+    private var _binding: ActivityBookmarksBinding? = null
+    private val binding get() = _binding!!
     private lateinit var bookmarkAdapter: AllBookmarkAdapter
-    private lateinit var rootLayout: CoordinatorLayout
     private var lastScrollPosition = 0
     private var lastScrollOffset = 0
     private val configurationKey = "BookmarksConfiguration"
@@ -41,14 +42,14 @@ class BookmarksActivity : BaseDrawerActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        setContentView(R.layout.activity_bookmarks)
+        _binding = ActivityBookmarksBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        loadingOverlay = findViewById(R.id.loadingOverlay)
+        loadingOverlay = binding.loadingOverlay
         loadingOverlay.visibility = View.GONE
 
-        val toolbar: Toolbar = findViewById(R.id.bookmarksToolbar)
 
-        spinner = findViewById(R.id.categorySpinner)
+        spinner = binding.categorySpinner
         spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(
                 parent: AdapterView<*>,
@@ -65,11 +66,9 @@ class BookmarksActivity : BaseDrawerActivity() {
                 reloadBookmarks(true)
             }
         }
-        recyclerView = findViewById(R.id.bookmarksRecyclerView)
-        rootLayout = findViewById(R.id.rootLayout)
-        recyclerView.layoutManager = LinearLayoutManager(this)
-        recyclerView.itemAnimator = null
-        recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+        binding.bookmarksRecyclerView.layoutManager = LinearLayoutManager(this)
+        binding.bookmarksRecyclerView.itemAnimator = null
+        binding.bookmarksRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 super.onScrolled(recyclerView, dx, dy)
                 trackRecyclerViewOffset()
@@ -86,15 +85,15 @@ class BookmarksActivity : BaseDrawerActivity() {
         }, onEditClick = { item ->
             editBookmark(item)
         }, onLongClick = { item ->
-            displayClickResult(item.title, rootLayout)
+            displayClickResult(item.title, binding.rootLayout)
         })
-        recyclerView.adapter = bookmarkAdapter
+        binding.bookmarksRecyclerView.adapter = bookmarkAdapter
         populateAdapter()
-        setupDrawer(toolbar)
+        setupDrawer(binding.bookmarksToolbar)
     }
 
     fun displayClickResult(text: String, rootLayout: CoordinatorLayout) {
-        val snackBar = Snackbar.make(rootLayout, text, Snackbar.LENGTH_LONG)
+        val snackBar = Snackbar.make(binding.rootLayout, text, Snackbar.LENGTH_LONG)
         val textView =
             snackBar.view.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)
         textView.maxLines = 5
@@ -102,16 +101,13 @@ class BookmarksActivity : BaseDrawerActivity() {
     }
 
     private fun editBookmark(item: BookmarkItem) {
-        val dialogView =
-            layoutInflater.inflate(R.layout.dialog_bookmark, null)
-        val editText =
-            dialogView.findViewById<TextInputEditText>(R.id.enterBookmarkText)
-        editText.setText(item.title)
+        val dialogBinding = DialogBookmarkBinding.inflate(layoutInflater)
+        dialogBinding.enterBookmarkText.setText(item.title)
         val dialog = AlertDialog.Builder(this@BookmarksActivity)
             .setTitle("Update Bookmark")
-            .setView(dialogView)
+            .setView(dialogBinding.root)
             .setPositiveButton("Update") { _, _ ->
-                val bookmarkText = editText.text.toString()
+                val bookmarkText = dialogBinding.enterBookmarkText.text.toString()
 
                 if (bookmarkText.isNotBlank()) {
                     item.title = bookmarkText
@@ -173,7 +169,7 @@ class BookmarksActivity : BaseDrawerActivity() {
     }
 
     private fun trackRecyclerViewOffset() {
-        val layoutManager = recyclerView.layoutManager as? LinearLayoutManager ?: return
+        val layoutManager = binding.bookmarksRecyclerView.layoutManager as? LinearLayoutManager ?: return
         val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
         val firstVisibleView = layoutManager.findViewByPosition(firstVisibleItemPosition)
         val offset = firstVisibleView?.top ?: 0
@@ -187,7 +183,7 @@ class BookmarksActivity : BaseDrawerActivity() {
         lifecycleScope.launch {
             val tracker = dataStoreManager.bookmarksState.firstOrNull()
             if (tracker != null) {
-                val layoutManager = recyclerView.layoutManager as? LinearLayoutManager
+                val layoutManager = binding.bookmarksRecyclerView.layoutManager as? LinearLayoutManager
                 lastScrollPosition = tracker.lastScrollPosition
                 lastScrollOffset = tracker.lastScrollOffset
                 currentCategory = tracker.currentCategory

@@ -94,6 +94,11 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         initBaseViews()
     }
 
+    override fun setContentView(view: View?) {
+        super.setContentView(view)
+        initBaseViews()
+    }
+
     protected fun refreshCategories() {
 
         val usedCategories = repository.getUsedCategories(this::class.simpleName)

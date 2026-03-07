@@ -14,17 +14,14 @@ import androidx.appcompat.widget.Toolbar
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.adapters.EveryTocAdapter
-import apk.hurnell.recipebookreader.helpers.PdfRepository
 import apk.hurnell.recipebookreader.model.TocItem
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import android.content.Context
-import android.util.Log
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
-import androidx.core.widget.addTextChangedListener
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
+import apk.hurnell.recipebookreader.databinding.ActivityEveryTocBinding
+import apk.hurnell.recipebookreader.databinding.ActivityRecentBooksBinding
 import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.model.BaseTracker
 import com.google.android.material.snackbar.Snackbar
@@ -44,12 +41,11 @@ data class EveryTocTracker(
 ) : BaseTracker()
 
 class EveryTocActivity : BaseDrawerActivity() {
+
+    private var _binding: ActivityEveryTocBinding? = null
+    private val binding get() = _binding!!
     private var searchJob: Job? = null
     private lateinit var adapter: EveryTocAdapter
-    private lateinit var filterInput: EditText
-    private lateinit var resultCountTextView: TextView
-    private lateinit var searchToc: ImageButton
-    private lateinit var recyclerView: RecyclerView
     private var lastScrollPosition = 0
     private var lastScrollOffset = 0
     private var currentSearchTerm: String = ""
@@ -57,14 +53,13 @@ class EveryTocActivity : BaseDrawerActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_every_toc)
-        val rootLayout: CoordinatorLayout = findViewById(R.id.rootLayout)
 
-        loadingOverlay = findViewById(R.id.loadingOverlay)
+        _binding = ActivityEveryTocBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        loadingOverlay = binding.loadingOverlay
         loadingOverlay.visibility = View.GONE
-        val toolbar: Toolbar = findViewById(R.id.everyTocToolbar)
-        setupDrawer(toolbar)
-        spinner = findViewById(R.id.categorySpinner)
+        setupDrawer(binding.everyTocToolbar)
+        spinner = binding.categorySpinner
         spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(
                 parent: AdapterView<*>,
@@ -81,12 +76,11 @@ class EveryTocActivity : BaseDrawerActivity() {
                 applyChosenTextAndCategory()
             }
         }
-        recyclerView = findViewById(R.id.everyTocRecyclerView)
-        recyclerView.layoutManager = LinearLayoutManager(this)
+        binding.everyTocRecyclerView.layoutManager = LinearLayoutManager(this)
 
         adapter = EveryTocAdapter(
             onLongClickTitle = { item ->
-                displayClickResult(item.title, rootLayout)
+                displayClickResult(item.title, binding.rootLayout)
             },
             onClickTitle = { item ->
                 if (item.bookLocation != null) {
@@ -95,11 +89,11 @@ class EveryTocActivity : BaseDrawerActivity() {
                 }
             },
             onClickBook = { item ->
-                displayClickResult(item.bookTitle!!, rootLayout)
+                displayClickResult(item.bookTitle!!, binding.rootLayout)
 
             },
             onClickHierarchy = { item ->
-                displayClickResult(item.hierarchy!!, rootLayout)
+                displayClickResult(item.hierarchy!!, binding.rootLayout)
             },
             onClickBookmark = { item ->
                 if (item.bookmarkId == null) {
@@ -139,20 +133,18 @@ class EveryTocActivity : BaseDrawerActivity() {
                 }
             },
         )
-        recyclerView.adapter = adapter
-        recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+        binding.everyTocRecyclerView.adapter = adapter
+        binding.everyTocRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 super.onScrolled(recyclerView, dx, dy)
                 trackRecyclerViewOffset()
             }
         })
-        filterInput = findViewById(R.id.filterInput)
-        searchToc = findViewById(R.id.searchToc)
-        searchToc.setOnClickListener {
+        binding.searchToc.setOnClickListener {
             it.hideKeyboard()
             applyChosenTextAndCategory()
         }
-        filterInput.setOnEditorActionListener { v, actionId, event ->
+        binding.filterInput.setOnEditorActionListener { v, actionId, event ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                 applyChosenTextAndCategory()
                 v.hideKeyboard()
@@ -162,7 +154,6 @@ class EveryTocActivity : BaseDrawerActivity() {
                 false
             }
         }
-        resultCountTextView = findViewById(R.id.resultCountTextView)
         addTextWatcher()
         applySavedSettings()
 
@@ -177,7 +168,7 @@ class EveryTocActivity : BaseDrawerActivity() {
                 currentSearchTerm = tracker.searchTerm
                 lastScrollPosition = tracker.lastScrollPosition
                 lastScrollOffset = tracker.lastScrollOffset
-                filterInput.text = Editable.Factory.getInstance().newEditable(currentSearchTerm)
+                binding.filterInput.text = Editable.Factory.getInstance().newEditable(currentSearchTerm)
 
                 val position = categories.indexOf(currentCategory)
                 spinner.setSelection(position)
@@ -192,7 +183,7 @@ class EveryTocActivity : BaseDrawerActivity() {
     }
 
     private fun trackRecyclerViewOffset() {
-        val layoutManager = recyclerView.layoutManager as? LinearLayoutManager ?: return
+        val layoutManager = binding.everyTocRecyclerView.layoutManager as? LinearLayoutManager ?: return
         val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
         val firstVisibleView = layoutManager.findViewByPosition(firstVisibleItemPosition)
         val offset = firstVisibleView?.top ?: 0
@@ -202,15 +193,15 @@ class EveryTocActivity : BaseDrawerActivity() {
     }
 
     fun applyChosenTextAndCategory(saved: EveryTocTracker? = null) {
-        currentSearchTerm = filterInput.text.toString().trim()
+        currentSearchTerm = binding.filterInput.text.toString().trim()
         if (currentSearchTerm != "") {
             val everyToc: List<TocItem> =
                 repository.getFilteredEveryToc(currentSearchTerm, currentCategory)
             currentCount = "${everyToc.size}"
-            resultCountTextView.text = currentCount
+            binding.resultCountTextView.text = currentCount
             adapter.submitList(everyToc) {
                 if (saved != null) {
-                    val layoutManager = recyclerView.layoutManager as? LinearLayoutManager
+                    val layoutManager = binding.everyTocRecyclerView.layoutManager as? LinearLayoutManager
                     layoutManager?.scrollToPositionWithOffset(
                         saved.lastScrollPosition,
                         saved.lastScrollOffset
@@ -219,7 +210,7 @@ class EveryTocActivity : BaseDrawerActivity() {
             }
         } else {
             currentCount = ""
-            resultCountTextView.text = currentCount
+            binding.resultCountTextView.text = currentCount
             adapter.submitList(null)
         }
     }
@@ -233,7 +224,7 @@ class EveryTocActivity : BaseDrawerActivity() {
     }
 
     fun addTextWatcher() {
-        filterInput.addTextChangedListener(object : TextWatcher {
+        binding.filterInput.addTextChangedListener(object : TextWatcher {
             private var isUpdating = false
 
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -247,23 +238,23 @@ class EveryTocActivity : BaseDrawerActivity() {
 
                 if (original != filtered) {
                     isUpdating = true
-                    val selection = filterInput.selectionStart
+                    val selection = binding.filterInput.selectionStart
 
                     s.replace(0, s.length, filtered)
-                    filterInput.setSelection(selection.coerceAtMost(filtered.length))
+                    binding.filterInput.setSelection(selection.coerceAtMost(filtered.length))
                     isUpdating = false
                 }
 
                 var bv = View.VISIBLE
 
-                currentSearchTerm = filterInput.text.toString().trim()
-                if (filterInput.text.isNullOrEmpty()) {
+                currentSearchTerm = binding.filterInput.text.toString().trim()
+                if (binding.filterInput.text.isNullOrEmpty()) {
                     bv = View.INVISIBLE
                     adapter.submitList(null)
-                    resultCountTextView.text = ""
+                    binding.resultCountTextView.text = ""
                     currentSearchTerm = ""
                 }
-                searchToc.visibility = bv
+                binding.searchToc.visibility = bv
                 searchJob?.cancel()
                 searchJob = lifecycleScope.launch {
                     delay(300)
@@ -279,7 +270,7 @@ class EveryTocActivity : BaseDrawerActivity() {
                     } else {
                         currentCount = ""
                     }
-                    resultCountTextView.text = currentCount
+                    binding.resultCountTextView.text = currentCount
 
                 }
             }

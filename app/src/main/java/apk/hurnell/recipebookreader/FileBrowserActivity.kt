@@ -9,10 +9,8 @@ import android.view.View
 import android.widget.Button
 import android.widget.HorizontalScrollView
 import android.widget.ImageView
-import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
-import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.core.view.GravityCompat
@@ -25,6 +23,8 @@ import java.io.File
 import androidx.core.graphics.scale
 import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.lifecycleScope
+import apk.hurnell.recipebookreader.databinding.ActivityFileBrowserBinding
+import apk.hurnell.recipebookreader.databinding.CoverImagePreviewBinding
 import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.model.BaseTracker
 import com.google.gson.Gson
@@ -40,12 +40,12 @@ data class FileBrowserTracker(
 
 
 class FileBrowserActivity : BaseDrawerActivity() {
+
+    private var _binding: ActivityFileBrowserBinding? = null
+    private val binding get() = _binding!!
     private var pdfOnly: Boolean = false
     private var targetSha: String? = null
-    private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: FileAdapter
-    private lateinit var breadcrumbLayout: LinearLayout
-    private lateinit var breadcrumbScroll: HorizontalScrollView
     private val rootDir = Environment.getExternalStorageDirectory()
     private var currentDir: File = File(rootDir, "Documents")
     private var lastScrollPosition: Int = 0
@@ -60,7 +60,9 @@ class FileBrowserActivity : BaseDrawerActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        setContentView(R.layout.activity_file_browser)
+        _binding = ActivityFileBrowserBinding.inflate(layoutInflater)
+
+        setContentView(binding.root)
         pdfOnly = intent.getBooleanExtra(EXTRA_PDF_ONLY, true)
         targetSha = intent.getStringExtra(EXTRA_TARGET_SHA)
         val notFromNavigationEvent = intent.getBooleanExtra(NOT_FROM_NAVIGATION_EVENT, true)
@@ -68,23 +70,19 @@ class FileBrowserActivity : BaseDrawerActivity() {
             navigateBackToSavedActivity()
         }
 
-        loadingOverlay = findViewById(R.id.loadingOverlay)
+        loadingOverlay = binding.loadingOverlay
         loadingOverlay.visibility = View.GONE
-        val toolbar: Toolbar = findViewById(R.id.toolbar)
-        setupDrawer(toolbar)
+        setupDrawer(binding.toolbar)
         drawerLayout.closeDrawer(GravityCompat.START, false)
-        breadcrumbLayout = findViewById(R.id.breadcrumbLayout)
-        breadcrumbScroll = findViewById(R.id.breadcrumbScroll)
-        recyclerView = findViewById(R.id.fileRecyclerView)
-        recyclerView.layoutManager = LinearLayoutManager(this)
+        binding.fileRecyclerView.layoutManager = LinearLayoutManager(this)
         adapter = FileAdapter(
             onClick = { file -> onFileClick(file) },
             onLongClick = { file -> browserShowBookInfoOverlay(file) },
             repository,
             pdfOnly
         )
-        recyclerView.adapter = adapter
-        recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+        binding.fileRecyclerView.adapter = adapter
+        binding.fileRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 super.onScrolled(recyclerView, dx, dy)
                 trackRecyclerViewOffset()
@@ -137,7 +135,7 @@ class FileBrowserActivity : BaseDrawerActivity() {
     }
 
     private fun trackRecyclerViewOffset() {
-        val layoutManager = recyclerView.layoutManager as? LinearLayoutManager ?: return
+        val layoutManager = binding.fileRecyclerView.layoutManager as? LinearLayoutManager ?: return
         val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
         val firstVisibleView = layoutManager.findViewByPosition(firstVisibleItemPosition)
         val offset = firstVisibleView?.top ?: 0
@@ -178,24 +176,22 @@ class FileBrowserActivity : BaseDrawerActivity() {
     }
 
     private fun showImageActionDialog(file: File) {
+        val dialogBinding = CoverImagePreviewBinding.inflate(layoutInflater)
         val dialogView = layoutInflater.inflate(R.layout.cover_image_preview, null)
-        val previewImage = dialogView.findViewById<ImageView>(R.id.previewImage)
-        val btnAccept = dialogView.findViewById<Button>(R.id.btnAccept)
-        val btnCancel = dialogView.findViewById<Button>(R.id.btnCancel)
-
         val originalBitmap = BitmapFactory.decodeFile(file.absolutePath)
-        previewImage.setImageBitmap(originalBitmap)
+
+        dialogBinding.previewImage.setImageBitmap(originalBitmap)
 
         val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
             .setView(dialogView)
             .create()
 
-        btnCancel.setOnClickListener {
+        dialogBinding.btnCancel.setOnClickListener {
             originalBitmap.recycle()
             dialog.dismiss()
         }
 
-        btnAccept.setOnClickListener {
+        dialogBinding.btnAccept.setOnClickListener {
             val targetWidth = 200
             val targetHeight = 300
 
@@ -272,7 +268,7 @@ class FileBrowserActivity : BaseDrawerActivity() {
         } else {
             val ensuredSaved = saved!!
             adapter.submitList(items) {
-                val layoutManager = recyclerView.layoutManager as? LinearLayoutManager
+                val layoutManager = binding.fileRecyclerView.layoutManager as? LinearLayoutManager
                 layoutManager?.scrollToPositionWithOffset(
                     ensuredSaved.lastScrollPosition,
                     ensuredSaved.lastScrollOffset
@@ -299,7 +295,7 @@ class FileBrowserActivity : BaseDrawerActivity() {
     }
 
     private fun updateBreadcrumb(dir: File) {
-        breadcrumbLayout.removeAllViews()
+        binding.breadcrumbLayout.removeAllViews()
         val pathList = mutableListOf<File>()
         var temp: File? = dir
 
@@ -314,17 +310,17 @@ class FileBrowserActivity : BaseDrawerActivity() {
                 setTextColor(ContextCompat.getColor(context, R.color.dark_text))
                 setOnClickListener { if (file != currentDir) showFiles(file) }
             }
-            breadcrumbLayout.addView(textView)
+            binding.breadcrumbLayout.addView(textView)
 
             if (index != pathList.lastIndex) {
                 val pointer = TextView(this).apply {
                     text = ">"
                     setTextColor(ContextCompat.getColor(context, R.color.dark_text))
                 }
-                breadcrumbLayout.addView(pointer)
+                binding.breadcrumbLayout.addView(pointer)
             }
         }
-        breadcrumbScroll.post { breadcrumbScroll.fullScroll(HorizontalScrollView.FOCUS_RIGHT) }
+        binding.breadcrumbScroll.post { binding.breadcrumbScroll.fullScroll(HorizontalScrollView.FOCUS_RIGHT) }
     }
 
     fun resetToRoot() {
