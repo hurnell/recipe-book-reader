@@ -7,26 +7,18 @@ import android.util.AttributeSet
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.inputmethod.InputMethodManager
-import android.widget.ImageButton
 import android.widget.LinearLayout
-import android.widget.TextView
 import apk.hurnell.recipebookreader.R
 import androidx.core.content.withStyledAttributes
-import com.google.android.material.textfield.TextInputEditText
-import com.google.android.material.textfield.TextInputLayout
+import apk.hurnell.recipebookreader.databinding.ViewEditableTextBinding
 
 class EditableTextView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
 ) : LinearLayout(context, attrs, defStyleAttr), EditableView {
-
-    private val textView: TextView
-    private val labelView: TextView
-    private val editWrapper: TextInputLayout
-    private val editText: TextInputEditText
-    private val editButton: ImageButton
-    private val cancelButton: ImageButton
+    private var _binding: ViewEditableTextBinding? = null
+    private val binding get() = _binding!!
     private var hasLabel = false
     private var originalText: String? = null
     private var lowercaseChars: String = ""
@@ -37,17 +29,12 @@ class EditableTextView @JvmOverloads constructor(
     private var currentBookId: Long = -1L
 
     init {
+        val inflater: LayoutInflater = LayoutInflater.from(context)
+        _binding = ViewEditableTextBinding.inflate(inflater, this, true)
         orientation = HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
-        LayoutInflater.from(context).inflate(R.layout.view_editable_text, this, true)
         lowercaseChars = context.getString(R.string.lowercase_chars)
-        textView = findViewById(R.id.editableTextViewText)
-        labelView = findViewById(R.id.editableTextViewLabel)
-        labelView.visibility = GONE
-        editWrapper = findViewById(R.id.textChooserWrapper)
-        editText = findViewById(R.id.editableTextViewEditView)
-        editButton = findViewById(R.id.editButton)
-        cancelButton = findViewById(R.id.cancelButton)
+        binding.editableTextViewLabel.visibility = GONE
 
         attrs?.let {
             val ta = context.obtainStyledAttributes(it, R.styleable.EditableTextView)
@@ -56,13 +43,25 @@ class EditableTextView @JvmOverloads constructor(
 
                 val sizeInPx = ta.getDimension(R.styleable.EditableTextView_textSize, defaultSizePx)
                 context.withStyledAttributes(it, R.styleable.EditableTextView) {
-                    textView.textSize =
+                    binding.editableTextViewText.textSize =
                         getDimension(R.styleable.EditableTextView_textSize, defaultSizePx)
-                    textView.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, sizeInPx)
-                    editText.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, sizeInPx)
+                    binding.editableTextViewText.setTextSize(
+                        android.util.TypedValue.COMPLEX_UNIT_PX,
+                        sizeInPx
+                    )
+                    binding.editableTextViewEditView.setTextSize(
+                        android.util.TypedValue.COMPLEX_UNIT_PX,
+                        sizeInPx
+                    )
                     if (ta.getBoolean(R.styleable.EditableTextView_bold, false)) {
-                        textView.setTypeface(textView.typeface, Typeface.BOLD)
-                        editText.setTypeface(editText.typeface, Typeface.BOLD)
+                        binding.editableTextViewText.setTypeface(
+                            binding.editableTextViewText.typeface,
+                            Typeface.BOLD
+                        )
+                        binding.editableTextViewEditView.setTypeface(
+                            binding.editableTextViewEditView.typeface,
+                            Typeface.BOLD
+                        )
                     }
                 }
             } finally {
@@ -70,10 +69,10 @@ class EditableTextView @JvmOverloads constructor(
             }
         }
 
-        editButton.setOnClickListener {
+        binding.editButton.setOnClickListener {
             toggleEditMode()
         }
-        cancelButton.setOnClickListener { cancelEdit() }
+        binding.cancelButton.setOnClickListener { cancelEdit() }
     }
 
     fun onAccept(listener: (Long, String) -> Unit): EditableTextView {
@@ -86,35 +85,35 @@ class EditableTextView @JvmOverloads constructor(
             isEditing = false
             onEditingChanged?.invoke(this, false)
             if (hasLabel) {
-                labelView.visibility = VISIBLE
+                binding.editableTextViewLabel.visibility = VISIBLE
             }
-            textView.text = editText.text
-            textView.visibility = VISIBLE
-            editWrapper.visibility = GONE
-            editButton.setImageResource(R.drawable.ic_edit)
-            cancelButton.visibility = GONE
-            val newText = textView.text.toString()
+            binding.editableTextViewText.text = binding.editableTextViewEditView.text
+            binding.editableTextViewText.visibility = VISIBLE
+            binding.textChooserWrapper.visibility = GONE
+            binding.editButton.setImageResource(R.drawable.ic_edit)
+            binding.cancelButton.visibility = GONE
+            val newText = binding.editableTextViewText.text.toString()
             if (newText != originalText && !forceClosed) {
                 originalText = newText
                 onAccept?.invoke(currentBookId, newText)
             }
             val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-            imm.hideSoftInputFromWindow(editText.windowToken, 0)
+            imm.hideSoftInputFromWindow(binding.editableTextViewEditView.windowToken, 0)
         } else {
             isEditing = true
             onEditingChanged?.invoke(this, true)
-            editWrapper.visibility = VISIBLE
-            editText.setText(textView.text)
-            editText.visibility = VISIBLE
-            textView.visibility = GONE
+            binding.textChooserWrapper.visibility = VISIBLE
+            binding.editableTextViewEditView.setText(binding.editableTextViewText.text)
+            binding.editableTextViewEditView.visibility = VISIBLE
+            binding.editableTextViewText.visibility = GONE
             if (hasLabel) {
-                labelView.visibility = VISIBLE
+                binding.editableTextViewLabel.visibility = VISIBLE
             }
-            editButton.setImageResource(R.drawable.ic_save)
-            cancelButton.visibility = VISIBLE
-            editText.requestFocus()
+            binding.editButton.setImageResource(R.drawable.ic_save)
+            binding.cancelButton.visibility = VISIBLE
+            binding.editableTextViewEditView.requestFocus()
             val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-            imm.showSoftInput(editText, InputMethodManager.SHOW_IMPLICIT)
+            imm.showSoftInput(binding.editableTextViewEditView, InputMethodManager.SHOW_IMPLICIT)
 
         }
     }
@@ -122,26 +121,26 @@ class EditableTextView @JvmOverloads constructor(
     private fun cancelEdit() {
         isEditing = false
         onEditingChanged?.invoke(this, false)
-        editText.visibility = GONE
+        binding.editableTextViewEditView.visibility = GONE
         if (hasLabel) {
-            textView.visibility = VISIBLE
+            binding.editableTextViewText.visibility = VISIBLE
         }
-        editButton.setImageResource(R.drawable.ic_edit)
-        cancelButton.visibility = GONE
+        binding.editButton.setImageResource(R.drawable.ic_edit)
+        binding.cancelButton.visibility = GONE
         val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-        imm.hideSoftInputFromWindow(editText.windowToken, 0)
+        imm.hideSoftInputFromWindow(binding.editableTextViewEditView.windowToken, 0)
     }
 
     fun setText(value: String) {
-        textView.text = value
+        binding.editableTextViewText.text = value
         originalText = value
     }
 
     fun setLabel(value: String) {
-        labelView.text = value
-        labelView.visibility = VISIBLE
+        binding.editableTextViewLabel.text = value
+        binding.editableTextViewLabel.visibility = VISIBLE
         hasLabel = true
-        editWrapper.hint = "Choose (or create) $value "
+        binding.textChooserWrapper.hint = "Choose (or create) $value "
     }
 
     fun setParams(
@@ -153,7 +152,7 @@ class EditableTextView @JvmOverloads constructor(
     ) {
         currentBookId = bookId
         setText(text)
-        textView.setTypeface(textView.typeface, style)
+        binding.editableTextViewText.setTypeface(binding.editableTextViewText.typeface, style)
         if (label != null) {
             setLabel(label)
         }
@@ -171,7 +170,10 @@ class EditableTextView @JvmOverloads constructor(
         toggleEditMode(true)
         currentBookId = bookId
         setText(text)
-        textView.setTypeface(textView.typeface, Typeface.NORMAL)
+        binding.editableTextViewText.setTypeface(
+            binding.editableTextViewText.typeface,
+            Typeface.NORMAL
+        )
         if (label != null) {
             setLabel(label)
         }
@@ -181,7 +183,7 @@ class EditableTextView @JvmOverloads constructor(
     }
 
     private fun setAllowedChars() {
-        editText.filters = arrayOf(InputFilter { source, _, _, _, _, _ ->
+        binding.editableTextViewEditView.filters = arrayOf(InputFilter { source, _, _, _, _, _ ->
             source?.map {
                 val c = it.lowercaseChar()
                 if (c in lowercaseChars) c else null
@@ -190,7 +192,7 @@ class EditableTextView @JvmOverloads constructor(
     }
 
     override fun toggleEditButton(show: Boolean) {
-        editButton.visibility = if (show) VISIBLE else GONE
+        binding.editButton.visibility = if (show) VISIBLE else GONE
     }
 
 }

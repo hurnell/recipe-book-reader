@@ -98,23 +98,20 @@ class TocFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentTocBinding.inflate(inflater, container, false)
-        val view = inflater.inflate(R.layout.fragment_toc, container, false)
-        setupToolbar(view)
-        val searchField = view.findViewById<TextInputEditText>(R.id.searchField)
-        val btnToggle = view.findViewById<ImageButton>(R.id.btnToggle)
+        setupToolbar(binding.root)
 
         binding.tocRecyclerView.layoutManager = LinearLayoutManager(requireContext())
         binding.bookmarkRecyclerView.layoutManager = LinearLayoutManager(requireContext())
-        btnToggle.setOnClickListener {
+        binding.btnToggle.setOnClickListener {
             allExpanded = !allExpanded
             toggleAll(tocData, allExpanded)
             adapter?.updateVisibleItems()
-            btnToggle.setImageResource(
+            binding.btnToggle.setImageResource(
                 if (allExpanded) R.drawable.ic_expand_more
                 else R.drawable.ic_chevron_right
             )
         }
-        searchField.addTextChangedListener(object : TextWatcher {
+        binding.searchField.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 adapter?.filter(s.toString())

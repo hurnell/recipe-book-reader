@@ -10,13 +10,12 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.ArrayAdapter
 import android.widget.ImageButton
 import android.widget.LinearLayout
-import android.widget.TextView
 import apk.hurnell.recipebookreader.R
 import androidx.core.widget.addTextChangedListener
 import apk.hurnell.recipebookreader.helpers.PdfRepository
 import apk.hurnell.recipebookreader.model.Category
 import com.google.android.material.textfield.TextInputLayout
-import com.google.android.material.textfield.MaterialAutoCompleteTextView
+import apk.hurnell.recipebookreader.databinding.ViewEditableCategoryBinding
 
 class EditableCategoryView @JvmOverloads constructor(
     context: Context,
@@ -24,15 +23,11 @@ class EditableCategoryView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : LinearLayout(context, attrs, defStyleAttr), EditableView {
 
-    private val textView: TextView
-    private val labelView: TextView
-    private val editWrapper: TextInputLayout
-    private val editText: MaterialAutoCompleteTextView
+    private var _binding: ViewEditableCategoryBinding? = null
+    private val binding get() = _binding!!
     private var categories = mutableListOf<Category>()
     private var selectedCategoryId: Int? = null
     private var originalText: String? = null
-    private val editButton: ImageButton
-    private val cancelButton: ImageButton
     private var hasLabel = false
     private var repository: PdfRepository? = null
     var onEditingChanged: ((view: Any, isEditing: Boolean) -> Unit)? = null
@@ -42,16 +37,11 @@ class EditableCategoryView @JvmOverloads constructor(
     var onAccept: ((Long, String, Long?) -> Unit)? = null
 
     init {
+        val inflater: LayoutInflater = LayoutInflater.from(context)
+        _binding = ViewEditableCategoryBinding.inflate(inflater, this, true)
         orientation = HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
-        LayoutInflater.from(context).inflate(R.layout.view_editable_category, this, true)
-        labelView = findViewById(R.id.editableCategoryViewLabel)
-        textView = findViewById(R.id.editableCategoryViewText)
-        labelView.visibility = GONE
-        editWrapper = findViewById(R.id.categoryChooserWrapper)
-        editText = findViewById(R.id.categoryChooser)
-        editButton = findViewById(R.id.categoryEditButton)
-        cancelButton = findViewById(R.id.categoryCancelButton)
+        binding.editableCategoryViewLabel.visibility = GONE
 
         attrs?.let {
             val ta = context.obtainStyledAttributes(it, R.styleable.EditableCategoryView)
@@ -63,22 +53,22 @@ class EditableCategoryView @JvmOverloads constructor(
                     defaultSizePx
                 )
 
-                textView.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, sizeInPx)
-                editText.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, sizeInPx)
+                binding.editableCategoryViewText.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, sizeInPx)
+                binding.categoryChooser.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, sizeInPx)
 
                 if (ta.getBoolean(R.styleable.EditableCategoryView_categoryBold, false)) {
-                    textView.setTypeface(textView.typeface, Typeface.BOLD)
-                    editText.setTypeface(editText.typeface, Typeface.BOLD)
+                    binding.editableCategoryViewText.setTypeface(binding.editableCategoryViewText.typeface, Typeface.BOLD)
+                    binding.categoryChooser.setTypeface(binding.categoryChooser.typeface, Typeface.BOLD)
                 }
             } finally {
                 ta.recycle()
             }
         }
 
-        editButton.setOnClickListener {
+        binding.categoryEditButton.setOnClickListener {
             toggleEditMode()
         }
-        cancelButton.setOnClickListener { cancelEdit() }
+        binding.categoryCancelButton.setOnClickListener { cancelEdit() }
     }
 
 
@@ -97,16 +87,16 @@ class EditableCategoryView @JvmOverloads constructor(
             categories
         )
 
-        editText.setAdapter(adapter)
+        binding.categoryChooser.setAdapter(adapter)
 
-        editText.setOnItemClickListener { _, _, position, _ ->
+        binding.categoryChooser.setOnItemClickListener { _, _, position, _ ->
             selectedCategoryId = categories[position].id.toInt()
         }
-        editText.addTextChangedListener { text ->
+        binding.categoryChooser.addTextChangedListener { text ->
             if (text.isNullOrEmpty()) {
-                editWrapper.endIconMode = TextInputLayout.END_ICON_DROPDOWN_MENU
+                binding.categoryChooserWrapper.endIconMode = TextInputLayout.END_ICON_DROPDOWN_MENU
             } else {
-                editWrapper.endIconMode = TextInputLayout.END_ICON_CLEAR_TEXT
+                binding.categoryChooserWrapper.endIconMode = TextInputLayout.END_ICON_CLEAR_TEXT
             }
         }
     }
@@ -116,14 +106,14 @@ class EditableCategoryView @JvmOverloads constructor(
             isEditing = false
             onEditingChanged?.invoke(this, false)
             if (hasLabel) {
-                labelView.visibility = VISIBLE
+                binding.editableCategoryViewLabel.visibility = VISIBLE
             }
-            textView.text = editText.text
-            textView.visibility = VISIBLE
-            editWrapper.visibility = GONE
-            editButton.setImageResource(R.drawable.ic_edit)
-            cancelButton.visibility = GONE
-            val newText = editText.text.toString()
+            binding.editableCategoryViewText.text = binding.categoryChooser.text
+            binding.editableCategoryViewText.visibility = VISIBLE
+            binding.categoryChooserWrapper.visibility = GONE
+            binding.categoryEditButton.setImageResource(R.drawable.ic_edit)
+            binding.categoryCancelButton.visibility = GONE
+            val newText = binding.categoryChooser.text.toString()
             if (newText != originalText && !forceClosed) {
                 val newCategory = categories.find { it.category.equals(newText, false) }
                 originalText = newText
@@ -134,24 +124,24 @@ class EditableCategoryView @JvmOverloads constructor(
                     onAccept?.invoke(currentBookId, newText, null)
                 }
             }
-            textView.text = newText
+            binding.editableCategoryViewText.text = newText
 
             val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-            imm.hideSoftInputFromWindow(editText.windowToken, 0)
+            imm.hideSoftInputFromWindow(binding.categoryChooser.windowToken, 0)
         } else {
             isEditing = true
             onEditingChanged?.invoke(this, true)
-            editWrapper.visibility = VISIBLE
-            editText.setText(textView.text)
-            textView.visibility = GONE
+            binding.categoryChooserWrapper.visibility = VISIBLE
+            binding.categoryChooser.setText(binding.editableCategoryViewText.text)
+            binding.editableCategoryViewText.visibility = GONE
             if (hasLabel) {
-                labelView.visibility = VISIBLE
+                binding.editableCategoryViewLabel.visibility = VISIBLE
             }
-            editButton.setImageResource(R.drawable.ic_save)
-            cancelButton.visibility = VISIBLE
-            editText.requestFocus()
+            binding.categoryEditButton.setImageResource(R.drawable.ic_save)
+            binding.categoryCancelButton.visibility = VISIBLE
+            binding.categoryChooser.requestFocus()
             val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-            imm.showSoftInput(editText, InputMethodManager.SHOW_IMPLICIT)
+            imm.showSoftInput(binding.categoryChooser, InputMethodManager.SHOW_IMPLICIT)
 
         }
     }
@@ -164,26 +154,26 @@ class EditableCategoryView @JvmOverloads constructor(
     private fun cancelEdit() {
         isEditing = false
         onEditingChanged?.invoke(this, false)
-        editWrapper.visibility = GONE
+        binding.categoryChooserWrapper.visibility = GONE
         if (hasLabel) {
-            textView.visibility = VISIBLE
+            binding.editableCategoryViewText.visibility = VISIBLE
         }
-        editButton.setImageResource(R.drawable.ic_edit)
-        cancelButton.visibility = GONE
+        binding.categoryEditButton.setImageResource(R.drawable.ic_edit)
+        binding.categoryCancelButton.visibility = GONE
         val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-        imm.hideSoftInputFromWindow(editText.windowToken, 0)
+        imm.hideSoftInputFromWindow(binding.categoryChooser.windowToken, 0)
     }
 
     fun setText(value: String) {
-        textView.text = value
+        binding.editableCategoryViewText.text = value
         originalText = value
     }
 
     fun setLabel(value: String) {
-        labelView.text = value
-        labelView.visibility = VISIBLE
+        binding.editableCategoryViewLabel.text = value
+        binding.editableCategoryViewLabel.visibility = VISIBLE
         hasLabel = true
-        editWrapper.hint = "Choose (or create) $value "
+        binding.categoryChooserWrapper.hint = "Choose (or create) $value "
     }
 
 
@@ -213,11 +203,11 @@ class EditableCategoryView @JvmOverloads constructor(
             setText("")
         }
 
-        textView.setTypeface(textView.typeface, Typeface.NORMAL)
+        binding.editableCategoryViewText.setTypeface(binding.editableCategoryViewText.typeface, Typeface.NORMAL)
 
     }
 
     override fun toggleEditButton(show: Boolean) {
-        editButton.visibility = if (show) VISIBLE else GONE
+        binding.categoryEditButton.visibility = if (show) VISIBLE else GONE
     }
 }
