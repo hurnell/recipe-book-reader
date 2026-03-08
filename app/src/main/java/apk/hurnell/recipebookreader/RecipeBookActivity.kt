@@ -14,7 +14,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.Window
 import android.view.WindowInsets
-import android.widget.FrameLayout
+import android.widget.HorizontalScrollView
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
@@ -29,11 +29,11 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.adapters.BookAdapter
 import apk.hurnell.recipebookreader.databinding.ActivityRecipeBookBinding
-import apk.hurnell.recipebookreader.databinding.CopyTextContainerHolderBinding
 import apk.hurnell.recipebookreader.helpers.FunctionalStructuredTextWalker
 import apk.hurnell.recipebookreader.ui.PinchRecyclerView
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.Insets
 import androidx.core.view.WindowCompat
@@ -52,14 +52,20 @@ import androidx.core.view.updateLayoutParams
 import apk.hurnell.recipebookreader.databinding.DialogBookmarkBinding
 import apk.hurnell.recipebookreader.helpers.Coordinates
 import apk.hurnell.recipebookreader.helpers.DataStoreManager
-import apk.hurnell.recipebookreader.helpers.IsbnFinder
 import apk.hurnell.recipebookreader.model.BaseBookmarkTocItem
 import apk.hurnell.recipebookreader.model.BaseTracker
 import apk.hurnell.recipebookreader.model.BookHistoryItem
 import apk.hurnell.recipebookreader.model.BookmarkItem
 import apk.hurnell.recipebookreader.ui.TocFragmentListener
 import com.artifex.mupdf.fitz.Rect
-import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.floatingactionbutton.FloatingActionButton
+import androidx.work.Data
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import apk.hurnell.recipebookreader.workers.IsbnScanWorker
+import java.util.concurrent.TimeUnit
+import kotlin.math.max
+import kotlin.math.min
 
 data class RecipeBookTracker(
     val portrait: Boolean?,
@@ -93,11 +99,15 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     private var clearSearchMenuItem: MenuItem? = null
     private var isbnScanJob: Job? = null
 
-    private var copyTextContainer: FrameLayout? = null
+    private var copyTextContainer: ConstraintLayout? = null
+    private var horizontalScrollView: HorizontalScrollView? = null
     private var copyText: TextView? = null
 
     companion object {
         private const val LOG_TAG = "NIGEL_HURNELL"
+        private const val LINK_STATE_LINKS_ON = 0
+        private const val LINK_STATE_LINKS_OFF = 1
+        private const val LINK_STATE_BOOKMARKS = 2
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -127,12 +137,46 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         setupSystemBars()
 
         setupStaticListeners()
-        val copyTextBinding = CopyTextContainerHolderBinding.inflate(layoutInflater)
-        copyTextContainer = copyTextBinding.copyTextContainer
+
+        copyText = findViewById(R.id.copyText)
+        copyTextContainer = findViewById(R.id.copyTextContainer)
+        horizontalScrollView = findViewById(R.id.horizontalScrollView)
         copyTextContainer?.setOnClickListener {
             copyTextContainer?.visibility = View.GONE
         }
-        copyText = copyTextBinding.copyText
+        var incrementSp = 0f
+        if (copyText != null) {
+            val currentSizePx = copyText!!.textSize
+            val btnIncreaseFontSize: FloatingActionButton = findViewById(R.id.btnIncreaseFontSize)
+            val btnDecreaseFontSize: FloatingActionButton = findViewById(R.id.btnDecreaseFontSize)
+
+            btnIncreaseFontSize.setOnClickListener {
+                incrementSp += 1
+                incrementSp = min(incrementSp, 5f)
+                btnDecreaseFontSize.visibility =
+                    if (incrementSp == 0f) View.INVISIBLE else View.VISIBLE
+                btnIncreaseFontSize.visibility =
+                    if (incrementSp == 5f) View.INVISIBLE else View.VISIBLE
+                val scale = copyText!!.resources.displayMetrics.scaledDensity
+                val incrementPx = incrementSp * scale
+                Log.i(LOG_TAG, "incrementPx $incrementPx")
+                copyText!!.setTextSize(TypedValue.COMPLEX_UNIT_PX, currentSizePx + incrementPx)
+            }
+            btnDecreaseFontSize.setOnClickListener {
+                incrementSp -= 1
+                incrementSp = max(incrementSp, 0f)
+                btnDecreaseFontSize.visibility =
+                    if (incrementSp == 0f) View.INVISIBLE else View.VISIBLE
+                btnIncreaseFontSize.visibility =
+                    if (incrementSp == 5f) View.INVISIBLE else View.VISIBLE
+                val scale = copyText!!.resources.displayMetrics.scaledDensity
+                val incrementPx = incrementSp * scale
+                Log.i(LOG_TAG, "incrementPx $incrementPx")
+                copyText!!.setTextSize(TypedValue.COMPLEX_UNIT_PX, currentSizePx + incrementPx)
+
+            }
+        }
+
         val pdfFilePath = intent.getStringExtra("PDF_PATH")
         if (pdfFilePath == null) {
             Log.e(LOG_TAG, "No PDF path provided")
@@ -198,16 +242,20 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
 
                         tocSuccess
                     }
-                    isbnScanJob = lifecycleScope.launch(Dispatchers.IO) {
-                        val document = repository.openPdfFast(pdfFile)
-                        try {
-                            val foundIsbn = IsbnFinder().findIsbnInDocument(document)
-                            repository.updateBookIsbn(bookId, foundIsbn)
-                        } finally {
-                            document.destroy()
-                        }
-                    }
+                    val workData = Data.Builder()
+                        .putString("pdf_path", pdfFilePath)
+                        .putLong("book_id", bookId)
+                        .build()
 
+                    val isbnWork = OneTimeWorkRequestBuilder<IsbnScanWorker>()
+                        .setInputData(workData)
+                        .setBackoffCriteria(
+                            androidx.work.BackoffPolicy.EXPONENTIAL,
+                            10, TimeUnit.SECONDS
+                        )
+                        .build()
+
+                    WorkManager.getInstance(this@RecipeBookActivity).enqueue(isbnWork)
 
                     if (success) {
                         withContext(Dispatchers.Main) {
@@ -461,15 +509,16 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                         val initialTransX = touchContext?.translationX ?: 0f
                         val initialScale = touchContext?.scaleFactor ?: 1f
 
-                        delay(200L)
+                        delay(300L)
 
                         val hasMoved =
-                            abs(pinchRv.computeVerticalScrollOffset() - initialOffset) > 5 || abs(
+                            (abs(pinchRv.computeVerticalScrollOffset() - initialOffset) > 5 || abs(
                                 pinchRv.translationX - initialTransX
-                            ) > 5 || abs(pinchRv.getScaleFactor() - initialScale) > 0.01f
+                            ) > 5 || abs(pinchRv.getScaleFactor() - initialScale) > 0.01f)
 
-                        if (!hasMoved) {
-                            if (linkState == 2) {
+                        Log.i(LOG_TAG, "is released = ${touchContext?.asString()} ")
+                        if (!hasMoved && touchContext != null) {
+                            if (linkState == LINK_STATE_BOOKMARKS && touchContext.isReleased) {
                                 val text = getTextNearClickPoint(
                                     document, pagePosition, px, py, true
                                 )
@@ -520,7 +569,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                                 dialog.window?.setSoftInputMode(
                                     android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN
                                 )
-                            } else if (linkState == 3) {
+                            } else if (linkState != LINK_STATE_LINKS_OFF && !touchContext.isReleased) {
                                 val text = getTextNearClickPoint(
                                     document, pagePosition, px, py, false
                                 )
@@ -553,6 +602,8 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
 
         binding.btnRotate.setOnClickListener {
             isPortrait = !isPortrait
+            resetBookOverlayParams()
+
             requestedOrientation = if (isPortrait) {
                 ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
             } else {
@@ -627,12 +678,14 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         }
 
         binding.zoomIt.setOnClickListener {
+            copyTextContainer?.visibility = View.GONE
             toggleBars(!barsVisible)
         }
         val color = ContextCompat.getColor(this, R.color.nav_text)
         binding.zoomIt.imageTintList = ColorStateList.valueOf(color)
         binding.stopLinks.setOnClickListener {
             toggleLinks()
+            copyTextContainer?.visibility = View.GONE
         }
 
         binding.pageSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -678,6 +731,30 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         controller.systemBarsBehavior =
             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         setStatusBarColor(window, getColor(R.color.transparent))
+    }
+
+
+    private fun resetBookOverlayParams() {
+        val widthInDp = if (isPortrait) 300 else 400
+        val heightInDp = if (isPortrait) 250 else 180
+        val resources = this@RecipeBookActivity.resources
+        val widthInPx = (widthInDp * resources.displayMetrics.density).toInt()
+        val heightInPx = (heightInDp * resources.displayMetrics.density).toInt()
+        if (horizontalScrollView != null) {
+            val overlay = horizontalScrollView!!
+            overlay.layoutParams.width = widthInPx
+            overlay.layoutParams.height = heightInPx
+            overlay.requestLayout()
+        }
+        val oldOffsetOverRange = binding.bookRecyclerView.handleOrientationChange(isPortrait)
+        lifecycleScope.launch {
+
+            delay(300L)
+            val offsetChange = binding.bookRecyclerView.getOffsetChange(oldOffsetOverRange)
+            if (offsetChange != 0) {
+                binding.bookRecyclerView.scrollBy(0, -offsetChange)
+            }
+        }
     }
 
     private fun handleExternalLink(uri: String?) {
@@ -731,12 +808,12 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
 
                 if (link.isExternal) {
                     val uri = link.uri
-                    if (linkState == 0) {
+                    if (linkState == LINK_STATE_LINKS_ON) {
                         handleExternalLink(uri)
                     }
                 } else {
                     page.destroy()
-                    if (linkState == 0) {
+                    if (linkState == LINK_STATE_LINKS_ON) {
                         handleInternalLink(rv, link, w)
                     }
                 }
@@ -763,14 +840,20 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         }
         val page = document.loadPage(currentPage)
         val structuredText = page.toStructuredText()
+        var lastLineY = 0f
+        var notFirstLine = false
         structuredText.blocks?.forEach { block ->
             val blockBuilder = StringBuilder()
-            val blockWidth = block.bbox.x1 - block.bbox.x0
             block.lines?.forEach { line ->
-                val lineWidth = line.bbox.x1 - line.bbox.x0
+                val lineBuilder = StringBuilder()
+                line.chars?.forEach { char -> lineBuilder.append(char.c.toChar()) }
+                val thisLineY = line.bbox.y0
                 line.chars?.forEach { char -> blockBuilder.append(char.c.toChar()) }
-                val append = if (lineWidth < 0.9 * blockWidth) "\n" else " "
-                blockBuilder.append(append)
+                Log.i(
+                    "NIGEL_HURNELL",
+                    "$notFirstLine $thisLineY $lastLineY ${block.bbox} ${lineBuilder.toString()}"
+                )
+                blockBuilder.append("\n")
                 if (checkHit(line.bbox, x, y)) {
                     val lineBuilder = StringBuilder()
                     line.chars?.forEach { char -> lineBuilder.append(char.c.toChar()) }
@@ -778,6 +861,8 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                         return lineBuilder.toString().trim()
                     }
                 }
+                notFirstLine = true
+                lastLineY = thisLineY
             }
             if (checkHit(block.bbox, x, y)) {
                 return blockBuilder.toString().trim()
@@ -795,7 +880,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         width: Float,
         currentPage: Int
     ): Boolean {
-        if (linkState != 0) {
+        if (linkState != LINK_STATE_LINKS_ON) {
             return true
         }
         if (document == null) {
@@ -873,7 +958,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     }
 
     private fun getLinkColor(): Int {
-        if (linkState == 1) {
+        if (linkState == LINK_STATE_LINKS_OFF) {
             return ContextCompat.getColor(this, R.color.links_off)
         } else {
             return ContextCompat.getColor(this, R.color.nav_text)
@@ -881,27 +966,22 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     }
 
     private fun toggleLinks() {
-        linkState = (linkState + 1) % 4
+        linkState = (linkState + 1) % 3
         val color = getLinkColor()
         when (linkState) {
-            0 -> {
+            LINK_STATE_LINKS_ON -> {
                 binding.stopLinks.imageTintList = ColorStateList.valueOf(color)
                 binding.stopLinks.setImageResource(R.drawable.ic_link_on)
             }
 
-            1 -> {
+            LINK_STATE_LINKS_OFF -> {
                 binding.stopLinks.imageTintList = ColorStateList.valueOf(color)
                 binding.stopLinks.setImageResource(R.drawable.ic_link_off)
             }
 
-            2 -> {
-                binding.stopLinks.imageTintList = ColorStateList.valueOf(color)
-                binding.stopLinks.setImageResource(R.drawable.ic_bookmark_closed)
-            }
-
             else -> {
                 binding.stopLinks.imageTintList = ColorStateList.valueOf(color)
-                binding.stopLinks.setImageResource(R.drawable.ic_copy)
+                binding.stopLinks.setImageResource(R.drawable.ic_bookmark_closed)
             }
         }
 

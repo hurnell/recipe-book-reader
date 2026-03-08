@@ -36,14 +36,15 @@ class EveryTocAdapter(
     override fun onBindViewHolder(holder: TocViewHolder, position: Int) {
         val item = getItem(position)
         holder.binding.tocText.text = item.title
-        holder.binding.bookName.text = item.bookTitle ?: ""
-        val hierarchyText = item.hierarchy ?: ""
+        holder.binding.bookName.text = item.bookTitle ?: " "
+        val hierarchyText = item.hierarchy ?: " "
         if (hierarchyText.isEmpty()) {
             holder.binding.hierarchy.visibility = View.GONE
         } else {
             holder.binding.hierarchy.text = hierarchyText
             holder.binding.hierarchy.visibility = View.VISIBLE
         }
+        holder.binding.pageNumber.text = "${item.page}"
         holder.binding.tocText.setOnClickListener {
             onClickTitle(item)
         }

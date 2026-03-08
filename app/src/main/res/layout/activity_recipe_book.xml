@@ -37,7 +37,7 @@
             android:paddingBottom="0dp"
             app:fabSize="mini"
             app:layout_constraintTop_toTopOf="parent"
-            app:navigationIcon="?attr/homeAsUpIndicator"
+            app:navigationIcon="@drawable/ic_left"
             app:navigationIconTint="@color/nav_text"
             app:title="Recipe Book"
             app:titleCentered="true"

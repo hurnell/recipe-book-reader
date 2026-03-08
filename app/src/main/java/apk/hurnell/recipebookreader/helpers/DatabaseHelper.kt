@@ -380,7 +380,7 @@ LEFT JOIN categories AS c ON b.category = c.id OR b.sub_category = c.id
 WHERE t.title LIKE ? 
 $categoryFilter
 GROUP BY t.id
-ORDER BY b.name COLLATE NOCASE, t.page
+ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
 """.trimIndent()
 
         val cursor = db.rawQuery(sql, selectionArgs)
@@ -491,7 +491,7 @@ ORDER BY b.name COLLATE NOCASE, t.page
             val scaleX = targetWidth / pageWidth
             val scaleY = targetHeight / pageHeight
 
-            val bitmap = createBitmap(targetWidth, targetHeight)
+            val bitmap = createBitmap(200, 300)
 
             val device = AndroidDrawDevice(bitmap, 0, 0)
             page.run(device, Matrix(scaleX, scaleY), null)
@@ -510,18 +510,19 @@ ORDER BY b.name COLLATE NOCASE, t.page
         }
     }
 
-    private suspend fun generateBookCoverThumbnail(
+    suspend fun generateBookCoverThumbnail(
         sha: String,
         document: Document,
         bookTitle: String?,
         bookAuthor: String?,
         targetWidth: Int = 200,
-        targetHeight: Int = 300
+        targetHeight: Int = 300,
+        overwrite: Boolean = false
     ): Boolean {
         return try {
             val hashName = "${sha}.png"
             val thumbnailFile = File(this.context.filesDir, hashName)
-            if (thumbnailFile.exists()) return true
+            if (thumbnailFile.exists() && !overwrite) return true
 
             val firstPage = FunctionalStructuredTextWalker().getPageCoordinates(document, 0)
             val generated = if (firstPage.imageIsFullPage) {

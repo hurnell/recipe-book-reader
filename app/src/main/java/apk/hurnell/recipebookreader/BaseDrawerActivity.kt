@@ -3,6 +3,7 @@ package apk.hurnell.recipebookreader
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
 import android.graphics.Typeface
 import android.os.Bundle
 import android.util.Log
@@ -21,6 +22,7 @@ import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.scale
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.lifecycleScope
@@ -32,12 +34,12 @@ import apk.hurnell.recipebookreader.model.BaseBookmarkTocItem
 import apk.hurnell.recipebookreader.model.Book
 import apk.hurnell.recipebookreader.ui.EditableCategoryView
 import apk.hurnell.recipebookreader.ui.EditableTextView
+import com.bumptech.glide.Glide
+import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
-import com.bumptech.glide.Glide
-import com.google.gson.Gson
 import java.io.FileOutputStream
 
 abstract class BaseDrawerActivity : AppCompatActivity() {
@@ -63,6 +65,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
     protected var isbnNumber: EditableTextView? = null
     protected var btnSearchCovers: ImageButton? = null
     protected var btnPickCover: ImageButton? = null
+    protected var btnRevertCover: ImageButton? = null
 
     protected var btnCloseGallery: ImageButton? = null
     protected var coverOptionsRecycler: RecyclerView? = null
@@ -114,7 +117,11 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         spinner.adapter = adapter
     }
 
-    protected fun processAndOpenBook(pdfFile: File, bookmarkTocItem: BaseBookmarkTocItem? = null, recipeBookState: RecipeBookTracker? = null ) {
+    protected fun processAndOpenBook(
+        pdfFile: File,
+        bookmarkTocItem: BaseBookmarkTocItem? = null,
+        recipeBookState: RecipeBookTracker? = null
+    ) {
         loadingOverlay.visibility = View.VISIBLE
 
         lifecycleScope.launch(Dispatchers.IO) {
@@ -171,6 +178,44 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         }
     }
 
+    fun revertCoverFromDocument(book: Book) {
+        toggleOtherButtons(null, false)
+        btnSearchCovers?.visibility = View.GONE
+        btnPickCover?.visibility = View.GONE
+        lifecycleScope.launch {
+            try {
+                val file = File(book.location!!)
+                val document = runCatching {
+                    repository.openPdfFast(file)
+                }.getOrElse {
+                    return@launch
+                }
+                val success = repository.generateBookCoverThumbnail(
+                    book.sha!!,
+                    document,
+                    book.name,
+                    book.author,
+                    200,
+                    300,
+                    true
+                )
+                document.destroy()
+                if (success) {
+                    withContext(Dispatchers.Main) {
+                        setResetPreviewImage(book.sha, bookPreviewImage!!)
+                    }
+                }
+
+                toggleOtherButtons(null, true)
+                btnSearchCovers?.visibility = View.VISIBLE
+                btnPickCover?.visibility = View.VISIBLE
+            } catch (e: Exception) {
+                val a = 1231
+            }
+        }
+
+    }
+
     fun searchFileSystemForBookCovers(book: Book) {
         val intent = Intent(this@BaseDrawerActivity, FileBrowserActivity::class.java).apply {
             putExtra(FileBrowserActivity.EXTRA_PDF_ONLY, false)
@@ -185,6 +230,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         toggleOtherButtons(null, false)
 
         btnPickCover?.visibility = View.GONE
+        btnRevertCover?.visibility = View.GONE
         if (book.name != null && book.author != null) {
             lifecycleScope.launch {
                 val urls = GetCoverUrlHelper().getAllAvailableCovers(book)
@@ -198,6 +244,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                     btnSearchCovers?.visibility = View.GONE
                     toggleOtherButtons(null, false)
                     btnPickCover?.visibility = View.GONE
+                    btnRevertCover?.visibility = View.GONE
 
                     coverOptionsRecycler?.adapter = CoverPickerAdapter(urls) { selectedUrl ->
                         coverOptionsRecycler?.visibility = View.GONE
@@ -206,6 +253,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                         btnSearchCovers?.visibility = View.VISIBLE
                         toggleOtherButtons(null, true)
                         btnPickCover?.visibility = View.VISIBLE
+                        btnRevertCover?.visibility = View.VISIBLE
                         if (book.sha != null) {
                             lifecycleScope.launch(Dispatchers.IO) {
                                 val success = saveCoverAsPng(selectedUrl, book.sha)
@@ -223,6 +271,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
 
                     btnSearchCovers?.visibility = View.VISIBLE
                     btnPickCover?.visibility = View.VISIBLE
+                    btnRevertCover?.visibility = View.VISIBLE
                     toggleOtherButtons(null, true)
                     Toast.makeText(
                         this@BaseDrawerActivity,
@@ -237,13 +286,13 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
 
     private fun saveCoverAsPng(url: String, sha: String): Boolean {
         return try {
-            val bitmap = Glide.with(this)
+            val originalBitmap = Glide.with(this)
                 .asBitmap()
                 .load(url)
                 .submit()
                 .get()
-
-            saveBitmapAsCover(bitmap, sha)
+            val scaledBitmap = originalBitmap.scale(200, 300)
+            saveBitmapAsCover(scaledBitmap, sha)
             true
         } catch (e: Exception) {
             Log.e("SAVE_COVER", "Error saving PNG for $sha", e)
@@ -255,7 +304,6 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         return try {
             val hashName = "${sha}.png"
             val thumbnailFile = File(this.filesDir, hashName)
-
             FileOutputStream(thumbnailFile).use { out ->
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
                 out.flush()
@@ -270,6 +318,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
     private fun toggleOtherButtons(activeView: Any?, show: Boolean) {
         btnSearchCovers?.visibility = if (show) View.VISIBLE else View.GONE
         btnPickCover?.visibility = if (show) View.VISIBLE else View.GONE
+        btnRevertCover?.visibility = if (show) View.VISIBLE else View.GONE
         val buttons = listOf(bookTitle, bookAuthor, isbnNumber, bookCategory, bookSubCategory)
         buttons.forEach { btn ->
             if (btn != activeView) {
@@ -378,12 +427,16 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                 coverOptionsRecycler = findViewById(R.id.coverOptionsRecycler)
                 btnSearchCovers = findViewById(R.id.btnSearchCovers)
                 btnPickCover = findViewById(R.id.btnPickCover)
+                btnRevertCover = findViewById(R.id.btnRevertCover)
                 btnCloseGallery = findViewById(R.id.btnCloseGallery)
                 btnSearchCovers?.setOnClickListener {
                     showPossibleBookCovers(book)
                 }
                 btnPickCover?.setOnClickListener {
                     searchFileSystemForBookCovers(book)
+                }
+                btnRevertCover?.setOnClickListener {
+                    revertCoverFromDocument(book)
                 }
                 btnCloseGallery?.setOnClickListener {
                     coverOptionsRecycler?.visibility = View.GONE

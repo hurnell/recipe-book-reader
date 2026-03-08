@@ -88,5 +88,6 @@ dependencies {
     implementation(libs.glide)
     implementation(libs.kotlin.reflect)
     implementation(libs.androidx.datastore.preferences)
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
     annotationProcessor(libs.compiler)
 }

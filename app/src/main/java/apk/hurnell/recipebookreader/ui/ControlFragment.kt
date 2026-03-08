@@ -36,11 +36,15 @@ class ControlFragment : Fragment() {
         binding.btnRecentBooks.setOnClickListener {
             if (getCurrentActivity() != "RecentBooksActivity") {
                 navigateTo(RecentBooksActivity::class.java)
+            } else {
+                closeDrawer()
             }
         }
         binding.btnBookShelf.setOnClickListener {
             if (getCurrentActivity() != "BookShelfActivity") {
                 navigateTo(BookShelfActivity::class.java)
+            } else {
+                closeDrawer()
             }
         }
 
@@ -71,23 +75,34 @@ class ControlFragment : Fragment() {
                         }
                     })
                 }
+            } else {
+                closeDrawer()
             }
         }
 
         binding.btnSearchEveryToc.setOnClickListener {
             if (getCurrentActivity() != "EveryTocActivity") {
                 navigateTo(EveryTocActivity::class.java)
+            } else {
+                closeDrawer()
             }
         }
         binding.btnBookmarks.setOnClickListener {
             if (getCurrentActivity() != "BookmarksActivity") {
                 navigateTo(BookmarksActivity::class.java)
+            } else {
+                closeDrawer()
             }
         }
         binding.btnCloseDrawer.setOnClickListener {
             val baseActivity = activity as? BaseDrawerActivity
             baseActivity?.drawerLayout?.closeDrawer(GravityCompat.START)
         }
+    }
+    private fun closeDrawer(){
+        val currentActivity = activity ?: return
+        val drawer = (currentActivity as? BaseDrawerActivity)?.drawerLayout
+        drawer?.closeDrawers()
     }
 
     private fun navigateTo(destination: Class<*>) {

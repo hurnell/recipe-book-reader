@@ -1,28 +1,80 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/copyTextContainer"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/transparent"
     android:clickable="true"
     android:focusable="true"
+    android:orientation="vertical"
     android:padding="0dp"
     android:visibility="gone">
-    <ScrollView
-        android:layout_width="300dp"
-        android:layout_height="250dp"
+
+    <HorizontalScrollView
+        android:id="@+id/horizontalScrollView"
+        android:layout_width="@dimen/copy_text_width"
+        android:layout_height="@dimen/copy_text_height"
         android:layout_gravity="center"
         android:background="@drawable/overlay_background"
-        android:clipToPadding="false"
+        android:fillViewport="true"
         android:padding="20dp"
         android:scrollbars="none"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         tools:ignore="UselessParent">
 
+        <ScrollView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="start"
+            android:clipToPadding="false"
+            android:scrollbars="none">
 
-        <TextView
-            android:id="@+id/copyText"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:textIsSelectable="true" />
-    </ScrollView>
-</FrameLayout>
+
+            <TextView
+                android:id="@+id/copyText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:breakStrategy="simple"
+                android:ellipsize="none"
+                android:gravity="start"
+                android:scrollHorizontally="false"
+                android:singleLine="false"
+                android:textIsSelectable="true" />
+        </ScrollView>
+    </HorizontalScrollView>
+
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/btnDecreaseFontSize"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:contentDescription="@string/toggle_links_button"
+        android:src="@drawable/ic_smaller_font"
+        app:borderWidth="0dp"
+        app:fabCustomSize="32dp"
+        app:layout_constraintStart_toStartOf="@+id/horizontalScrollView"
+        app:layout_constraintTop_toBottomOf="@+id/horizontalScrollView"
+        app:maxImageSize="32dp"
+        android:visibility="gone"
+        app:tint="@null"
+        tools:ignore="AccessibilityClassName" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/btnIncreaseFontSize"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:contentDescription="@string/toggle_links_button"
+        app:backgroundTint="@color/white"
+        app:fabCustomSize="32dp"
+        app:layout_constraintEnd_toEndOf="@+id/horizontalScrollView"
+        app:layout_constraintTop_toBottomOf="@+id/horizontalScrollView"
+        app:maxImageSize="32dp"
+        app:srcCompat="@drawable/ic_increase_font"
+        app:tint="@null"
+        tools:ignore="AccessibilityClassName" />
+</androidx.constraintlayout.widget.ConstraintLayout>

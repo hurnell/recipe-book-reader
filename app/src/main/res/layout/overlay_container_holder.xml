@@ -49,9 +49,12 @@
                     android:layout_marginStart="16dp"
                     android:layout_marginTop="8dp"
                     android:layout_marginEnd="16dp"
+                    android:background="@drawable/border_background"
                     android:contentDescription="@string/pdf_preview"
-                    android:scaleType="fitCenter"
+                    android:padding="1dp"
+                    android:scaleType="fitXY"
                     android:visibility="visible"
+                    app:layout_constraintDimensionRatio="2:3"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent" />
 
@@ -82,6 +85,18 @@
                     app:layout_constraintTop_toTopOf="parent"
                     app:tint="@color/pastel_blue" />
 
+                <ImageButton
+                    android:id="@+id/btnRevertCover"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_marginStart="8dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/search_online"
+                    android:src="@drawable/ic_refresh"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/btnPickCover"
+                    app:tint="@color/pastel_blue" />
+
                 <LinearLayout
                     android:id="@+id/buttonContainer"
                     android:layout_width="wrap_content"
@@ -110,7 +125,7 @@
                         android:background="?attr/selectableItemBackgroundBorderless"
                         android:contentDescription="@string/close_gallery"
                         android:src="@drawable/ic_close"
-                        android:visibility="gone"/>
+                        android:visibility="gone" />
 
                 </LinearLayout>
 
@@ -150,8 +165,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
                 android:layout_marginEnd="16dp"
-                app:bold="false"
                 android:layout_marginBottom="16dp"
+                app:bold="false"
                 app:textSize="16sp" />
 
         </LinearLayout>

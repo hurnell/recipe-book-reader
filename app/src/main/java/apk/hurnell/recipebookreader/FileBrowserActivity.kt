@@ -24,7 +24,6 @@ import androidx.core.graphics.scale
 import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.lifecycleScope
 import apk.hurnell.recipebookreader.databinding.ActivityFileBrowserBinding
-import apk.hurnell.recipebookreader.databinding.CoverImagePreviewBinding
 import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.model.BaseTracker
 import com.google.gson.Gson
@@ -176,22 +175,24 @@ class FileBrowserActivity : BaseDrawerActivity() {
     }
 
     private fun showImageActionDialog(file: File) {
-        val dialogBinding = CoverImagePreviewBinding.inflate(layoutInflater)
         val dialogView = layoutInflater.inflate(R.layout.cover_image_preview, null)
-        val originalBitmap = BitmapFactory.decodeFile(file.absolutePath)
+        val previewImage = dialogView.findViewById<ImageView>(R.id.previewImage)
+        val btnAccept = dialogView.findViewById<Button>(R.id.btnAccept)
+        val btnCancel = dialogView.findViewById<Button>(R.id.btnCancel)
 
-        dialogBinding.previewImage.setImageBitmap(originalBitmap)
+        val originalBitmap = BitmapFactory.decodeFile(file.absolutePath)
+        previewImage.setImageBitmap(originalBitmap)
 
         val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
             .setView(dialogView)
             .create()
 
-        dialogBinding.btnCancel.setOnClickListener {
+        btnCancel.setOnClickListener {
             originalBitmap.recycle()
             dialog.dismiss()
         }
 
-        dialogBinding.btnAccept.setOnClickListener {
+        btnAccept.setOnClickListener {
             val targetWidth = 200
             val targetHeight = 300
 

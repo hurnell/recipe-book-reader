@@ -74,12 +74,12 @@ class PinchRecyclerView @JvmOverloads constructor(
         )
     }
 
-    fun getTestTranslationX(): Float{
+    fun getTestTranslationX(): Float {
         return translationX
     }
 
-    fun getTranslate(): Float{
-        if ((width * (1 - scaleFactor)) == 0f){
+    fun getTranslate(): Float {
+        if ((width * (1 - scaleFactor)) == 0f) {
             return 0f
         }
         return translationX / (width * (1 - scaleFactor))
@@ -92,6 +92,7 @@ class PinchRecyclerView @JvmOverloads constructor(
         (layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(tracker.pageIndex!!, 0)
         invalidate()
     }
+
     fun handleReturnToRecipeBookHistoryItem(historyItem: BookHistoryItem) {
         scaleFactor = historyItem.scale!!
         invalidate()
@@ -99,6 +100,8 @@ class PinchRecyclerView @JvmOverloads constructor(
         (layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(historyItem.page, 0)
         invalidate()
     }
+
+    private var lastTouchId = 0L
 
     data class TouchContext(
         val pageX: Float,
@@ -108,7 +111,10 @@ class PinchRecyclerView @JvmOverloads constructor(
         val translationX: Float,
         val x: Float,
         val y: Float,
-    ): BaseTracker()
+        val touchId: Long,
+        var isReleased: Boolean = false,
+        val eventTime: Long
+    ) : BaseTracker()
 
     override fun getTranslationX(): Float = translationX
 
@@ -178,9 +184,17 @@ class PinchRecyclerView @JvmOverloads constructor(
     }
 
     val touchMetadata = HashMap<Long, TouchContext>()
+    private fun updateTouchContextById() {
+        val entry = touchMetadata.entries.firstOrNull { it.value.touchId == lastTouchId }
+        if (entry != null) {
+            val item = entry.value
+            item.isReleased = true
+            touchMetadata[item.eventTime] = item
+        }
+    }
+
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
         val child = findChildViewUnder(ev.x, ev.y)
-
         val location = IntArray(2)
         child?.getLocationInWindow(location)
 
@@ -189,24 +203,47 @@ class PinchRecyclerView @JvmOverloads constructor(
         val pageX = (relativeX - translationX) / scaleFactor
         val pageY = ev.y / scaleFactor + offset
 
-        val context = TouchContext(
-            pageX = pageX,
-            pageY = pageY,
-            offset = offset,
-            scaleFactor = scaleFactor,
-            translationX = translationX,
-            x = ev.x,
-            y = ev.y
-        )
-        touchMetadata[ev.eventTime] = context
+        if (ev.action == MotionEvent.ACTION_DOWN) {
+            lastTouchId++
+            val context = TouchContext(
+                pageX = pageX,
+                pageY = pageY,
+                offset = offset,
+                scaleFactor = scaleFactor,
+                translationX = translationX,
+                x = ev.x,
+                y = ev.y,
+                touchId = lastTouchId,
+                eventTime = ev.eventTime
+            )
+            touchMetadata[ev.eventTime] = context
+        }
 
         val handled = super.dispatchTouchEvent(ev)
 
         if (ev.action == MotionEvent.ACTION_UP || ev.action == MotionEvent.ACTION_CANCEL) {
-            child?.postDelayed({ touchMetadata.remove(ev.eventTime) }, 100)
+            updateTouchContextById()
+            //child?.postDelayed({ touchMetadata.remove(ev.eventTime) }, 100)
         }
 
         return handled
+    }
+
+    fun getOffsetOverRange(): Float {
+        val offset = computeVerticalScrollOffset()
+        val range = computeVerticalScrollRange()
+        return offset.toFloat() / range.toFloat()
+    }
+    fun getOffsetChange(oldOffsetOverRange: Float): Int{
+        val range = computeVerticalScrollRange()
+        val offset = computeVerticalScrollOffset()
+        return offset - (oldOffsetOverRange * range).toInt()
+    }
+    fun handleOrientationChange(isPortrait: Boolean): Float {
+        val offsetOverRange: Float = getOffsetOverRange()
+        translationX = translationX * height / width
+        invalidate()
+        return offsetOverRange
     }
 
     override fun performClick(): Boolean {

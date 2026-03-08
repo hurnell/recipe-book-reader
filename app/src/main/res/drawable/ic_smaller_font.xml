@@ -1,0 +1,25 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:height="24dp"
+    android:viewportHeight="960"
+    android:viewportWidth="960"
+    android:width="24dp">
+
+    <!-- Hollow circle that fills the viewport -->
+    <path
+        android:fillColor="@color/white"
+        android:strokeColor="@color/pastel_blue"
+        android:strokeWidth="10"
+        android:pathData="
+            M470,20
+            A440,440 0 1,1 480,940
+            A440,440 0 1,1 480,20" />
+    <group
+        android:scaleX="0.5"
+        android:scaleY="0.5"
+        android:translateX="240"
+        android:translateY="240">
+    <path
+        android:fillColor="@color/nav_text"
+        android:pathData="M40,760L250,200L350,200L560,760L464,760L413,617L187,617L136,760L40,760ZM216,536L384,536L302,304L298,304L216,536ZM600,520L600,440L920,440L920,520L600,520Z" />
+    </group>
+</vector>

@@ -86,5 +86,6 @@
     <string name="placeholder_for_list_item_toc_title">Placeholder for list item toc title</string>
     <string name="placeholder_toast_full_text">Placeholder toast full text</string>
     <string name="placeholder_for_editable_text">Placeholder for editable text</string>
+    <string name="placeholder_every_toc_page_number">114</string>
 
 </resources>

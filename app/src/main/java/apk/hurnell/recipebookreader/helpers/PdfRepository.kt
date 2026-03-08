@@ -119,7 +119,8 @@ class PdfRepository(
     fun createBookmark(item: BookmarkItem): Boolean {
         return dbHelper.createBookmark(item)
     }
-    fun updateBookmark(item: BookmarkItem, currentCategory: String): List<BookmarkItem>  {
+
+    fun updateBookmark(item: BookmarkItem, currentCategory: String): List<BookmarkItem> {
         return dbHelper.updateBookmark(item, currentCategory)
     }
 
@@ -143,8 +144,8 @@ class PdfRepository(
     fun addBookHistoryItem(historyItem: BookHistoryItem): List<BookHistoryItem> {
         return dbHelper.addBookHistoryItem(historyItem)
     }
-    
-    fun clearBookHistory(bookId: Long){
+
+    fun clearBookHistory(bookId: Long) {
         dbHelper.clearBookHistory(bookId)
     }
 
@@ -154,5 +155,27 @@ class PdfRepository(
 
     fun removeBookHistoryItem(historyItemId: Long, bookId: Long): List<BookHistoryItem> {
         return dbHelper.removeBookHistoryItem(historyItemId, bookId)
+    }
+
+    suspend fun generateBookCoverThumbnail(
+        sha: String,
+        document: Document,
+        bookTitle: String?,
+        bookAuthor: String?,
+        targetWidth: Int = 200,
+        targetHeight: Int = 300,
+        overwrite: Boolean = false
+    ): Boolean {
+        return withContext(Dispatchers.IO) {
+            DatabaseHelper(context).generateBookCoverThumbnail(
+                sha,
+                document,
+                bookTitle,
+                bookAuthor,
+                targetWidth,
+                targetHeight,
+                overwrite
+            )
+        }
     }
 }
