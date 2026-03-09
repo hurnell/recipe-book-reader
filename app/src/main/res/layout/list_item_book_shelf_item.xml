@@ -26,19 +26,19 @@
             android:id="@+id/bookCover"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:contentDescription="@string/the_image_of_the_book_cover_on_the_book_shelf"
-            android:scaleType="fitXY"
+            android:layout_margin="0dp"
             android:adjustViewBounds="true"
-            android:layout_margin="0dp"/>
+            android:contentDescription="@string/the_image_of_the_book_cover_on_the_book_shelf"
+            android:scaleType="fitXY" />
     </com.google.android.material.card.MaterialCardView>
 
     <ImageView
         android:id="@+id/bookWarning"
         android:layout_width="20dp"
         android:layout_height="20dp"
-        android:contentDescription="@string/warning_that_the_categories_are_not_set_for_this_book"
-        android:layout_marginEnd="0dp"
         android:layout_marginTop="10dp"
+        android:layout_marginEnd="0dp"
+        android:contentDescription="@string/warning_that_the_categories_are_not_set_for_this_book"
         android:src="@drawable/ic_no_category"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />

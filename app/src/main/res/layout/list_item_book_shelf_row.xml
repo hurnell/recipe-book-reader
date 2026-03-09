@@ -3,20 +3,20 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="160dp"
+    android:background="@drawable/book_back_one"
     android:paddingStart="10dp"
     android:paddingEnd="10dp"
-    android:paddingBottom="16dp"
-    android:background="@drawable/book_back_one">
+    android:paddingBottom="16dp">
 
     <include
         android:id="@+id/book1"
         layout="@layout/list_item_book_shelf_item"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/book2"
         app:layout_constraintHorizontal_chainStyle="spread"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent" />
+        app:layout_constraintStart_toStartOf="parent" />
 
     <include
         android:id="@+id/book2"
