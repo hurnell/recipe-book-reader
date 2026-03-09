@@ -121,9 +121,9 @@ class SearchActivity : AppCompatActivity() {
             hideKeyboard()
         }
         binding.searchEditText.addTextChangedListener { text ->
+            searchJob?.cancel()
+            adapter.clear()
             if (text.isNullOrEmpty()) {
-                searchJob?.cancel()
-                adapter.clear()
                 binding.searchProgressBar.visibility = View.GONE
                 binding.btnDoSearch.visibility = View.INVISIBLE
             } else {
