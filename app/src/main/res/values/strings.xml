@@ -87,5 +87,7 @@
     <string name="placeholder_toast_full_text">Placeholder toast full text</string>
     <string name="placeholder_for_editable_text">Placeholder for editable text</string>
     <string name="placeholder_every_toc_page_number">114</string>
+    <string name="placeholder_for_bookmark_text">Placeholder for bookmark text</string>
+    <string name="placeholder_for_bookmark_fragment_page">122</string>
 
 </resources>
