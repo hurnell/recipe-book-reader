@@ -89,7 +89,7 @@ class GetCoverUrlHelper {
         return try {
             val response = api.searchBook(title, author)
             response.docs.mapNotNull { doc ->
-                doc.coverId?.let { id -> "https://covers.openlibrary.org/b/id/$id-L.jpg" }
+                doc.cover_i?.let { id -> "https://covers.openlibrary.org/b/id/$id-L.jpg" }
             }
         } catch (e: Exception) {
             Log.e("PDF_REPO", "Error fetching cover IDs", e)
