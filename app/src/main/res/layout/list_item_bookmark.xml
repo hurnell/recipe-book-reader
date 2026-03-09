@@ -7,17 +7,19 @@
     android:gravity="center_vertical"
     android:orientation="horizontal"
     android:paddingHorizontal="4dp"
-    android:paddingVertical="8dp">
+    android:paddingVertical="0dp">
 
 
     <TextView
         android:id="@+id/bookmarkTitle"
         android:layout_width="0dp"
-        android:layout_weight="1"
         android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:background="?attr/selectableItemBackground"
         android:ellipsize="end"
-        android:padding="5dp"
         android:maxLines="1"
+        android:padding="5dp"
+        android:text="@string/placeholder_for_bookmark_text"
         android:textColor="@color/dark_text"
         android:textSize="16sp" />
 
@@ -25,20 +27,20 @@
         android:id="@+id/bookmarkPage"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:ellipsize="end"
-        android:padding="5dp"
         android:maxLines="1"
-        android:textColor="@color/dark_text"
+        android:text="@string/placeholder_for_bookmark_fragment_page"
+        android:padding="5dp"
+        android:textColor="@color/pastel_blue"
         android:textSize="16sp" />
 
     <ImageButton
         android:id="@+id/deleteBookmark"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="@string/expand"
         android:padding="8dp"
         android:src="@drawable/ic_bookmark_closed"
-        app:tint="@color/icon_tint" />
+        app:tint="@color/nav_text" />
 
 </LinearLayout>
