@@ -7,21 +7,16 @@ import android.text.TextWatcher
 import android.view.inputmethod.EditorInfo
 import android.view.View
 import android.widget.AdapterView
-import android.widget.EditText
-import android.widget.ImageButton
 import android.widget.TextView
-import androidx.appcompat.widget.Toolbar
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.adapters.EveryTocAdapter
 import apk.hurnell.recipebookreader.model.TocItem
 import androidx.coordinatorlayout.widget.CoordinatorLayout
-import android.content.Context
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
 import apk.hurnell.recipebookreader.databinding.ActivityEveryTocBinding
-import apk.hurnell.recipebookreader.databinding.ActivityRecentBooksBinding
 import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.model.BaseTracker
 import com.google.android.material.snackbar.Snackbar
@@ -278,7 +273,7 @@ class EveryTocActivity : BaseDrawerActivity() {
     }
 
     fun View.hideKeyboard() {
-        val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        val imm = context.getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
         imm.hideSoftInputFromWindow(windowToken, 0)
     }
 

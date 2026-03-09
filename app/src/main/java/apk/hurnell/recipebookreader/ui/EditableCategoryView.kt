@@ -8,7 +8,6 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.inputmethod.InputMethodManager
 import android.widget.ArrayAdapter
-import android.widget.ImageButton
 import android.widget.LinearLayout
 import apk.hurnell.recipebookreader.R
 import androidx.core.widget.addTextChangedListener

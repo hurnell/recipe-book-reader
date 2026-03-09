@@ -2,11 +2,12 @@ package apk.hurnell.recipebookreader.ui
 
 import android.content.Context
 import android.graphics.Canvas
+import android.os.Handler
+import android.os.Looper
 import android.util.AttributeSet
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
-import androidx.core.view.GestureDetectorCompat
 import androidx.recyclerview.widget.RecyclerView
 import kotlin.math.min
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -47,17 +48,27 @@ class PinchRecyclerView @JvmOverloads constructor(
         })
 
     private val gestureDetector =
-        GestureDetectorCompat(context, object : GestureDetector.SimpleOnGestureListener() {
-            override fun onFling(e1: MotionEvent?, e2: MotionEvent, vX: Float, vY: Float): Boolean {
-                if (scaleFactor > 1f) {
-                    this@PinchRecyclerView.fling(0, -(vY / scaleFactor).toInt())
-                    return true
+        GestureDetector(
+            context,
+            object : GestureDetector.SimpleOnGestureListener() {
+                override fun onFling(
+                    e1: MotionEvent?,
+                    e2: MotionEvent,
+                    velocityX: Float,
+                    velocityY: Float
+                ): Boolean {
+                    if (scaleFactor > 1f) {
+                        this@PinchRecyclerView.fling(0, -(velocityY / scaleFactor).toInt())
+                        return true
+                    }
+                    return false
                 }
-                return false
-            }
 
-            override fun onSingleTapUp(e: MotionEvent): Boolean = performClick()
-        })
+                override fun onSingleTapUp(e: MotionEvent): Boolean = performClick()
+            },
+            Handler(Looper.getMainLooper())
+        )
+
 
     fun getScaleFactor(): Float = scaleFactor
 

@@ -19,7 +19,7 @@ class IsbnScanWorker(
 
         val repository = PdfRepository(applicationContext)
         val pdfFile = File(filePath)
-        var document = repository.openPdfFast(pdfFile)
+        val document = repository.openPdfFast(pdfFile)
 
         return try {
             val foundIsbn = IsbnFinder().findIsbnInDocument(document)

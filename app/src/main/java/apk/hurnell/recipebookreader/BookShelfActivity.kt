@@ -3,7 +3,6 @@ package apk.hurnell.recipebookreader
 import android.os.Bundle
 import android.view.View
 import android.widget.AdapterView
-import androidx.appcompat.widget.Toolbar
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView

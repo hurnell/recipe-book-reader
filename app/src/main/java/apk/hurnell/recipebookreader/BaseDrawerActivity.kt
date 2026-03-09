@@ -1,9 +1,12 @@
 package apk.hurnell.recipebookreader
 
+import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Matrix
+import android.content.pm.ActivityInfo
+import android.content.res.Configuration
 import android.graphics.Typeface
 import android.os.Bundle
 import android.util.Log
@@ -85,6 +88,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        lockPortraitIfPhone()
         onBackPressedDispatcher.addCallback(this, drawerBackCallback)
         repository = PdfRepository(this)
 
@@ -210,10 +214,20 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                 btnSearchCovers?.visibility = View.VISIBLE
                 btnPickCover?.visibility = View.VISIBLE
             } catch (e: Exception) {
-                val a = 1231
+                Log.e(LOG_TAG, "${e.message}")
             }
         }
 
+    }
+    @SuppressLint("SourceLockedOrientationActivity")
+    fun Activity.lockPortraitIfPhone() {
+        val screenLayout = resources.configuration.screenLayout and Configuration.SCREENLAYOUT_SIZE_MASK
+
+        val isTablet = screenLayout >= Configuration.SCREENLAYOUT_SIZE_LARGE
+
+        if (!isTablet) {
+            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        }
     }
 
     fun searchFileSystemForBookCovers(book: Book) {
@@ -496,7 +510,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
     protected fun setupDrawer(toolbar: Toolbar) {
         drawerLayout = findViewById(R.id.drawer_layout)
         setSupportActionBar(toolbar)
-        window.statusBarColor = getColor(R.color.pastel_blue)
+        window.decorView.setBackgroundColor(getColor(R.color.pastel_blue))
 
         toggle = ActionBarDrawerToggle(
             this, drawerLayout, toolbar,

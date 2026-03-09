@@ -1,9 +1,12 @@
 package apk.hurnell.recipebookreader
 
+import android.annotation.SuppressLint
+import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.res.ColorStateList
+import android.content.res.Configuration
 import android.os.Bundle
 import android.util.Log
 import android.util.TypedValue
@@ -108,6 +111,8 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         private const val LINK_STATE_LINKS_ON = 0
         private const val LINK_STATE_LINKS_OFF = 1
         private const val LINK_STATE_BOOKMARKS = 2
+        private const val COPY_TEXT_MAX = 5f
+        private const val COPY_TEXT_MIN = 0f
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -120,7 +125,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         )
         binding = ActivityRecipeBookBinding.inflate(layoutInflater)
         setContentView(binding.drawerLayout)
-
+        lockPortraitIfPhone()
         val bookmarkTocJson = intent.getStringExtra("BOOKMARK_TOC_ITEM_JSON")
         val bookmarkTocItem = if (bookmarkTocJson != null) {
             Gson().fromJson(bookmarkTocJson, TocItem::class.java)
@@ -146,34 +151,18 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         }
         var incrementSp = 0f
         if (copyText != null) {
-            val currentSizePx = copyText!!.textSize
             val btnIncreaseFontSize: FloatingActionButton = findViewById(R.id.btnIncreaseFontSize)
             val btnDecreaseFontSize: FloatingActionButton = findViewById(R.id.btnDecreaseFontSize)
 
             btnIncreaseFontSize.setOnClickListener {
                 incrementSp += 1
-                incrementSp = min(incrementSp, 5f)
-                btnDecreaseFontSize.visibility =
-                    if (incrementSp == 0f) View.INVISIBLE else View.VISIBLE
-                btnIncreaseFontSize.visibility =
-                    if (incrementSp == 5f) View.INVISIBLE else View.VISIBLE
-                val scale = copyText!!.resources.displayMetrics.scaledDensity
-                val incrementPx = incrementSp * scale
-                Log.i(LOG_TAG, "incrementPx $incrementPx")
-                copyText!!.setTextSize(TypedValue.COMPLEX_UNIT_PX, currentSizePx + incrementPx)
+                incrementSp = min(incrementSp, COPY_TEXT_MAX)
+                updateFontSizeForCopyText(1F, incrementSp, btnIncreaseFontSize, btnDecreaseFontSize)
             }
             btnDecreaseFontSize.setOnClickListener {
                 incrementSp -= 1
-                incrementSp = max(incrementSp, 0f)
-                btnDecreaseFontSize.visibility =
-                    if (incrementSp == 0f) View.INVISIBLE else View.VISIBLE
-                btnIncreaseFontSize.visibility =
-                    if (incrementSp == 5f) View.INVISIBLE else View.VISIBLE
-                val scale = copyText!!.resources.displayMetrics.scaledDensity
-                val incrementPx = incrementSp * scale
-                Log.i(LOG_TAG, "incrementPx $incrementPx")
-                copyText!!.setTextSize(TypedValue.COMPLEX_UNIT_PX, currentSizePx + incrementPx)
-
+                incrementSp = max(incrementSp, COPY_TEXT_MIN)
+                updateFontSizeForCopyText(-1F, incrementSp, btnIncreaseFontSize, btnDecreaseFontSize)
             }
         }
 
@@ -291,6 +280,29 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
             }
         }
 
+    }
+
+    private fun updateFontSizeForCopyText(
+        spChange: Float,
+        incrementSp: Float,
+        btnIncreaseFontSize: FloatingActionButton,
+        btnDecreaseFontSize: FloatingActionButton
+    ) {
+        val currentSizePx = copyText!!.textSize
+        val incrementPx = TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_SP,
+            spChange,
+            copyText!!.resources.displayMetrics
+        )
+
+        copyText!!.setTextSize(
+            TypedValue.COMPLEX_UNIT_PX,
+            currentSizePx + incrementPx
+        )
+        btnDecreaseFontSize.visibility =
+            if (incrementSp == COPY_TEXT_MIN) View.INVISIBLE else View.VISIBLE
+        btnIncreaseFontSize.visibility =
+            if (incrementSp == COPY_TEXT_MAX) View.INVISIBLE else View.VISIBLE
     }
 
     fun setStatusBarColor(window: Window, color: Int) {
@@ -840,19 +852,12 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         }
         val page = document.loadPage(currentPage)
         val structuredText = page.toStructuredText()
-        var lastLineY = 0f
-        var notFirstLine = false
         structuredText.blocks?.forEach { block ->
             val blockBuilder = StringBuilder()
             block.lines?.forEach { line ->
                 val lineBuilder = StringBuilder()
                 line.chars?.forEach { char -> lineBuilder.append(char.c.toChar()) }
-                val thisLineY = line.bbox.y0
                 line.chars?.forEach { char -> blockBuilder.append(char.c.toChar()) }
-                Log.i(
-                    "NIGEL_HURNELL",
-                    "$notFirstLine $thisLineY $lastLineY ${block.bbox} ${lineBuilder.toString()}"
-                )
                 blockBuilder.append("\n")
                 if (checkHit(line.bbox, x, y)) {
                     val lineBuilder = StringBuilder()
@@ -861,8 +866,6 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                         return lineBuilder.toString().trim()
                     }
                 }
-                notFirstLine = true
-                lastLineY = thisLineY
             }
             if (checkHit(block.bbox, x, y)) {
                 return blockBuilder.toString().trim()
@@ -908,6 +911,18 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
             }
         }
         return pageCoordinates.found
+    }
+
+    @SuppressLint("SourceLockedOrientationActivity")
+    fun Activity.lockPortraitIfPhone() {
+        val screenLayout =
+            resources.configuration.screenLayout and Configuration.SCREENLAYOUT_SIZE_MASK
+
+        val isTablet = screenLayout >= Configuration.SCREENLAYOUT_SIZE_LARGE
+
+        if (!isTablet) {
+            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        }
     }
 
     private fun setupWindowInsets() {
@@ -958,10 +973,10 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     }
 
     private fun getLinkColor(): Int {
-        if (linkState == LINK_STATE_LINKS_OFF) {
-            return ContextCompat.getColor(this, R.color.links_off)
+        return if (linkState == LINK_STATE_LINKS_OFF) {
+            ContextCompat.getColor(this, R.color.links_off)
         } else {
-            return ContextCompat.getColor(this, R.color.nav_text)
+            ContextCompat.getColor(this, R.color.nav_text)
         }
     }
 

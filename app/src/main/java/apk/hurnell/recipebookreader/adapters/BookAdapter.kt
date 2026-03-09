@@ -134,7 +134,7 @@ class BookAdapter(
 
     override fun getItemCount(): Int = document.countPages()
 
-    private val searchHighlights = mutableMapOf<Int, List<com.artifex.mupdf.fitz.Rect>>()
+    private val searchHighlights = mutableMapOf<Int, List<Rect>>()
 
     fun setHighlight(pageIndex: Int, rectangles: List<Rect>?) {
         searchHighlights.clear()

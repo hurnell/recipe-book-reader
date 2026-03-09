@@ -1,7 +1,11 @@
 package apk.hurnell.recipebookreader
 
+import android.annotation.SuppressLint
+import android.app.Activity
 import android.app.appsearch.SearchResult
 import android.content.Intent
+import android.content.pm.ActivityInfo
+import android.content.res.Configuration
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -34,6 +38,7 @@ class SearchActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivitySearchBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        lockPortraitIfPhone()
         val pdfFilePath = intent.getStringExtra("PDF_PATH")
         if (pdfFilePath == null) {
             Log.e("NIGEL_HURNELL", "No PDF path provided")
@@ -64,6 +69,19 @@ class SearchActivity : AppCompatActivity() {
         setupToolbar()
         setupRecyclerView()
     }
+
+    @SuppressLint("SourceLockedOrientationActivity")
+    fun Activity.lockPortraitIfPhone() {
+        val screenLayout =
+            resources.configuration.screenLayout and Configuration.SCREENLAYOUT_SIZE_MASK
+
+        val isTablet = screenLayout >= Configuration.SCREENLAYOUT_SIZE_LARGE
+
+        if (!isTablet) {
+            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        }
+    }
+
     private fun setupRecyclerView() {
         adapter = SearchAdapter { result ->
             val data = Intent()
@@ -79,6 +97,7 @@ class SearchActivity : AppCompatActivity() {
         binding.searchResultsRecyclerView.layoutManager = LinearLayoutManager(this)
         binding.searchResultsRecyclerView.adapter = adapter
     }
+
     private fun setupSearchTriggers() {
         binding.btnDoSearch.setOnClickListener {
             val query = binding.searchEditText.text.toString()
@@ -112,6 +131,7 @@ class SearchActivity : AppCompatActivity() {
             }
         }
     }
+
     private fun hideKeyboard() {
         val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
         imm.hideSoftInputFromWindow(binding.searchEditText.windowToken, 0)
@@ -127,6 +147,7 @@ class SearchActivity : AppCompatActivity() {
             } else false
         }
     }
+
     private fun startSearch(query: String) {
         searchJob?.cancel()
         adapter.clear()

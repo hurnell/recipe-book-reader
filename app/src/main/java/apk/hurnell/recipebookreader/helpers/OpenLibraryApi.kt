@@ -8,7 +8,7 @@ data class OpenLibraryResponse(
 )
 
 data class BookDoc(
-    val cover_i: Int?
+    val coverId: Int?
 )
 
 interface OpenLibraryApi {

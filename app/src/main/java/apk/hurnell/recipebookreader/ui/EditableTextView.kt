@@ -127,6 +127,7 @@ class EditableTextView @JvmOverloads constructor(
         }
         binding.editButton.setImageResource(R.drawable.ic_edit)
         binding.cancelButton.visibility = GONE
+        binding.textChooserWrapper.visibility = GONE
         val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         imm.hideSoftInputFromWindow(binding.editableTextViewEditView.windowToken, 0)
     }

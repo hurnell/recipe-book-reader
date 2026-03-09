@@ -16,7 +16,6 @@ class ContentInputStream(
     private var inputStream: InputStream? = null
     private var p: Long = 0
     private var mustReopenStream = false
-    private val APP = "ContentInputStream"
 
     init {
         reopenStream()
@@ -44,7 +43,7 @@ class ContentInputStream(
                 try {
                     inputStream?.skip(newp - p)
                 } catch (_: IOException) {
-                    Log.i(APP, "Cannot skip backwards, reopening stream")
+                    Log.i(LOG_TAG, "Cannot skip backwards, reopening stream")
                     mustReopenStream = true
                 }
             }
@@ -74,5 +73,6 @@ class ContentInputStream(
         const val SEEK_SET = 0
         const val SEEK_CUR = 1
         const val SEEK_END = 2
+        const val LOG_TAG = "ContentInputStream"
     }
 }
