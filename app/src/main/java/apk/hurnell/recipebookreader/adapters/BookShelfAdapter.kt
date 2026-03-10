@@ -4,11 +4,11 @@ import android.graphics.BitmapFactory
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.model.FileItem
-import com.google.android.material.card.MaterialCardView
 import apk.hurnell.recipebookreader.databinding.ListItemBookShelfRowBinding
 import apk.hurnell.recipebookreader.databinding.ListItemBookShelfItemBinding
 import java.io.File
@@ -42,7 +42,7 @@ class BookShelfAdapter(
     ) {
         val imageView = binding.bookCover
         val warningView = binding.bookWarning
-        val cardContainer = binding.bookCover.parent as MaterialCardView
+        val cardContainer = binding.bookCover.parent as FrameLayout
 
         var thumbnailFile: File? = null
         if (item != null && item.bookInfo != null) {

@@ -19,4 +19,9 @@ Density Bucket: xxhdpi (~425-480 ppi).
 
 ```shell
 adb shell ime reset
+
+adb shell #then
+run-as apk.hurnell.recipebookreader
+
+./files/sqlite3 ./databases/recipe-reader.db
 ```

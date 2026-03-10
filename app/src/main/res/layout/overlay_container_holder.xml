@@ -41,22 +41,27 @@
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
                 android:layout_height="220dp">
-
-                <ImageView
-                    android:id="@+id/bookPreviewImage"
+                <FrameLayout
+                    android:id="@+id/bookPreviewWrapper"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_marginStart="16dp"
                     android:layout_marginTop="8dp"
                     android:layout_marginEnd="16dp"
-                    android:background="@drawable/border_background"
-                    android:contentDescription="@string/pdf_preview"
-                    android:padding="1dp"
-                    android:scaleType="fitXY"
-                    android:visibility="visible"
+                    android:background="@drawable/book_shadow_light"
+                    android:padding="8dp"
                     app:layout_constraintDimensionRatio="2:3"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent" />
+                    app:layout_constraintStart_toStartOf="parent">
+                    <ImageView
+                        android:id="@+id/bookPreviewImage"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:contentDescription="@string/pdf_preview"
+                        android:scaleType="fitXY"
+                        android:padding="1dp"
+                        android:visibility="visible" />
+                </FrameLayout>
 
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/coverOptionsRecycler"

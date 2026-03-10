@@ -65,6 +65,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
     protected var bookCategory: EditableCategoryView? = null
     protected var bookSubCategory: EditableCategoryView? = null
     protected var bookPreviewImage: ImageView? = null
+    protected var bookPreviewWrapper: FrameLayout? = null
     protected var isbnNumber: EditableTextView? = null
     protected var btnSearchCovers: ImageButton? = null
     protected var btnPickCover: ImageButton? = null
@@ -162,6 +163,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         overlayContainer = findViewById(R.id.overlayContainer)
         bookInfoOverlay = findViewById(R.id.bookInfoOverlay)
         bookPreviewImage = findViewById(R.id.bookPreviewImage)
+        bookPreviewWrapper = findViewById(R.id.bookPreviewWrapper)
         isbnNumber = findViewById(R.id.isbnNumber)
         bookTitle = findViewById(R.id.bookTitle)
         bookAuthor = findViewById(R.id.bookAuthor)
@@ -253,6 +255,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                 }
                 if (urls.isNotEmpty()) {
                     bookPreviewImage?.visibility = View.GONE
+                    bookPreviewWrapper?.visibility = View.GONE
                     coverOptionsRecycler?.visibility = View.VISIBLE
                     btnCloseGallery?.visibility = View.VISIBLE
                     btnSearchCovers?.visibility = View.GONE
@@ -263,6 +266,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                     coverOptionsRecycler?.adapter = CoverPickerAdapter(urls) { selectedUrl ->
                         coverOptionsRecycler?.visibility = View.GONE
                         bookPreviewImage?.visibility = View.VISIBLE
+                        bookPreviewWrapper?.visibility = View.VISIBLE
                         btnCloseGallery?.visibility = View.GONE
                         btnSearchCovers?.visibility = View.VISIBLE
                         toggleOtherButtons(null, true)
@@ -456,6 +460,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                     coverOptionsRecycler?.visibility = View.GONE
                     btnCloseGallery?.visibility = View.GONE
                     bookPreviewImage?.visibility = View.VISIBLE
+                    bookPreviewWrapper?.visibility = View.VISIBLE
                     btnSearchCovers?.visibility = View.VISIBLE
                     toggleOtherButtons(null, true)
                     btnPickCover?.visibility = View.VISIBLE
@@ -499,6 +504,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
 
                 coverOptionsRecycler?.visibility = View.GONE
                 bookPreviewImage?.visibility = View.VISIBLE
+                bookPreviewWrapper?.visibility = View.VISIBLE
                 btnCloseGallery?.visibility = View.GONE
                 btnSearchCovers?.visibility = View.VISIBLE
                 toggleOtherButtons(null, true)

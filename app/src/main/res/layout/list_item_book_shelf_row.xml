@@ -5,8 +5,9 @@
     android:layout_height="160dp"
     android:background="@drawable/book_back_one"
     android:paddingStart="10dp"
+    android:paddingTop="0dp"
     android:paddingEnd="10dp"
-    android:paddingBottom="16dp">
+    android:paddingBottom="13dp">
 
     <include
         android:id="@+id/book1"

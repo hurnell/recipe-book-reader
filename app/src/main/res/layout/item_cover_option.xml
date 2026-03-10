@@ -13,9 +13,7 @@
         android:id="@+id/itemCoverImage"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@drawable/border_background"
         android:contentDescription="@string/optional_book_cover"
-        android:padding="2dp"
         android:scaleType="fitXY" />
 
 </androidx.cardview.widget.CardView>
