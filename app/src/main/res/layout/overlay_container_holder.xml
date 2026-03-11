@@ -41,25 +41,27 @@
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
                 android:layout_height="220dp">
+
                 <FrameLayout
                     android:id="@+id/bookPreviewWrapper"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_marginStart="16dp"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="24dp"
                     android:layout_marginEnd="16dp"
                     android:background="@drawable/book_shadow_light"
                     android:padding="8dp"
                     app:layout_constraintDimensionRatio="2:3"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent">
+
                     <ImageView
                         android:id="@+id/bookPreviewImage"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:contentDescription="@string/pdf_preview"
-                        android:scaleType="fitXY"
                         android:padding="1dp"
+                        android:scaleType="fitXY"
                         android:visibility="visible" />
                 </FrameLayout>
 
@@ -80,9 +82,9 @@
 
                 <ImageButton
                     android:id="@+id/btnPickCover"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:layout_marginStart="8dp"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginStart="16dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:contentDescription="@string/search_online"
                     android:src="@drawable/ic_search"
@@ -92,31 +94,32 @@
 
                 <ImageButton
                     android:id="@+id/btnRevertCover"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
                     android:layout_marginStart="8dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:contentDescription="@string/search_online"
                     android:src="@drawable/ic_refresh"
+                    app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@+id/btnPickCover"
+                    app:layout_constraintTop_toTopOf="parent"
                     app:tint="@color/pastel_blue" />
 
                 <LinearLayout
                     android:id="@+id/buttonContainer"
                     android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
+                    android:layout_height="wrap_content"
                     android:gravity="top"
+                    android:layout_marginEnd="16dp"
                     android:orientation="vertical"
-                    app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintTop_toTopOf="parent">
 
                     <ImageButton
                         android:id="@+id/btnSearchCovers"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:layout_marginEnd="8dp"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_marginEnd="0dp"
                         android:background="?attr/selectableItemBackgroundBorderless"
                         android:contentDescription="@string/search_online"
                         android:src="@drawable/ic_online"
@@ -124,9 +127,9 @@
 
                     <ImageButton
                         android:id="@+id/btnCloseGallery"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:layout_marginEnd="8dp"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_marginEnd="0dp"
                         android:background="?attr/selectableItemBackgroundBorderless"
                         android:contentDescription="@string/close_gallery"
                         android:src="@drawable/ic_close"
