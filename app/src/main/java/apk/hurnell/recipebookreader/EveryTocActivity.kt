@@ -239,7 +239,7 @@ class EveryTocActivity : BaseDrawerActivity() {
                     binding.searchTocEditText.setSelection(selection.coerceAtMost(filtered.length))
                     isUpdating = false
                 }
-
+                adapter.submitList(null)
                 var bv = View.VISIBLE
 
                 currentSearchTerm = binding.searchTocEditText.text.toString().trim()
