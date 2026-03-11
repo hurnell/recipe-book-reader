@@ -139,7 +139,7 @@ class EveryTocActivity : BaseDrawerActivity() {
             it.hideKeyboard()
             applyChosenTextAndCategory()
         }
-        binding.filterInput.setOnEditorActionListener { v, actionId, event ->
+        binding.searchTocEditText.setOnEditorActionListener { v, actionId, event ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                 applyChosenTextAndCategory()
                 v.hideKeyboard()
@@ -163,7 +163,7 @@ class EveryTocActivity : BaseDrawerActivity() {
                 currentSearchTerm = tracker.searchTerm
                 lastScrollPosition = tracker.lastScrollPosition
                 lastScrollOffset = tracker.lastScrollOffset
-                binding.filterInput.text = Editable.Factory.getInstance().newEditable(currentSearchTerm)
+                binding.searchTocEditText.text = Editable.Factory.getInstance().newEditable(currentSearchTerm)
 
                 val position = categories.indexOf(currentCategory)
                 spinner.setSelection(position)
@@ -188,7 +188,7 @@ class EveryTocActivity : BaseDrawerActivity() {
     }
 
     fun applyChosenTextAndCategory(saved: EveryTocTracker? = null) {
-        currentSearchTerm = binding.filterInput.text.toString().trim()
+        currentSearchTerm = binding.searchTocEditText.text.toString().trim()
         if (currentSearchTerm != "") {
             val everyToc: List<TocItem> =
                 repository.getFilteredEveryToc(currentSearchTerm, currentCategory)
@@ -219,7 +219,7 @@ class EveryTocActivity : BaseDrawerActivity() {
     }
 
     fun addTextWatcher() {
-        binding.filterInput.addTextChangedListener(object : TextWatcher {
+        binding.searchTocEditText.addTextChangedListener(object : TextWatcher {
             private var isUpdating = false
 
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -233,17 +233,17 @@ class EveryTocActivity : BaseDrawerActivity() {
 
                 if (original != filtered) {
                     isUpdating = true
-                    val selection = binding.filterInput.selectionStart
+                    val selection = binding.searchTocEditText.selectionStart
 
                     s.replace(0, s.length, filtered)
-                    binding.filterInput.setSelection(selection.coerceAtMost(filtered.length))
+                    binding.searchTocEditText.setSelection(selection.coerceAtMost(filtered.length))
                     isUpdating = false
                 }
 
                 var bv = View.VISIBLE
 
-                currentSearchTerm = binding.filterInput.text.toString().trim()
-                if (binding.filterInput.text.isNullOrEmpty()) {
+                currentSearchTerm = binding.searchTocEditText.text.toString().trim()
+                if (binding.searchTocEditText.text.isNullOrEmpty()) {
                     bv = View.INVISIBLE
                     adapter.submitList(null)
                     binding.resultCountTextView.text = ""
