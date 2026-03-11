@@ -88,10 +88,11 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:paddingStart="6dp"
+            android:paddingEnd="2dp"
             android:text="@string/placeholder_every_toc_page_number"
             android:textColor="@color/pastel_blue"
             app:layout_constraintBottom_toBottomOf="@+id/hierarchy"
-
+            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="@+id/hierarchy" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
