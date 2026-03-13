@@ -43,12 +43,12 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:gravity="center_vertical"
                 android:background="@color/white"
+                android:gravity="center_vertical"
                 android:orientation="horizontal"
+                android:paddingHorizontal="4dp"
                 android:paddingTop="4dp"
-                android:paddingBottom="8dp"
-                android:paddingHorizontal="4dp">
+                android:paddingBottom="8dp">
 
 
                 <TextView
@@ -88,10 +88,10 @@
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:background="@null"
-                        android:textColor="@color/nav_text"
                         android:imeOptions="actionSearch"
                         android:inputType="text"
                         android:paddingVertical="8dp"
+                        android:textColor="@color/nav_text"
                         app:hintEnabled="false" />
 
                 </com.google.android.material.textfield.TextInputLayout>
@@ -116,15 +116,14 @@
                     app:tint="@color/nav_text" />
 
             </LinearLayout>
-            >
         </com.google.android.material.appbar.AppBarLayout>
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/everyTocRecyclerView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:padding="0dp"
             android:background="@color/white"
+            android:padding="0dp"
             app:layout_behavior="@string/appbar_scrolling_view_behavior" />
 
         <LinearLayout
@@ -150,6 +149,8 @@
                 android:textColor="@android:color/white"
                 android:textStyle="bold" />
         </LinearLayout>
+
+        <include layout="@layout/overlay_image_preview" />
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
     <include layout="@layout/overlay_container_holder" />
