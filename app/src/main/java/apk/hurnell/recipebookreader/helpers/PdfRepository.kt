@@ -48,6 +48,10 @@ class PdfRepository(
 
     fun loadCategories(): List<Category> = dbHelper.loadCategories()
 
+    fun updateIsAlternateCover(sha: String, isAlternateCover: Int){
+        dbHelper.updateIsAlternateCover(sha, isAlternateCover)
+    }
+
     fun updateBookStringParam(bookId: Long, column: String, value: String) =
         dbHelper.updateBookStringParam(bookId, column, value)
 
@@ -177,5 +181,9 @@ class PdfRepository(
                 overwrite
             )
         }
+    }
+
+    fun getSubsequentTocItem(page: Int, lastTokId: Long?, up: Boolean, currentBookId: Long): TocItem? {
+        return dbHelper.getSubsequentTocItem(page,lastTokId, up, currentBookId)
     }
 }

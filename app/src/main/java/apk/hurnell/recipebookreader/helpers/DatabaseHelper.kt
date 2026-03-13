@@ -122,7 +122,7 @@ class DatabaseHelper(private val context: Context) :
                     tocUnavailable = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("toc_unavailable")),
                     category = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("category")),
                     subCategory = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("sub_category")),
-                    alternateCover = cursor.getString(cursor.getColumnIndexOrThrow("alternate_cover"))
+                    alternateCover = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("alternate_cover")) == 1
                 )
             } else null
         }
@@ -443,7 +443,12 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
     }
 
     private suspend fun downloadAndSaveCover(
-        title: String, author: String, thumbnailFile: File, targetWidth: Int, targetHeight: Int
+        sha: String,
+        title: String,
+        author: String,
+        thumbnailFile: File,
+        targetWidth: Int,
+        targetHeight: Int
     ): Boolean {
         return try {
             val coverUrl = getCoverUrl(title, author) ?: return false
@@ -470,8 +475,7 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
                     resultBitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
                 }
             }
-
-
+            updateIsAlternateCover(sha, 1)
             true
         } catch (e: Exception) {
             e.printStackTrace()
@@ -480,7 +484,7 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
     }
 
     private fun generateBookCoverFromFirstPage(
-        thumbnailFile: File, document: Document, targetWidth: Int, targetHeight: Int
+        sha: String, thumbnailFile: File, document: Document, targetWidth: Int, targetHeight: Int
     ): Boolean {
         return try {
             val page = document.loadPage(0)
@@ -503,6 +507,7 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
             FileOutputStream(thumbnailFile).use { out ->
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
             }
+            updateIsAlternateCover(sha, 0)
             true
         } catch (e: Exception) {
             e.printStackTrace()
@@ -527,11 +532,11 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
             val firstPage = FunctionalStructuredTextWalker().getPageCoordinates(document, 0)
             val generated = if (firstPage.imageIsFullPage) {
                 generateBookCoverFromFirstPage(
-                    thumbnailFile, document, targetWidth, targetHeight
+                    sha, thumbnailFile, document, targetWidth, targetHeight
                 )
             } else if (bookTitle != null && bookAuthor != null) {
                 downloadAndSaveCover(
-                    bookTitle, bookAuthor, thumbnailFile, targetWidth, targetHeight
+                    sha, bookTitle, bookAuthor, thumbnailFile, targetWidth, targetHeight
                 )
             } else {
                 false
@@ -556,9 +561,17 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
         return digest.digest().joinToString("") { "%02x".format(it) }
     }
 
+    fun updateIsAlternateCover(sha: String, isAlternateCover: Int) {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put("alternate_cover", isAlternateCover)
+        }
+        db.update("books", values, "sha = ?", arrayOf(sha))
+    }
+
     fun loadCategories(): List<Category> {
         val list = mutableListOf<Category>()
-        val db = writableDatabase
+        val db = readableDatabase
         val cursor = db.rawQuery(
             "SELECT id, category FROM categories ORDER BY category", null
         )
@@ -708,7 +721,8 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
         } else {
             arrayOf(currentCategory, currentCategory)
         }
-        val categoryFilter = if (currentCategory == "All") "" else "WHERE c.category = ? OR sc.category = ?"
+        val categoryFilter =
+            if (currentCategory == "All") "" else "WHERE c.category = ? OR sc.category = ?"
         val sql = """
             SELECT DISTINCT b.sha AS book_sha, b.name AS book_name, c.category AS main_category, sc.category AS sub_category , b.location as book_location, b.author as author_name
             FROM  books AS b
@@ -859,7 +873,7 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
                     tocUnavailable = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("toc_unavailable")),
                     category = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("category")),
                     subCategory = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("sub_category")),
-                    alternateCover = cursor.getString(cursor.getColumnIndexOrThrow("alternate_cover"))
+                    alternateCover = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("alternate_cover")) == 1
                 )
             } else null
         }
@@ -984,7 +998,7 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
         return success
     }
 
-    fun updateBookmark(item: BookmarkItem, currentCategory: String): List<BookmarkItem>  {
+    fun updateBookmark(item: BookmarkItem, currentCategory: String): List<BookmarkItem> {
         val db = writableDatabase
         val values = ContentValues().apply {
             put("title", item.title)
@@ -1184,5 +1198,53 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
             "history", "book_id_fk = ?", arrayOf(bookId.toString())
         )
 
+    }
+
+    fun getSubsequentTocItem(page: Int, lastTokId: Long?, up: Boolean, bookId: Long): TocItem? {
+        val db = readableDatabase
+        val comparison = if (up) "<" else ">"
+        val boundColumn = if (lastTokId == null) "t.page" else "t.id"
+        val whereClause = "WHERE t.book_id_fk = ? AND $boundColumn $comparison ?"
+        val direction = if (up) "DESC" else "ASC"
+        val selectionArgs = if (lastTokId == null) arrayOf(
+            bookId.toString(),
+            page.toString()
+        ) else arrayOf(bookId.toString(), lastTokId.toString())
+
+        return db.rawQuery(
+            """
+             SELECT 
+                b.name AS book_name,
+                b.location AS book_location,
+                t.id AS toc_id,
+                t.parent_id AS parent_id,
+                t.title AS toc_title,
+                t.bookmark_id AS toc_bookmark_id,
+                t.page AS toc_page,
+                t.level AS toc_level,
+                t.scale AS toc_scale,
+                t.translate AS toc_translate
+            FROM books AS b 
+            LEFT JOIN toc AS t ON b.id = t.book_id_fk 
+            $whereClause
+            ORDER BY $boundColumn $direction
+			LIMIT 1
+        """.trimIndent(), selectionArgs
+        ).use { cursor ->
+            if (cursor.moveToFirst()) {
+                TocItem(
+                    tocId = cursor.getLong(cursor.getColumnIndexOrThrow("toc_id")),
+                    bookId = bookId,
+                    bookTitle = cursor.getStringOrNull(cursor.getColumnIndexOrThrow("book_name")),
+                    parentId = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("parent_id")),
+                    title = cursor.getString(cursor.getColumnIndexOrThrow("toc_title")),
+                    page = cursor.getInt(cursor.getColumnIndexOrThrow("toc_page")) - 1,
+                    offset = null,
+                    level = cursor.getInt(cursor.getColumnIndexOrThrow("toc_level")),
+                    scale = cursor.getFloat(cursor.getColumnIndexOrThrow("toc_scale")),
+                    translate = cursor.getFloat(cursor.getColumnIndexOrThrow("toc_translate")),
+                )
+            } else null
+        }
     }
 }
