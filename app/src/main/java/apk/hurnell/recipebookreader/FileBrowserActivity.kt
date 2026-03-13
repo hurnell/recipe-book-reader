@@ -209,6 +209,7 @@ class FileBrowserActivity : BaseDrawerActivity() {
                 val resultIntent = Intent().apply {
                     putExtra("updated_sha", saveSha)
                 }
+                repository.updateIsAlternateCover(saveSha, 1)
                 setResult(RESULT_OK, resultIntent)
                 finish()
             }
