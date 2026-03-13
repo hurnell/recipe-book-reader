@@ -67,10 +67,11 @@
 
         <TextView
             android:id="@+id/hierarchy"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="50dp"
             android:clickable="true"
+            android:layout_marginEnd="6dp"
             android:ellipsize="end"
             android:focusable="true"
             android:foreground="?attr/selectableItemBackground"
@@ -80,7 +81,7 @@
             android:textColor="@color/dark_text"
             android:textSize="16sp"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/viewImage"
             app:layout_constraintStart_toStartOf="parent" />
 
         <TextView
@@ -94,6 +95,20 @@
             app:layout_constraintBottom_toBottomOf="@+id/hierarchy"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="@+id/hierarchy" />
+
+        <ImageView
+            android:id="@+id/viewImage"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:contentDescription="@string/bookmark_id_or_null_if_not_bookmarked"
+            android:src="@drawable/ic_eye"
+            android:layout_marginEnd="6dp"
+            android:layout_marginStart="2dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            app:layout_constraintBottom_toBottomOf="@+id/hierarchy"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@+id/hierarchy"
+            app:tint="@color/pastel_blue" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </com.google.android.material.card.MaterialCardView>
