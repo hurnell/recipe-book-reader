@@ -180,7 +180,6 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         if (result.resultCode == RESULT_OK) {
             val updatedSha = result.data?.getStringExtra("updated_sha")
             refreshCoverForSha(updatedSha)
-
         }
     }
 
@@ -212,7 +211,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                     }
                 }
 
-                toggleOtherButtons(null, true)
+                toggleOtherButtons(null, show = true, showRevertCover = false)
                 btnSearchCovers?.visibility = View.VISIBLE
                 btnPickCover?.visibility = View.VISIBLE
             } catch (e: Exception) {
@@ -221,9 +220,11 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         }
 
     }
+
     @SuppressLint("SourceLockedOrientationActivity")
     fun Activity.lockPortraitIfPhone() {
-        val screenLayout = resources.configuration.screenLayout and Configuration.SCREENLAYOUT_SIZE_MASK
+        val screenLayout =
+            resources.configuration.screenLayout and Configuration.SCREENLAYOUT_SIZE_MASK
 
         val isTablet = screenLayout >= Configuration.SCREENLAYOUT_SIZE_LARGE
 
@@ -269,9 +270,11 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                         bookPreviewWrapper?.visibility = View.VISIBLE
                         btnCloseGallery?.visibility = View.GONE
                         btnSearchCovers?.visibility = View.VISIBLE
-                        toggleOtherButtons(null, true)
+                        toggleOtherButtons(null, show = true, showRevertCover = true)
                         btnPickCover?.visibility = View.VISIBLE
-                        btnRevertCover?.visibility = View.VISIBLE
+                        if (book.alternateCover) {
+                            btnRevertCover?.visibility = View.VISIBLE
+                        }
                         if (book.sha != null) {
                             lifecycleScope.launch(Dispatchers.IO) {
                                 val success = saveCoverAsPng(selectedUrl, book.sha)
@@ -289,7 +292,9 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
 
                     btnSearchCovers?.visibility = View.VISIBLE
                     btnPickCover?.visibility = View.VISIBLE
-                    btnRevertCover?.visibility = View.VISIBLE
+                    if (book.alternateCover) {
+                        btnRevertCover?.visibility = View.VISIBLE
+                    }
                     toggleOtherButtons(null, true)
                     Toast.makeText(
                         this@BaseDrawerActivity,
@@ -333,10 +338,10 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         }
     }
 
-    private fun toggleOtherButtons(activeView: Any?, show: Boolean) {
+    private fun toggleOtherButtons(activeView: Any?, show: Boolean, showRevertCover: Boolean = false) {
         btnSearchCovers?.visibility = if (show) View.VISIBLE else View.GONE
         btnPickCover?.visibility = if (show) View.VISIBLE else View.GONE
-        btnRevertCover?.visibility = if (show) View.VISIBLE else View.GONE
+        btnRevertCover?.visibility = if (show && showRevertCover) View.VISIBLE else View.GONE
         val buttons = listOf(bookTitle, bookAuthor, isbnNumber, bookCategory, bookSubCategory)
         buttons.forEach { btn ->
             if (btn != activeView) {
@@ -365,6 +370,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                 }
 
 
+                btnRevertCover = findViewById(R.id.btnRevertCover)
 
                 withContext(Dispatchers.Main) {
                     bookTitle?.setParams(book.id, book.name ?: pdfFile.name, "Title", Typeface.BOLD)
@@ -435,6 +441,9 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                     bookInfoOverlay?.scaleY = 0.8f
                     bookInfoOverlay?.alpha = 0f
                     bookInfoOverlay?.visibility = View.VISIBLE
+                    if (book.alternateCover) {
+                        btnRevertCover?.visibility = View.VISIBLE
+                    }
                     bookInfoOverlay?.animate()
                         ?.alpha(1f)
                         ?.scaleX(1f)
@@ -445,7 +454,6 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                 coverOptionsRecycler = findViewById(R.id.coverOptionsRecycler)
                 btnSearchCovers = findViewById(R.id.btnSearchCovers)
                 btnPickCover = findViewById(R.id.btnPickCover)
-                btnRevertCover = findViewById(R.id.btnRevertCover)
                 btnCloseGallery = findViewById(R.id.btnCloseGallery)
                 btnSearchCovers?.setOnClickListener {
                     showPossibleBookCovers(book)
@@ -474,14 +482,14 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
     protected fun refreshCoverForSha(updatedSha: String?) {
         if (updatedSha != null && bookPreviewImage != null) {
 
-            setResetPreviewImage(updatedSha, bookPreviewImage!!)
+            setResetPreviewImage(updatedSha, bookPreviewImage!!, true)
             if (this is BookShelfActivity) {
                 this.updateCoverForShaInAdapter(updatedSha)
             }
         }
     }
 
-    private fun setResetPreviewImage(sha: String, previewImage: ImageView) {
+    private fun setResetPreviewImage(sha: String, previewImage: ImageView, isAlternateCover: Boolean = false) {
         val thumbnailFile = File(
             previewImage.context.filesDir,
             "${sha}.png"
@@ -490,6 +498,9 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
 
         previewImage.setImageBitmap(bitmap)
         bookPreviewImage?.setImageBitmap(bitmap)
+        if (isAlternateCover) {
+            btnRevertCover?.visibility = View.VISIBLE
+        }
     }
 
     protected fun hideBookInfoOverlay() {
