@@ -1,11 +1,16 @@
 package apk.hurnell.recipebookreader
 
 import android.app.AlertDialog
+import android.graphics.Bitmap
+import com.artifex.mupdf.fitz.*
+import java.nio.ByteBuffer
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Log
 import android.view.inputmethod.EditorInfo
 import android.view.View
+import android.view.animation.OvershootInterpolator
 import android.widget.AdapterView
 import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -14,11 +19,16 @@ import apk.hurnell.recipebookreader.adapters.EveryTocAdapter
 import apk.hurnell.recipebookreader.model.TocItem
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import android.view.inputmethod.InputMethodManager
+import android.widget.FrameLayout
+import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
 import apk.hurnell.recipebookreader.databinding.ActivityEveryTocBinding
 import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.model.BaseTracker
+import com.artifex.mupdf.fitz.Matrix
+import com.artifex.mupdf.fitz.android.AndroidDrawDevice
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -27,6 +37,8 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import androidx.core.graphics.createBitmap
+import com.artifex.mupdf.fitz.StructuredTextWalker
 
 data class EveryTocTracker(
     val currentCategory: String,
@@ -45,6 +57,11 @@ class EveryTocActivity : BaseDrawerActivity() {
     private var lastScrollOffset = 0
     private var currentSearchTerm: String = ""
     private var currentCount: String = ""
+    private var recipeImagePreviewWrapper: FrameLayout? = null
+    private var recipeImagePreviewTitle: TextView? = null
+    private var recipeImageBookTitle: TextView? = null
+    private var recipeImagePreview: ImageView? = null
+    private var closePreviewButton: ImageButton? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,7 +88,15 @@ class EveryTocActivity : BaseDrawerActivity() {
                 applyChosenTextAndCategory()
             }
         }
+
         binding.everyTocRecyclerView.layoutManager = LinearLayoutManager(this)
+        recipeImagePreviewWrapper = findViewById(R.id.recipeImagePreviewWrapper)
+        recipeImagePreview = findViewById(R.id.recipeImagePreview)
+        recipeImagePreviewTitle = findViewById(R.id.recipeImagePreviewTitle)
+        recipeImageBookTitle = findViewById(R.id.recipeImageBookTitle)
+        closePreviewButton = findViewById(R.id.closePreviewButton)
+        closePreviewButton?.setOnClickListener { hideRecipeImagePreview() }
+
 
         adapter = EveryTocAdapter(
             onLongClickTitle = { item ->
@@ -127,6 +152,31 @@ class EveryTocActivity : BaseDrawerActivity() {
                         .show()
                 }
             },
+            onClickEye = { item ->
+                if (item.bookLocation != null) {
+                    val wrapper = recipeImagePreviewWrapper ?: return@EveryTocAdapter
+                    val content = wrapper.getChildAt(0)
+
+                    recipeImagePreviewTitle?.text = item.title
+                    recipeImageBookTitle?.text = item.bookTitle
+                    wrapper.visibility = View.VISIBLE
+                    wrapper.alpha = 0f
+                    content.scaleX = 0.8f
+                    content.scaleY = 0.8f
+
+                    wrapper.animate().alpha(1f).setDuration(200).start()
+
+                    content.animate()
+                        .scaleX(1f)
+                        .scaleY(1f)
+                        .setDuration(300)
+                        .setInterpolator(OvershootInterpolator())
+                        .start()
+                    recipeImagePreview?.visibility = View.INVISIBLE
+                    buildPageImageIntoView(item)
+                }
+
+            }
         )
         binding.everyTocRecyclerView.adapter = adapter
         binding.everyTocRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
@@ -154,6 +204,102 @@ class EveryTocActivity : BaseDrawerActivity() {
 
     }
 
+    fun buildPageImageIntoView(item: TocItem) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            var document: Document? = null
+            var page: Page? = null
+            var pixmap: Pixmap? = null
+
+            try {
+                val file = File(item.bookLocation!!)
+                document = repository.openPdfFast(file)
+                page = document.loadPage(item.page)
+
+                var imageCount = 0
+                var capturedImage: Image? = null
+
+                val st = page.toStructuredText("preserve-images,preserve-whitespace")
+                st.walk(object : StructuredTextWalker {
+                    override fun onImageBlock(bbox: Rect, matrix: Matrix?, image: Image?) {
+                        imageCount++
+                        capturedImage = image
+                    }
+                    override fun beginTextBlock(bbox: Rect) {}
+                    override fun endTextBlock() {}
+                    override fun onChar(c: Int, origin: Point?, font: Font?, size: Float, quad: Quad?, argb: Int, flags: Int) {}
+                    override fun beginLine(bbox: Rect?, wmode: Int, dir: Point?) {}
+                    override fun endLine() {}
+                    override fun beginStruct(standard: String?, raw: String?, index: Int) {}
+                    override fun endStruct() {}
+                    override fun onVector(bbox: Rect?, info: StructuredTextWalker.VectorInfo?, argb: Int) {}
+                })
+
+                if (imageCount == 1 && capturedImage != null) {
+                    pixmap = capturedImage!!.toPixmap()
+                    val width = pixmap.width
+                    val height = pixmap.height
+
+                    val rgbBytes = pixmap.samples
+                    val rgbaBytes = ByteArray(width * height * 4)
+                    for (i in 0 until (width * height)) {
+                        rgbaBytes[i * 4 + 0] = rgbBytes[i * 3 + 0]
+                        rgbaBytes[i * 4 + 1] = rgbBytes[i * 3 + 1]
+                        rgbaBytes[i * 4 + 2] = rgbBytes[i * 3 + 2]
+                        rgbaBytes[i * 4 + 3] = 255.toByte()
+                    }
+
+                    val bitmap = createBitmap(width, height)
+                    bitmap.copyPixelsFromBuffer(ByteBuffer.wrap(rgbaBytes))
+                    withContext(Dispatchers.Main) {
+                        recipeImagePreview?.apply {
+                            visibility = View.VISIBLE
+                            setImageBitmap(bitmap)
+                        }
+                        recipeImagePreviewWrapper?.visibility = View.VISIBLE
+                    }
+                } else if (imageCount > 1 || imageCount == 0) {
+                    renderWholePageAsFallback(page)
+                }
+
+            } catch (e: Exception) {
+                Log.e("PDF_EXTRACT", "Extraction failed: ${e.message}")
+                renderWholePageAsFallback(page)
+            } finally {
+                pixmap?.destroy()
+                page?.destroy()
+                document?.destroy()
+            }
+        }
+    }
+
+    private suspend fun renderWholePageAsFallback(page: Page?) {
+        if (page == null) return
+
+        val bounds = page.bounds
+        val pageWidth = bounds.x1 - bounds.x0
+        val displayDensity = resources.displayMetrics.density
+
+        val targetBitmapWidth = (200 * displayDensity).toInt()
+        val scale = targetBitmapWidth.toFloat() / pageWidth
+
+        val bitmapHeight = ((bounds.y1 - bounds.y0) * scale).toInt()
+        val bitmap = createBitmap(targetBitmapWidth, bitmapHeight)
+        val device = AndroidDrawDevice(bitmap, 0, 0)
+
+        try {
+            page.run(device, Matrix(scale, scale), null)
+        } finally {
+            device.close()
+            device.destroy()
+        }
+        withContext(Dispatchers.Main) {
+            recipeImagePreview?.apply {
+                visibility = View.VISIBLE
+                setImageBitmap(bitmap)
+            }
+            recipeImagePreviewWrapper?.visibility = View.VISIBLE
+        }
+    }
     fun applySavedSettings() {
         val dataStoreManager = DataStoreManager(applicationContext)
         lifecycleScope.launch {
@@ -163,7 +309,8 @@ class EveryTocActivity : BaseDrawerActivity() {
                 currentSearchTerm = tracker.searchTerm
                 lastScrollPosition = tracker.lastScrollPosition
                 lastScrollOffset = tracker.lastScrollOffset
-                binding.searchTocEditText.text = Editable.Factory.getInstance().newEditable(currentSearchTerm)
+                binding.searchTocEditText.text =
+                    Editable.Factory.getInstance().newEditable(currentSearchTerm)
 
                 val position = categories.indexOf(currentCategory)
                 spinner.setSelection(position)
@@ -178,7 +325,8 @@ class EveryTocActivity : BaseDrawerActivity() {
     }
 
     private fun trackRecyclerViewOffset() {
-        val layoutManager = binding.everyTocRecyclerView.layoutManager as? LinearLayoutManager ?: return
+        val layoutManager =
+            binding.everyTocRecyclerView.layoutManager as? LinearLayoutManager ?: return
         val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
         val firstVisibleView = layoutManager.findViewByPosition(firstVisibleItemPosition)
         val offset = firstVisibleView?.top ?: 0
@@ -196,7 +344,8 @@ class EveryTocActivity : BaseDrawerActivity() {
             binding.resultCountTextView.text = currentCount
             adapter.submitList(everyToc) {
                 if (saved != null) {
-                    val layoutManager = binding.everyTocRecyclerView.layoutManager as? LinearLayoutManager
+                    val layoutManager =
+                        binding.everyTocRecyclerView.layoutManager as? LinearLayoutManager
                     layoutManager?.scrollToPositionWithOffset(
                         saved.lastScrollPosition,
                         saved.lastScrollOffset
@@ -278,6 +427,9 @@ class EveryTocActivity : BaseDrawerActivity() {
     }
 
     override fun refreshFilesAndUI() {}
+    fun hideRecipeImagePreview() {
+        recipeImagePreviewWrapper?.visibility = View.GONE
+    }
 
     override fun onPause() {
         super.onPause()
