@@ -10,6 +10,7 @@ import android.content.res.Configuration
 import android.os.Bundle
 import android.util.Log
 import android.util.TypedValue
+import android.view.KeyEvent
 import android.view.Menu
 import android.view.MenuItem
 import android.view.MotionEvent
@@ -101,6 +102,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     private var scanned: Boolean = false
     private var clearSearchMenuItem: MenuItem? = null
     private var isbnScanJob: Job? = null
+    private var lastTocId: Long? = null
 
     private var copyTextContainer: ConstraintLayout? = null
     private var horizontalScrollView: HorizontalScrollView? = null
@@ -282,6 +284,30 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
 
     }
 
+    private fun gotoSubsequentPage(up: Boolean){
+        val page = binding.pageSeekBar.progress + 1
+        val tocItem = repository.getSubsequentTocItem(page, lastTocId, up, currentBookId)
+        if (tocItem != null) {
+            handleBaseBookmarkTocItemNavigation(tocItem)
+        }
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        when (keyCode) {
+
+            KeyEvent.KEYCODE_VOLUME_UP -> {
+                gotoSubsequentPage(true)
+                return true
+            }
+
+            KeyEvent.KEYCODE_VOLUME_DOWN -> {
+                gotoSubsequentPage(false)
+                return true
+            }
+        }
+
+        return super.onKeyDown(keyCode, event)
+    }
     private fun updateFontSizeForCopyText(
         spChange: Float,
         incrementSp: Float,
@@ -394,29 +420,35 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         )
     }
 
+    private fun handleBaseBookmarkTocItemNavigation(item: BaseBookmarkTocItem){
+        binding.bookRecyclerView.scrollToPosition(item.page)
+        if (item is TocItem) {
+            lastTocId = item.tocId
+        }
+        val historyItem = binding.bookRecyclerView.setScaleFactor(
+            item.scale.coerceAtMost(3.0f), item.page, item.translate
+        )
+        binding.bookRecyclerView.post {
+            historyItem.bookId = currentBookId
+            var actualOffset = binding.bookRecyclerView.computeVerticalScrollOffset()
+            if (item.offset != null) {
+                val requestedOffset = item.offset
+                val diff = requestedOffset?.minus(actualOffset)
+                if (diff != 0) {
+                    binding.bookRecyclerView.scrollBy(0, diff!!)
+                }
+                actualOffset = requestedOffset
+            }
+            historyItem.offset = actualOffset
+            history = repository.addBookHistoryItem(historyItem)
+        }
+        binding.drawerLayout.closeDrawer(GravityCompat.START)
+        toggleBars(false)
+        updatePageText(item.page, totalPages)
+    }
     private fun initializeTocFragment(id: Long) {
         tocFragment = TocFragment.newInstance(id.toInt()) { item ->
-            binding.bookRecyclerView.scrollToPosition(item.page)
-            val historyItem = binding.bookRecyclerView.setScaleFactor(
-                item.scale.coerceAtMost(3.0f), item.page, item.translate
-            )
-            binding.bookRecyclerView.post {
-                historyItem.bookId = currentBookId
-                var actualOffset = binding.bookRecyclerView.computeVerticalScrollOffset()
-                if (item.offset != null) {
-                    val requestedOffset = item.offset
-                    val diff = requestedOffset?.minus(actualOffset)
-                    if (diff != 0) {
-                        binding.bookRecyclerView.scrollBy(0, diff!!)
-                    }
-                    actualOffset = requestedOffset
-                }
-                historyItem.offset = actualOffset
-                history = repository.addBookHistoryItem(historyItem)
-            }
-            binding.drawerLayout.closeDrawer(GravityCompat.START)
-            toggleBars(false)
-            updatePageText(item.page, totalPages)
+            handleBaseBookmarkTocItemNavigation(item)
         }
         supportFragmentManager.beginTransaction().replace(R.id.tocFragmentContainer, tocFragment)
             .commit()
