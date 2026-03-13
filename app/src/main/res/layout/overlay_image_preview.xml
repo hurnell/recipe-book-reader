@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/recipeImagePreviewWrapper"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white"
+    android:clickable="true"
+    android:elevation="12dp"
+    android:visibility="gone"
+    android:fitsSystemWindows="true"
+    android:focusable="true">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:id="@+id/recipeImageHeader"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:paddingHorizontal="60dp"
+            android:paddingTop="20dp"
+            android:paddingBottom="10dp">
+
+            <TextView
+                android:id="@+id/recipeImagePreviewTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAlignment="center"
+                android:text="@string/placeholder_recipe_image_preview_title"
+                android:textColor="@color/dark_text"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/recipeImageBookTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/placeholder_recipe_image_book_title"
+                android:textAlignment="center"
+                android:textColor="@color/dark_text"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <com.github.chrisbanes.photoview.PhotoView
+            android:id="@+id/recipeImagePreview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_above="@+id/recipeImageFooterSpace"
+            android:layout_below="@id/recipeImageHeader"
+            android:padding="8dp"
+            android:scaleType="fitCenter" />
+
+        <Space
+            android:id="@+id/recipeImageFooterSpace"
+            android:layout_width="match_parent"
+            android:layout_height="20dp"
+            android:layout_alignParentBottom="true" />
+
+    </RelativeLayout>
+
+    <ImageButton
+        android:id="@+id/closePreviewButton"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="8dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/close"
+        android:src="@drawable/ic_close_basic"
+        app:tint="@color/nav_text" />
+
+</FrameLayout>
