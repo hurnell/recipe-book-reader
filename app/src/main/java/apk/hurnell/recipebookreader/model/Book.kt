@@ -14,5 +14,5 @@ data class Book(
     val tocUnavailable: Int?,
     val category: Int? = null,
     val subCategory: Int? = null,
-    val alternateCover: String?
+    val alternateCover: Boolean
 )
