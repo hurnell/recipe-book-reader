@@ -25,6 +25,7 @@ class EveryTocAdapter(
     private val onClickBook: (TocItem) -> Unit,
     private val onClickHierarchy: (TocItem) -> Unit,
     private val onClickBookmark: (TocItem) -> Unit,
+    private val onClickEye: (TocItem) -> Unit,
 ) : ListAdapter<TocItem, EveryTocAdapter.TocViewHolder>(DiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TocViewHolder {
@@ -48,6 +49,11 @@ class EveryTocAdapter(
         holder.binding.tocText.setOnClickListener {
             onClickTitle(item)
         }
+        holder.binding.viewImage.setOnClickListener {
+            onClickEye(item)
+        }
+        holder.binding.viewImage.visibility = if (hierarchyText == "Images") View.VISIBLE else View.GONE
+
         holder.binding.tocText.setOnLongClickListener {
             if (holder.binding.tocText.isEllipsized()) onLongClickTitle.invoke(item)
             true
