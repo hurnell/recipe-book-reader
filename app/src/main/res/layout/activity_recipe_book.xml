@@ -209,6 +209,8 @@
             tools:ignore="AccessibilityClassName" />
         <include
             layout="@layout/copy_text_container_holder"/>
+
+        <include layout="@layout/overlay_image_preview" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <com.google.android.material.navigation.NavigationView

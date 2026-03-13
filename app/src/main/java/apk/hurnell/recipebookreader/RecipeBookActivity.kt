@@ -18,7 +18,10 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.Window
 import android.view.WindowInsets
+import android.widget.FrameLayout
 import android.widget.HorizontalScrollView
+import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
@@ -40,6 +43,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.Insets
+import androidx.core.graphics.createBitmap
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import apk.hurnell.recipebookreader.helpers.PdfRepository
@@ -67,6 +71,15 @@ import androidx.work.Data
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import apk.hurnell.recipebookreader.workers.IsbnScanWorker
+import com.artifex.mupdf.fitz.Font
+import com.artifex.mupdf.fitz.Image
+import com.artifex.mupdf.fitz.Matrix
+import com.artifex.mupdf.fitz.Page
+import com.artifex.mupdf.fitz.Pixmap
+import com.artifex.mupdf.fitz.Point
+import com.artifex.mupdf.fitz.Quad
+import com.artifex.mupdf.fitz.StructuredTextWalker
+import java.nio.ByteBuffer
 import java.util.concurrent.TimeUnit
 import kotlin.math.max
 import kotlin.math.min
@@ -107,6 +120,12 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     private var copyTextContainer: ConstraintLayout? = null
     private var horizontalScrollView: HorizontalScrollView? = null
     private var copyText: TextView? = null
+
+    private var recipeImagePreviewWrapper: FrameLayout? = null
+    private var recipeImagePreviewTitle: TextView? = null
+    private var recipeImageBookTitle: TextView? = null
+    private var recipeImagePreview: ImageView? = null
+    private var closePreviewButton: ImageButton? = null
 
     companion object {
         private const val LOG_TAG = "NIGEL_HURNELL"
@@ -164,9 +183,15 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
             btnDecreaseFontSize.setOnClickListener {
                 incrementSp -= 1
                 incrementSp = max(incrementSp, COPY_TEXT_MIN)
-                updateFontSizeForCopyText(-1F, incrementSp, btnIncreaseFontSize, btnDecreaseFontSize)
+                updateFontSizeForCopyText(
+                    -1F,
+                    incrementSp,
+                    btnIncreaseFontSize,
+                    btnDecreaseFontSize
+                )
             }
         }
+        initialisePreviewLayout()
 
         val pdfFilePath = intent.getStringExtra("PDF_PATH")
         if (pdfFilePath == null) {
@@ -283,8 +308,21 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         }
 
     }
+    private fun initialisePreviewLayout(){
+        recipeImagePreviewWrapper = findViewById(R.id.recipeImagePreviewWrapper)
+        recipeImagePreview = findViewById(R.id.recipeImagePreview)
+        recipeImagePreviewTitle = findViewById(R.id.recipeImagePreviewTitle)
+        recipeImageBookTitle = findViewById(R.id.recipeImageBookTitle)
+        recipeImageBookTitle?.visibility = View.GONE
+        recipeImagePreviewTitle?.visibility =View.GONE
+        closePreviewButton = findViewById(R.id.closePreviewButton)
+        closePreviewButton?.setOnClickListener { hideRecipeImagePreview() }
+    }
 
-    private fun gotoSubsequentPage(up: Boolean){
+    private fun hideRecipeImagePreview(){
+        recipeImagePreviewWrapper?.visibility = View.GONE
+    }
+    private fun gotoSubsequentPage(up: Boolean) {
         val page = binding.pageSeekBar.progress + 1
         val tocItem = repository.getSubsequentTocItem(page, lastTocId, up, currentBookId)
         if (tocItem != null) {
@@ -308,6 +346,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
 
         return super.onKeyDown(keyCode, event)
     }
+
     private fun updateFontSizeForCopyText(
         spChange: Float,
         incrementSp: Float,
@@ -420,7 +459,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         )
     }
 
-    private fun handleBaseBookmarkTocItemNavigation(item: BaseBookmarkTocItem){
+    private fun handleBaseBookmarkTocItemNavigation(item: BaseBookmarkTocItem) {
         binding.bookRecyclerView.scrollToPosition(item.page)
         if (item is TocItem) {
             lastTocId = item.tocId
@@ -446,6 +485,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         toggleBars(false)
         updatePageText(item.page, totalPages)
     }
+
     private fun initializeTocFragment(id: Long) {
         tocFragment = TocFragment.newInstance(id.toInt()) { item ->
             handleBaseBookmarkTocItemNavigation(item)
@@ -620,6 +660,8 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                                 if (text.isNotEmpty()) {
                                     copyTextContainer?.visibility = View.VISIBLE
                                     copyText?.text = text
+                                } else {
+                                    displayImageInOverlay(document, pagePosition, px, py)
                                 }
                                 Log.i(LOG_TAG, text)
                             } else if (!checkIfTopOfPageClicked(
@@ -872,6 +914,89 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         return xHit && yHit
     }
 
+    private fun displayImageInOverlay(
+        document: Document?,
+        currentPage: Int,
+        px: Float,
+        py: Float
+    ) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            var page: Page? = null
+            var pixmap: Pixmap? = null
+            try {
+                if (document == null) {
+                    return@launch
+                }
+                page = document.loadPage(currentPage)
+
+                var capturedImage: Image? = null
+                val structuredText = page.toStructuredText("preserve-images,preserve-whitespace")
+                structuredText.walk(object : StructuredTextWalker {
+                    override fun onImageBlock(bbox: Rect, matrix: Matrix?, image: Image?) {
+                        val horizontalHit = bbox.x0 <= px && bbox.x1 >= px
+                        val verticalHit = bbox.y0 <= py && bbox.y1 >= py
+                        if (verticalHit && horizontalHit) {
+                            capturedImage = image
+                        }
+                    }
+
+                    override fun beginTextBlock(bbox: Rect) {}
+                    override fun endTextBlock() {}
+                    override fun onChar(
+                        c: Int,
+                        origin: Point?,
+                        font: Font?,
+                        size: Float,
+                        quad: Quad?,
+                        argb: Int,
+                        flags: Int
+                    ) {
+                    }
+
+                    override fun beginLine(bbox: Rect?, wmode: Int, dir: Point?) {}
+                    override fun endLine() {}
+                    override fun beginStruct(standard: String?, raw: String?, index: Int) {}
+                    override fun endStruct() {}
+                    override fun onVector(
+                        bbox: Rect?,
+                        info: StructuredTextWalker.VectorInfo?,
+                        argb: Int
+                    ) {
+                    }
+                })
+                if (capturedImage != null) {
+                    pixmap = capturedImage!!.toPixmap()
+                    val width = pixmap.width
+                    val height = pixmap.height
+
+                    val rgbBytes = pixmap.samples
+                    val rgbaBytes = ByteArray(width * height * 4)
+                    for (i in 0 until (width * height)) {
+                        rgbaBytes[i * 4 + 0] = rgbBytes[i * 3 + 0]
+                        rgbaBytes[i * 4 + 1] = rgbBytes[i * 3 + 1]
+                        rgbaBytes[i * 4 + 2] = rgbBytes[i * 3 + 2]
+                        rgbaBytes[i * 4 + 3] = 255.toByte()
+                    }
+
+                    val bitmap = createBitmap(width, height)
+                    bitmap.copyPixelsFromBuffer(ByteBuffer.wrap(rgbaBytes))
+                    withContext(Dispatchers.Main) {
+                        recipeImagePreview?.apply {
+                            visibility = View.VISIBLE
+                            setImageBitmap(bitmap)
+                        }
+                        recipeImagePreviewWrapper?.visibility = View.VISIBLE
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("PDF_EXTRACT", "Extraction failed: ${e.message}")
+            } finally {
+                pixmap?.destroy()
+                page?.destroy()
+            }
+        }
+    }
+
     private fun getTextNearClickPoint(
         document: Document?,
         currentPage: Int,
@@ -904,6 +1029,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
             }
 
         }
+        page.destroy()
         return ""
     }
 
