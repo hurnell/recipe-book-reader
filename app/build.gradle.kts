@@ -88,6 +88,7 @@ dependencies {
     implementation(libs.glide)
     implementation(libs.kotlin.reflect)
     implementation(libs.androidx.datastore.preferences)
-    implementation("androidx.work:work-runtime-ktx:2.9.1")
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.photoview)
     annotationProcessor(libs.compiler)
 }
