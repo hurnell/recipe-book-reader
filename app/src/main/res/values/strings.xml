@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">Recipe Book Reader</string>
-    <string name="toggle_orientation">Toggle orientation</string>
     <string name="switch_between_portrait_and_landscape">switch between portrait and landscape</string>
     <string name="show_table_of_contents">show table of contents</string>
     <string name="expand">Expand Toc Level</string>
@@ -17,9 +16,6 @@
     <string name="browse_files">Browse Files</string>
     <string name="open_file_browser">Open File Browser</string>
     <string name="recipe_reader">Recipe Book Reader</string>
-    <string name="scroll_up">Scroll Up</string>
-    <string name="scroll_down">Scroll Down</string>
-    <string name="scroll_bit">Scroll Bit</string>
     <string name="zoom_button">Zoom Button</string>
     <string name="default_indicator_text">1 / 100</string>
     <string name="processing_recipe_book">Processing Recipe Book…</string>
@@ -89,5 +85,10 @@
     <string name="placeholder_every_toc_page_number">114</string>
     <string name="placeholder_for_bookmark_text">Placeholder for bookmark text</string>
     <string name="placeholder_for_bookmark_fragment_page">122</string>
+    <string name="placeholder_for_image_preview_name">Placeholder for image preview name</string>
+    <string name="placeholder_for_image_preview_book_name">Placeholder for image preview book name</string>
+    <string name="close">Close</string>
+    <string name="placeholder_recipe_image_preview_title">Placeholder recipe image preview title</string>
+    <string name="placeholder_recipe_image_book_title">Placeholder recipe image book title</string>
 
 </resources>
