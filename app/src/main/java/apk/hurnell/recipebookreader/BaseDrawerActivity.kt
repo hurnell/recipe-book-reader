@@ -72,6 +72,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
     protected var btnRevertCover: ImageButton? = null
 
     protected var btnCloseGallery: ImageButton? = null
+    protected var btnDeleteBook: ImageButton? = null
     protected var coverOptionsRecycler: RecyclerView? = null
 
     private val drawerBackCallback = object : OnBackPressedCallback(false) {
@@ -238,6 +239,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
             putExtra(FileBrowserActivity.EXTRA_PDF_ONLY, false)
             putExtra(FileBrowserActivity.NOT_FROM_NAVIGATION_EVENT, false)
             putExtra(FileBrowserActivity.EXTRA_TARGET_SHA, book.sha)
+            putExtra(FileBrowserActivity.EXTRA_TARGET_BOOK_NAME, book.name)
         }
         fileBrowserLauncher.launch(intent)
     }
@@ -272,17 +274,14 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                         btnSearchCovers?.visibility = View.VISIBLE
                         toggleOtherButtons(null, show = true, showRevertCover = true)
                         btnPickCover?.visibility = View.VISIBLE
-                        if (book.alternateCover) {
-                            btnRevertCover?.visibility = View.VISIBLE
-                        }
-                        if (book.sha != null) {
-                            lifecycleScope.launch(Dispatchers.IO) {
-                                val success = saveCoverAsPng(selectedUrl, book.sha)
+                        repository.updateIsAlternateCover(book.sha!!, 1)
+                        btnRevertCover?.visibility = View.VISIBLE
+                        lifecycleScope.launch(Dispatchers.IO) {
+                            val success = saveCoverAsPng(selectedUrl, book.sha)
 
-                                if (success) {
-                                    withContext(Dispatchers.Main) {
-                                        setResetPreviewImage(book.sha, bookPreviewImage!!)
-                                    }
+                            if (success) {
+                                withContext(Dispatchers.Main) {
+                                    setResetPreviewImage(book.sha, bookPreviewImage!!)
                                 }
                             }
                         }
@@ -455,6 +454,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                 btnSearchCovers = findViewById(R.id.btnSearchCovers)
                 btnPickCover = findViewById(R.id.btnPickCover)
                 btnCloseGallery = findViewById(R.id.btnCloseGallery)
+                btnDeleteBook = findViewById(R.id.btnDeleteBook)
                 btnSearchCovers?.setOnClickListener {
                     showPossibleBookCovers(book)
                 }
@@ -472,6 +472,13 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                     btnSearchCovers?.visibility = View.VISIBLE
                     toggleOtherButtons(null, true)
                     btnPickCover?.visibility = View.VISIBLE
+                }
+                btnDeleteBook?.setOnClickListener {
+                    val success = repository.deleteBook(book.id)
+                    if (success) {
+                        hideBookInfoOverlay()
+                        refreshFilesAndUI()
+                    }
                 }
             } catch (e: Exception) {
                 Log.e("NIGEL_HURNELL", "Error opening PDF: ${e.message}", e)
