@@ -44,6 +44,7 @@ class FileBrowserActivity : BaseDrawerActivity() {
     private val binding get() = _binding!!
     private var pdfOnly: Boolean = false
     private var targetSha: String? = null
+    private var targetBookName: String? = null
     private lateinit var adapter: FileAdapter
     private val rootDir = Environment.getExternalStorageDirectory()
     private var currentDir: File = File(rootDir, "Documents")
@@ -54,6 +55,7 @@ class FileBrowserActivity : BaseDrawerActivity() {
         const val EXTRA_PDF_ONLY = "extra_pdf_only"
         const val EXTRA_TARGET_SHA = "extra_target_sha"
         const val NOT_FROM_NAVIGATION_EVENT = "not_from_navigation_event"
+        const val EXTRA_TARGET_BOOK_NAME = "extra_target_book_name"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -64,6 +66,7 @@ class FileBrowserActivity : BaseDrawerActivity() {
         setContentView(binding.root)
         pdfOnly = intent.getBooleanExtra(EXTRA_PDF_ONLY, true)
         targetSha = intent.getStringExtra(EXTRA_TARGET_SHA)
+        targetBookName = intent.getStringExtra(EXTRA_TARGET_BOOK_NAME)
         val notFromNavigationEvent = intent.getBooleanExtra(NOT_FROM_NAVIGATION_EVENT, true)
         if (notFromNavigationEvent) {
             navigateBackToSavedActivity()
@@ -177,9 +180,10 @@ class FileBrowserActivity : BaseDrawerActivity() {
     private fun showImageActionDialog(file: File) {
         val dialogView = layoutInflater.inflate(R.layout.cover_image_preview, null)
         val previewImage = dialogView.findViewById<ImageView>(R.id.previewImage)
+        val previewName = dialogView.findViewById<TextView>(R.id.previewBookName)
         val btnAccept = dialogView.findViewById<Button>(R.id.btnAccept)
         val btnCancel = dialogView.findViewById<Button>(R.id.btnCancel)
-
+        previewName.text = targetBookName
         val originalBitmap = BitmapFactory.decodeFile(file.absolutePath)
         previewImage.setImageBitmap(originalBitmap)
 
