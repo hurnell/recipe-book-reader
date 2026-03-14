@@ -186,4 +186,8 @@ class PdfRepository(
     fun getSubsequentTocItem(page: Int, lastTokId: Long?, up: Boolean, currentBookId: Long): TocItem? {
         return dbHelper.getSubsequentTocItem(page,lastTokId, up, currentBookId)
     }
+
+    fun deleteBook(currentBookId: Long): Boolean {
+        return dbHelper.deleteBook(currentBookId)
+    }
 }
