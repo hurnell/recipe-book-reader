@@ -90,5 +90,8 @@
     <string name="close">Close</string>
     <string name="placeholder_recipe_image_preview_title">Placeholder recipe image preview title</string>
     <string name="placeholder_recipe_image_book_title">Placeholder recipe image book title</string>
+    <string name="delete_book">Delete</string>
+    <string name="delete">Delete?</string>
+    <string name="placeholder_for_alert_book_preview">Placeholder for alert book preview</string>
 
 </resources>
