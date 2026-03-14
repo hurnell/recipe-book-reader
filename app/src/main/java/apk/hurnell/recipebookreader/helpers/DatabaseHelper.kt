@@ -256,6 +256,11 @@ class DatabaseHelper(private val context: Context) :
                             db.rawQuery(query, arrayOf(value)).use { cursor ->
                                 if (cursor.moveToFirst()) {
                                     mainCategoryId = cursor.getInt(0)
+                                } else {
+                                    val values = ContentValues().apply {
+                                        put("category", value)
+                                    }
+                                    mainCategoryId = db.insert("categories", null, values).toInt()
                                 }
                             }
                         }
@@ -264,6 +269,11 @@ class DatabaseHelper(private val context: Context) :
                             db.rawQuery(query, arrayOf(value)).use { cursor ->
                                 if (cursor.moveToFirst()) {
                                     subCategoryId = cursor.getInt(0)
+                                } else {
+                                    val values = ContentValues().apply {
+                                        put("category", value)
+                                    }
+                                    subCategoryId = db.insert("categories", null, values).toInt()
                                 }
                             }
                         }
@@ -1245,6 +1255,22 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
                     translate = cursor.getFloat(cursor.getColumnIndexOrThrow("toc_translate")),
                 )
             } else null
+        }
+    }
+
+    fun deleteBook(currentBookId: Long): Boolean {
+        val db = writableDatabase
+        return db.transaction {
+            try {
+                val bookIdString = currentBookId.toString()
+                delete("toc", "book_id_fk = ?", arrayOf(bookIdString))
+                delete("bookmarks", "book_id_fk = ?", arrayOf(bookIdString))
+                delete("history", "book_id_fk = ?", arrayOf(bookIdString))
+                delete("books", "id = ?", arrayOf(bookIdString))
+                true
+            } catch (e: Exception) {
+                false
+            }
         }
     }
 }
