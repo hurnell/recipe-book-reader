@@ -71,5 +71,4 @@
         android:background="@android:color/white"
         android:fitsSystemWindows="true"
         android:tag="recent_files" />
-
 </androidx.drawerlayout.widget.DrawerLayout>
