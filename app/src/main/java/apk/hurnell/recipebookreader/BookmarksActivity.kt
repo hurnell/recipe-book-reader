@@ -136,7 +136,7 @@ class BookmarksActivity : BaseDrawerActivity() {
         )
     }
 
-    private fun completeBookmarkEdit(item: BookmarkItem){
+    private fun completeBookmarkEdit(item: BookmarkItem) {
         val bookmarks = repository.updateBookmark(item, currentCategory)
         bookmarkAdapter.submitList(bookmarks)
     }
@@ -168,7 +168,8 @@ class BookmarksActivity : BaseDrawerActivity() {
     }
 
     private fun trackRecyclerViewOffset() {
-        val layoutManager = binding.bookmarksRecyclerView.layoutManager as? LinearLayoutManager ?: return
+        val layoutManager =
+            binding.bookmarksRecyclerView.layoutManager as? LinearLayoutManager ?: return
         val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
         val firstVisibleView = layoutManager.findViewByPosition(firstVisibleItemPosition)
         val offset = firstVisibleView?.top ?: 0
@@ -182,7 +183,8 @@ class BookmarksActivity : BaseDrawerActivity() {
         lifecycleScope.launch {
             val tracker = dataStoreManager.bookmarksState.firstOrNull()
             if (tracker != null) {
-                val layoutManager = binding.bookmarksRecyclerView.layoutManager as? LinearLayoutManager
+                val layoutManager =
+                    binding.bookmarksRecyclerView.layoutManager as? LinearLayoutManager
                 lastScrollPosition = tracker.lastScrollPosition
                 lastScrollOffset = tracker.lastScrollOffset
                 currentCategory = tracker.currentCategory
@@ -197,23 +199,39 @@ class BookmarksActivity : BaseDrawerActivity() {
         bookmarkAdapter.submitList(bookmarkData)
 
         refreshCategories()
+        saveBookmarksTracker(currentCategory, lastScrollPosition, lastScrollOffset, false)
     }
 
     override fun refreshFilesAndUI() {
 
     }
 
-    override fun onPause() {
-        super.onPause()
+
+    private fun saveBookmarksTracker(
+        category: String,
+        position: Int,
+        offset: Int,
+        saveCurrent: Boolean
+    ) {
         val dataStoreManager = DataStoreManager(applicationContext)
         lifecycleScope.launch {
             dataStoreManager.saveLastActivity(this@BookmarksActivity::class.java.name)
             val currentTracker = BookmarksTracker(
-                currentCategory,
-                lastScrollPosition,
-                lastScrollOffset
+                category,
+                position,
+                offset
             )
-            dataStoreManager.saveTracker(DataStoreManager.BOOKMARKS_KEY, currentTracker)
+            dataStoreManager.saveTracker(
+                DataStoreManager.BOOKMARKS_KEY,
+                currentTracker,
+                saveCurrent,
+                addToHistory
+            )
         }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        saveBookmarksTracker(currentCategory, lastScrollPosition, lastScrollOffset, true)
     }
 }

@@ -61,7 +61,6 @@ class RecentBooksActivity : BaseDrawerActivity() {
     }
 
     fun applyRecentBooksSavedSettings(fileItems: List<FileItem>) {
-        val dataStoreManager = DataStoreManager(applicationContext)
         lifecycleScope.launch {
             val tracker = dataStoreManager.recentBooksState.firstOrNull()
             if (tracker != null) {
@@ -82,7 +81,8 @@ class RecentBooksActivity : BaseDrawerActivity() {
 
     private fun trackRecyclerViewOffset() {
         if (!justStarted) {
-            val layoutManager = binding.recentRecyclerView.layoutManager as? LinearLayoutManager ?: return
+            val layoutManager =
+                binding.recentRecyclerView.layoutManager as? LinearLayoutManager ?: return
             val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
             val firstVisibleView = layoutManager.findViewByPosition(firstVisibleItemPosition)
             val offset = firstVisibleView?.top ?: 0
@@ -126,18 +126,28 @@ class RecentBooksActivity : BaseDrawerActivity() {
         }
     }
 
+    private fun saveRecentBooksTracker(
+        position: Int,
+        offset: Int
+    ) {
+        lifecycleScope.launch {
+            dataStoreManager.saveLastActivity(this@RecentBooksActivity::class.java.name)
+            val currentTracker = RecentBooksTracker(
+                position,
+                offset
+            )
+            dataStoreManager.saveTracker(
+                DataStoreManager.RECENT_BOOKS_KEY,
+                currentTracker,
+                true,
+                addToHistory
+            )
+        }
+    }
 
     override fun onPause() {
         binding.recentRecyclerView.clearOnScrollListeners()
         super.onPause()
-        val dataStoreManager = DataStoreManager(applicationContext)
-        lifecycleScope.launch {
-            dataStoreManager.saveLastActivity(this@RecentBooksActivity::class.java.name)
-            val currentTracker = RecentBooksTracker(
-                lastScrollPosition,
-                lastScrollOffset
-            )
-            dataStoreManager.saveTracker(DataStoreManager.RECENT_BOOKS_KEY, currentTracker)
-        }
+        saveRecentBooksTracker(lastScrollPosition, lastScrollOffset)
     }
 }

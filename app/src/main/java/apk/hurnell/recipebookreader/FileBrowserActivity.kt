@@ -5,6 +5,7 @@ import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.os.Environment
 import android.provider.Settings
+import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.HorizontalScrollView
@@ -26,15 +27,14 @@ import androidx.lifecycle.lifecycleScope
 import apk.hurnell.recipebookreader.databinding.ActivityFileBrowserBinding
 import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.model.BaseTracker
-import com.google.gson.Gson
-import kotlinx.coroutines.flow.first
+import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 
 data class FileBrowserTracker(
-    val directory: String,
-    val lastScrollPosition: Int,
-    val lastScrollOffset: Int
+    @SerializedName("directory") val directory: String,
+    @SerializedName("lastScrollPosition") val lastScrollPosition: Int,
+    @SerializedName("lastScrollOffset") val lastScrollOffset: Int
 ) : BaseTracker()
 
 
@@ -42,7 +42,6 @@ class FileBrowserActivity : BaseDrawerActivity() {
 
     private var _binding: ActivityFileBrowserBinding? = null
     private val binding get() = _binding!!
-    private var pdfOnly: Boolean = false
     private var targetSha: String? = null
     private var targetBookName: String? = null
     private lateinit var adapter: FileAdapter
@@ -54,7 +53,6 @@ class FileBrowserActivity : BaseDrawerActivity() {
     companion object {
         const val EXTRA_PDF_ONLY = "extra_pdf_only"
         const val EXTRA_TARGET_SHA = "extra_target_sha"
-        const val NOT_FROM_NAVIGATION_EVENT = "not_from_navigation_event"
         const val EXTRA_TARGET_BOOK_NAME = "extra_target_book_name"
     }
 
@@ -67,10 +65,6 @@ class FileBrowserActivity : BaseDrawerActivity() {
         pdfOnly = intent.getBooleanExtra(EXTRA_PDF_ONLY, true)
         targetSha = intent.getStringExtra(EXTRA_TARGET_SHA)
         targetBookName = intent.getStringExtra(EXTRA_TARGET_BOOK_NAME)
-        val notFromNavigationEvent = intent.getBooleanExtra(NOT_FROM_NAVIGATION_EVENT, true)
-        if (notFromNavigationEvent) {
-            navigateBackToSavedActivity()
-        }
 
         loadingOverlay = binding.loadingOverlay
         loadingOverlay.visibility = View.GONE
@@ -95,45 +89,18 @@ class FileBrowserActivity : BaseDrawerActivity() {
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (pdfOnly && currentDir.absolutePath != rootDir.absolutePath) {
+                val wasOpen = checkCloseDrawerIsOpen()
+                if (!wasOpen && pdfOnly && currentDir.absolutePath != rootDir.absolutePath) {
                     val parent = currentDir.parentFile
+                    addToHistory = false
                     if (parent != null) showFiles(parent)
-                } else {
+                } else if (!wasOpen) {
                     isEnabled = false
                     onBackPressedDispatcher.onBackPressed()
                 }
             }
         })
 
-    }
-
-    private fun navigateBackToSavedActivity() {
-        val dataStoreManager = DataStoreManager(applicationContext)
-
-        lifecycleScope.launch {
-            val lastActivityName = dataStoreManager.lastActivityFlow.first()
-            val simpleActivities = arrayOf(
-                "apk.hurnell.recipebookreader.BookmarksActivity",
-                "apk.hurnell.recipebookreader.BookShelfActivity",
-                "apk.hurnell.recipebookreader.EveryTocActivity",
-                "apk.hurnell.recipebookreader.RecentBooksActivity",
-
-                )
-            if (!lastActivityName.isNullOrEmpty()) {
-
-                try {
-                    if (lastActivityName in simpleActivities) {
-                        val targetClass = Class.forName(lastActivityName)
-                        startActivity(Intent(this@FileBrowserActivity, targetClass))
-                        finish()
-                    }
-                    if (lastActivityName == "apk.hurnell.recipebookreader.RecipeBookActivity") {
-                        navigateToSavedRecipeBookState()
-                    }
-                } catch (e: ClassNotFoundException) {
-                }
-            }
-        }
     }
 
     private fun trackRecyclerViewOffset() {
@@ -146,7 +113,6 @@ class FileBrowserActivity : BaseDrawerActivity() {
     }
 
     fun applySavedTracker(pdfOnly: Boolean) {
-        val dataStoreManager = DataStoreManager(applicationContext)
         lifecycleScope.launch {
             val tracker =
                 if (pdfOnly) dataStoreManager.pdfFileBrowserState.firstOrNull() else dataStoreManager.imageFileBrowserState.firstOrNull()
@@ -231,7 +197,7 @@ class FileBrowserActivity : BaseDrawerActivity() {
         if (findViewById<DrawerLayout>(R.id.drawer_layout) != null) {
             drawerLayout.closeDrawer(GravityCompat.START, false)
         }
-        showFiles(currentDir)
+        //showFiles(currentDir)
     }
 
     private fun requestStoragePermission() {
@@ -253,11 +219,41 @@ class FileBrowserActivity : BaseDrawerActivity() {
         return isJpg || isPng || isJpeg
     }
 
+    private fun reinstateLastFolderPosition(items: List<FileItem>, targetPath: String) {
+        lifecycleScope.launch {
+            val savedState = dataStoreManager.findTrackerInHistoryByDirectory(targetPath, addToHistory)
+            if (savedState != null) {
+                Log.e(
+                    "NIGEL_HURNELL",
+                    "reinstateLastFolderPosition $targetPath ${savedState.asString()}"
+                )
+                adapter.submitList(items) {
+                    val layoutManager =
+                        binding.fileRecyclerView.layoutManager as? LinearLayoutManager
+                    layoutManager?.scrollToPositionWithOffset(
+                        savedState.lastScrollPosition,
+                        savedState.lastScrollOffset
+                    )
+                }
+            }
+        }
+
+    }
+
+
     private fun showFiles(
         dir: File,
         ignoreSavedPosition: Boolean = true,
         saved: FileBrowserTracker? = null
     ) {
+        if (saved == null) {
+            saveLastFolderTracker(
+                currentDir.absolutePath,
+                lastScrollPosition,
+                lastScrollOffset,
+                false
+            )
+        }
         currentDir = dir
         val items = dir.listFiles()
             ?.filter {
@@ -273,6 +269,7 @@ class FileBrowserActivity : BaseDrawerActivity() {
             adapter.submitList(items)
         } else {
             val ensuredSaved = saved!!
+            Log.e("NIGEL_HURNELL", " ensured saved ${ensuredSaved.asString()}")
             adapter.submitList(items) {
                 val layoutManager = binding.fileRecyclerView.layoutManager as? LinearLayoutManager
                 layoutManager?.scrollToPositionWithOffset(
@@ -282,6 +279,9 @@ class FileBrowserActivity : BaseDrawerActivity() {
             }
         }
         updateBreadcrumb(currentDir)
+        if (saved == null) {
+            reinstateLastFolderPosition(items, currentDir.absolutePath)
+        }
     }
 
     private fun onFileClick(file: File) {
@@ -314,7 +314,9 @@ class FileBrowserActivity : BaseDrawerActivity() {
                 text = if (file.absolutePath == rootDir.absolutePath) "Root" else file.name
                 setPadding(16, 8, 16, 8)
                 setTextColor(ContextCompat.getColor(context, R.color.dark_text))
-                setOnClickListener { if (file != currentDir) showFiles(file) }
+                setOnClickListener {
+                    if (file != currentDir) showFiles(file)
+                }
             }
             binding.breadcrumbLayout.addView(textView)
 
@@ -334,38 +336,35 @@ class FileBrowserActivity : BaseDrawerActivity() {
         drawerLayout.closeDrawers()
     }
 
-    override fun onPause() {
-        super.onPause()
-        val dataStoreManager = DataStoreManager(applicationContext)
+
+    private fun saveLastFolderTracker(
+        directory: String,
+        position: Int,
+        offset: Int,
+        saveCurrent: Boolean
+    ) {
         lifecycleScope.launch {
             dataStoreManager.saveLastActivity(this@FileBrowserActivity::class.java.name)
             val currentTracker = FileBrowserTracker(
-                currentDir.absolutePath,
-                lastScrollPosition,
-                lastScrollOffset
+                directory,
+                position,
+                offset
             )
             val key: Preferences.Key<String> =
                 if (pdfOnly) DataStoreManager.PDF_FILE_BROWSER_KEY else DataStoreManager.IMAGE_FILE_BROWSER_KEY
-            dataStoreManager.saveTracker(key, currentTracker)
+            dataStoreManager.saveTracker(key, currentTracker, saveCurrent, addToHistory)
+            Log.i("NIGEL_HURNELL", "saveLastFolderTracker $directory $position $offset $saveCurrent $addToHistory ")
         }
     }
 
-    fun navigateToSavedRecipeBookState() {
-        val dataStoreManager = DataStoreManager(applicationContext)
-        lifecycleScope.launch {
-            val tracker = dataStoreManager.recipeBookState.firstOrNull()
-            if (tracker != null) {
-
-                val intent =
-                    Intent(this@FileBrowserActivity, RecipeBookActivity::class.java).apply {
-                        putExtra("PDF_PATH", tracker.location)
-                        val savedStateJson = tracker.let { Gson().toJson(it) }
-                        if (savedStateJson != null) {
-                            putExtra("SAVED_STATE_JSON", savedStateJson)
-                        }
-                    }
-                startActivity(intent)
-            }
-        }
+    override fun onPause() {
+        super.onPause()
+        saveLastFolderTracker(
+            currentDir.absolutePath,
+            lastScrollPosition,
+            lastScrollOffset,
+            true
+        )
     }
+
 }

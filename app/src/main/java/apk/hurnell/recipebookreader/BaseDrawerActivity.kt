@@ -31,7 +31,9 @@ import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.adapters.CoverPickerAdapter
+import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.helpers.GetCoverUrlHelper
+import apk.hurnell.recipebookreader.helpers.HistoryEntry
 import apk.hurnell.recipebookreader.helpers.PdfRepository
 import apk.hurnell.recipebookreader.model.BaseBookmarkTocItem
 import apk.hurnell.recipebookreader.model.Book
@@ -40,16 +42,20 @@ import apk.hurnell.recipebookreader.ui.EditableTextView
 import com.bumptech.glide.Glide
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 
 abstract class BaseDrawerActivity : AppCompatActivity() {
+    protected val dataStoreManager by lazy { DataStoreManager(applicationContext) }
 
     lateinit var drawerLayout: DrawerLayout
     private lateinit var toggle: ActionBarDrawerToggle
 
+    protected var pdfOnly: Boolean = false
     protected lateinit var repository: PdfRepository
     protected var categories = mutableListOf("All")
     protected var currentCategory = "All"
@@ -70,16 +76,116 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
     protected var btnSearchCovers: ImageButton? = null
     protected var btnPickCover: ImageButton? = null
     protected var btnRevertCover: ImageButton? = null
+    protected var addToHistory: Boolean = true
 
     protected var btnCloseGallery: ImageButton? = null
     protected var btnDeleteBook: ImageButton? = null
     protected var coverOptionsRecycler: RecyclerView? = null
 
-    private val drawerBackCallback = object : OnBackPressedCallback(false) {
+    private val drawerBackCallback = object : OnBackPressedCallback(true) {
         override fun handleOnBackPressed() {
-            if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
-                drawerLayout.closeDrawer(GravityCompat.START)
+            if (!checkCloseDrawerIsOpen()) {
+                val currentKey = getDataStoreKey()
+                if (currentKey != null) {
+                    lifecycleScope.launch {
+                        val destination = dataStoreManager.popAndGetPrevious(currentKey)
+                        if (destination != null) {
+                            navigateBackToSavedActivity(destination)
+                        } else {
+                            isEnabled = false
+                            onBackPressedDispatcher.onBackPressed()
+                        }
+                    }
+                } else {
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
+                }
             }
+        }
+    }
+
+    protected fun checkCloseDrawerIsOpen(): Boolean {
+        if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
+            drawerLayout.closeDrawer(GravityCompat.START)
+            return true
+        }
+        return false
+    }
+
+    protected fun navigateBackToSavedActivity(forcedDestination: HistoryEntry?) {
+
+        lifecycleScope.launch {
+            var lastActivityName = dataStoreManager.lastActivityFlow.first()
+            lastActivityName =
+                getActivityNameFromDataStoreKey(forcedDestination?.keyName, lastActivityName)
+            val simpleActivities = arrayOf(
+                "apk.hurnell.recipebookreader.BookmarksActivity",
+                "apk.hurnell.recipebookreader.BookShelfActivity",
+                "apk.hurnell.recipebookreader.EveryTocActivity",
+                "apk.hurnell.recipebookreader.RecentBooksActivity",
+                "apk.hurnell.recipebookreader.FileBrowserActivity",
+            )
+            if (lastActivityName.isNullOrEmpty()) {
+                lastActivityName = "apk.hurnell.recipebookreader.FileBrowserActivity"
+            }
+            try {
+                if (lastActivityName in simpleActivities) {
+                    val targetClass = Class.forName(lastActivityName)
+                    val intent = Intent(this@BaseDrawerActivity, targetClass)
+                    startActivity(intent)
+                    addToHistory = false
+                    finish()
+                }
+                if (lastActivityName == "apk.hurnell.recipebookreader.RecipeBookActivity") {
+                    navigateToSavedRecipeBookState()
+                }
+            } catch (e: ClassNotFoundException) {
+            }
+        }
+    }
+
+    protected fun navigateToSavedRecipeBookState() {
+        val dataStoreManager = DataStoreManager(applicationContext)
+        lifecycleScope.launch {
+            val tracker = dataStoreManager.recipeBookState.firstOrNull()
+            if (tracker != null) {
+
+                val intent = Intent(this@BaseDrawerActivity, RecipeBookActivity::class.java).apply {
+                    putExtra("PDF_PATH", tracker.location)
+                    val savedStateJson = tracker.let { Gson().toJson(it) }
+                    if (savedStateJson != null) {
+                        putExtra("SAVED_STATE_JSON", savedStateJson)
+                    }
+                }
+                addToHistory = false
+                startActivity(intent)
+            }
+        }
+    }
+
+    private fun getDataStoreKey(): String? {
+        if (this::class.simpleName == "FileBrowserActivity") {
+            return if (pdfOnly) "pdf_file_browser_tracker" else "image_file_browser_tracker"
+        }
+        return when (this::class.simpleName) {
+            "BookmarksActivity" -> "bookmarks_tracker"
+            "BookShelfActivity" -> "bookshelf_tracker"
+            "EveryTocActivity" -> "every_toc_tracker"
+            "RecentBooksActivity" -> "recent_books_tracker"
+            else -> null
+        }
+    }
+
+    private fun getActivityNameFromDataStoreKey(key: String?, fallback: String?): String? {
+        return when (key) {
+            "bookmarks_tracker" -> "apk.hurnell.recipebookreader.BookmarksActivity"
+            "bookshelf_tracker" -> "apk.hurnell.recipebookreader.BookShelfActivity"
+            "every_toc_tracker" -> "apk.hurnell.recipebookreader.EveryTocActivity"
+            "pdf_file_browser_tracker" -> "apk.hurnell.recipebookreader.FileBrowserActivity"
+            "image_file_browser_tracker" -> "apk.hurnell.recipebookreader.FileBrowserActivity"
+            "recent_books_tracker" -> "apk.hurnell.recipebookreader.RecentBooksActivity"
+            "recipe_book_tracker" -> "apk.hurnell.recipebookreader.RecipeBookActivity"
+            else -> fallback
         }
     }
 
@@ -237,7 +343,6 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
     fun searchFileSystemForBookCovers(book: Book) {
         val intent = Intent(this@BaseDrawerActivity, FileBrowserActivity::class.java).apply {
             putExtra(FileBrowserActivity.EXTRA_PDF_ONLY, false)
-            putExtra(FileBrowserActivity.NOT_FROM_NAVIGATION_EVENT, false)
             putExtra(FileBrowserActivity.EXTRA_TARGET_SHA, book.sha)
             putExtra(FileBrowserActivity.EXTRA_TARGET_BOOK_NAME, book.name)
         }
@@ -337,7 +442,11 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         }
     }
 
-    private fun toggleOtherButtons(activeView: Any?, show: Boolean, showRevertCover: Boolean = false) {
+    private fun toggleOtherButtons(
+        activeView: Any?,
+        show: Boolean,
+        showRevertCover: Boolean = false
+    ) {
         btnSearchCovers?.visibility = if (show) View.VISIBLE else View.GONE
         btnPickCover?.visibility = if (show) View.VISIBLE else View.GONE
         btnRevertCover?.visibility = if (show && showRevertCover) View.VISIBLE else View.GONE
@@ -496,7 +605,11 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         }
     }
 
-    private fun setResetPreviewImage(sha: String, previewImage: ImageView, isAlternateCover: Boolean = false) {
+    private fun setResetPreviewImage(
+        sha: String,
+        previewImage: ImageView,
+        isAlternateCover: Boolean = false
+    ) {
         val thumbnailFile = File(
             previewImage.context.filesDir,
             "${sha}.png"
@@ -537,7 +650,9 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         window.decorView.setBackgroundColor(getColor(R.color.pastel_blue))
 
         toggle = ActionBarDrawerToggle(
-            this, drawerLayout, toolbar,
+            this,
+            drawerLayout,
+            toolbar,
             R.string.navigation_drawer_open, R.string.navigation_drawer_close
         )
         toggle.drawerArrowDrawable.color = ContextCompat.getColor(this, R.color.nav_text)

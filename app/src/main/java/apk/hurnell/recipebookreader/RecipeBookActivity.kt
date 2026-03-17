@@ -1187,7 +1187,10 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         lifecycleScope.launch {
             dataStoreManager.saveLastActivity(this@RecipeBookActivity::class.java.name)
             val currentTracker = buildTracker()
-            dataStoreManager.saveTracker(DataStoreManager.RECIPE_BOOK_KEY, currentTracker)
+            dataStoreManager.saveTracker(DataStoreManager.RECIPE_BOOK_KEY, currentTracker,
+                saveCurrent = true,
+                addToHistory = false
+            )
         }
     }
 

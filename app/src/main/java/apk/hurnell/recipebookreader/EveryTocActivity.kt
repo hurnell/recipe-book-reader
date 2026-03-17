@@ -1,7 +1,6 @@
 package apk.hurnell.recipebookreader
 
 import android.app.AlertDialog
-import android.graphics.Bitmap
 import com.artifex.mupdf.fitz.*
 import java.nio.ByteBuffer
 import android.os.Bundle
@@ -48,7 +47,6 @@ data class EveryTocTracker(
 ) : BaseTracker()
 
 class EveryTocActivity : BaseDrawerActivity() {
-
     private var _binding: ActivityEveryTocBinding? = null
     private val binding get() = _binding!!
     private var searchJob: Job? = null
@@ -224,14 +222,30 @@ class EveryTocActivity : BaseDrawerActivity() {
                         imageCount++
                         capturedImage = image
                     }
+
                     override fun beginTextBlock(bbox: Rect) {}
                     override fun endTextBlock() {}
-                    override fun onChar(c: Int, origin: Point?, font: Font?, size: Float, quad: Quad?, argb: Int, flags: Int) {}
+                    override fun onChar(
+                        c: Int,
+                        origin: Point?,
+                        font: Font?,
+                        size: Float,
+                        quad: Quad?,
+                        argb: Int,
+                        flags: Int
+                    ) {
+                    }
+
                     override fun beginLine(bbox: Rect?, wmode: Int, dir: Point?) {}
                     override fun endLine() {}
                     override fun beginStruct(standard: String?, raw: String?, index: Int) {}
                     override fun endStruct() {}
-                    override fun onVector(bbox: Rect?, info: StructuredTextWalker.VectorInfo?, argb: Int) {}
+                    override fun onVector(
+                        bbox: Rect?,
+                        info: StructuredTextWalker.VectorInfo?,
+                        argb: Int
+                    ) {
+                    }
                 })
 
                 if (imageCount == 1 && capturedImage != null) {
@@ -300,8 +314,8 @@ class EveryTocActivity : BaseDrawerActivity() {
             recipeImagePreviewWrapper?.visibility = View.VISIBLE
         }
     }
+
     fun applySavedSettings() {
-        val dataStoreManager = DataStoreManager(applicationContext)
         lifecycleScope.launch {
             val tracker = dataStoreManager.everyTocState.firstOrNull()
             if (tracker != null) {
@@ -431,19 +445,37 @@ class EveryTocActivity : BaseDrawerActivity() {
         recipeImagePreviewWrapper?.visibility = View.GONE
     }
 
-    override fun onPause() {
-        super.onPause()
-        val dataStoreManager = DataStoreManager(applicationContext)
+    private fun saveEveryTocTracker(
+        category: String,
+        searchTerm: String,
+        position: Int,
+        offset: Int
+    ) {
         lifecycleScope.launch {
             dataStoreManager.saveLastActivity(this@EveryTocActivity::class.java.name)
             val currentTracker = EveryTocTracker(
-                currentCategory,
-                currentSearchTerm,
-                lastScrollPosition,
-                lastScrollOffset
+                category,
+                searchTerm,
+                position,
+                offset
             )
-            dataStoreManager.saveTracker(DataStoreManager.EVERY_TOC_KEY, currentTracker)
+            dataStoreManager.saveTracker(
+                DataStoreManager.EVERY_TOC_KEY,
+                currentTracker,
+                saveCurrent = true,
+                addToHistory
+            )
         }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        saveEveryTocTracker(
+            currentCategory,
+            currentSearchTerm,
+            lastScrollPosition,
+            lastScrollOffset
+        )
     }
 }
 

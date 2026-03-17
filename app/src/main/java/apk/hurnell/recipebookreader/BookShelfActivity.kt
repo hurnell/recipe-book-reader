@@ -37,7 +37,7 @@ class BookShelfActivity : BaseDrawerActivity() {
 
         loadingOverlay = binding.loadingOverlay
         loadingOverlay.visibility = View.GONE
-        spinner =binding.categorySpinner
+        spinner = binding.categorySpinner
 
         spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(
@@ -82,7 +82,6 @@ class BookShelfActivity : BaseDrawerActivity() {
     }
 
     fun applySavedSettings() {
-        val dataStoreManager = DataStoreManager(applicationContext)
         lifecycleScope.launch {
             val tracker = dataStoreManager.bookShelfState.firstOrNull()
             if (tracker != null) {
@@ -103,7 +102,8 @@ class BookShelfActivity : BaseDrawerActivity() {
     }
 
     private fun trackRecyclerViewOffset() {
-        val layoutManager = binding.shelfRecyclerView.layoutManager as? LinearLayoutManager ?: return
+        val layoutManager =
+            binding.shelfRecyclerView.layoutManager as? LinearLayoutManager ?: return
         val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
         val firstVisibleView = layoutManager.findViewByPosition(firstVisibleItemPosition)
         val offset = firstVisibleView?.top ?: 0
@@ -165,11 +165,38 @@ class BookShelfActivity : BaseDrawerActivity() {
             lastScrollPosition = 0
             lastScrollOffset = 0
         }
+
+        saveBookShelfTracker(currentCategory, lastScrollPosition, lastScrollOffset, false)
     }
+
+
+    private fun saveBookShelfTracker(
+        category: String,
+        position: Int,
+        offset: Int,
+        saveCurrent: Boolean
+    ) {
+        lifecycleScope.launch {
+            dataStoreManager.saveLastActivity(this@BookShelfActivity::class.java.name)
+            val currentTracker = BookShelfTracker(
+                category,
+                position,
+                offset
+            )
+            dataStoreManager.saveTracker(
+                DataStoreManager.BOOK_SHELF_KEY,
+                currentTracker,
+                saveCurrent,
+                addToHistory
+            )
+        }
+    }
+
     fun updateCoverForShaInAdapter(updatedSha: String) {
         // Update only items that match this SHA
-       bookRowAdapter.updateCoverForSha(updatedSha)
+        bookRowAdapter.updateCoverForSha(updatedSha)
     }
+
     private fun shelfShowBookInfoOverlay(pdfFile: File) {
         showBookInfoOverlay(pdfFile)
     }
@@ -180,15 +207,6 @@ class BookShelfActivity : BaseDrawerActivity() {
 
     override fun onPause() {
         super.onPause()
-        val dataStoreManager = DataStoreManager(applicationContext)
-        lifecycleScope.launch {
-            dataStoreManager.saveLastActivity(this@BookShelfActivity::class.java.name)
-            val currentTracker = BookShelfTracker(
-                currentCategory,
-                lastScrollPosition,
-                lastScrollOffset
-            )
-            dataStoreManager.saveTracker(DataStoreManager.BOOK_SHELF_KEY, currentTracker)
-        }
+        saveBookShelfTracker(currentCategory, lastScrollPosition, lastScrollOffset, true)
     }
 }
