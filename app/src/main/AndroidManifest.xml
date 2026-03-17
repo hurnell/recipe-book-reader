@@ -16,7 +16,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.RecipeBookReader">
         <activity
-            android:name=".FileBrowserActivity"
+            android:name=".LauncherActivity"
             android:enableOnBackInvokedCallback="false"
             android:windowSoftInputMode="adjustResize"
             android:exported="true">
@@ -24,6 +24,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+        <activity
+            android:name=".FileBrowserActivity"
+            android:enableOnBackInvokedCallback="false"
+            android:windowSoftInputMode="adjustResize"
+            android:exported="true">
         </activity>
         <activity
             android:name=".RecentBooksActivity"
