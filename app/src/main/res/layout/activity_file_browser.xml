@@ -21,15 +21,43 @@
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
                 android:background="@color/pastel_blue"
-                app:title="@string/file_browser"
-                app:titleTextColor="@color/nav_text" />
+                android:theme="@style/FileBrowserToolbarTheme"
+                app:titleEnabled="false">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <ImageButton
+                        android:id="@+id/fileBrowserHistoryIcon"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/go_back_in_history_icon"
+                        android:src="@drawable/ic_left"
+                        app:tint="@color/nav_text" />
+
+                    <TextView
+                        android:id="@+id/toolbar_title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingHorizontal="8dp"
+                        android:text="@string/file_browser"
+                        android:textColor="@color/nav_text"
+                        android:textSize="20sp"
+                        android:textStyle="bold" />
+
+                </LinearLayout>
+            </androidx.appcompat.widget.Toolbar>
 
             <HorizontalScrollView
                 android:id="@+id/breadcrumbScroll"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:fillViewport="true"
                 android:background="@color/white"
+                android:fillViewport="true"
                 android:scrollbars="none">
 
                 <LinearLayout
@@ -44,8 +72,8 @@
                 android:id="@+id/fileRecyclerView"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:clipToPadding="false"
                 android:background="@color/white"
+                android:clipToPadding="false"
                 android:padding="8dp" />
         </LinearLayout>
 

@@ -9,6 +9,7 @@ import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.HorizontalScrollView
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
@@ -67,6 +68,7 @@ class FileBrowserActivity : BaseDrawerActivity() {
         loadingOverlay = binding.loadingOverlay
         loadingOverlay.visibility = View.GONE
         setupDrawer(binding.toolbar)
+        supportActionBar?.setDisplayShowTitleEnabled(false)
         drawerLayout.closeDrawer(GravityCompat.START, false)
         binding.fileRecyclerView.layoutManager = LinearLayoutManager(this)
         adapter = FileAdapter(
@@ -85,20 +87,36 @@ class FileBrowserActivity : BaseDrawerActivity() {
         requestStoragePermission()
         applySavedTracker(pdfOnly)
 
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+        val backCallback = object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                val wasOpen = checkCloseDrawerIsOpen()
-                if (!wasOpen && pdfOnly && currentDir.absolutePath != rootDir.absolutePath) {
-                    val parent = currentDir.parentFile
-                    addToHistory = false
-                    if (parent != null) showFiles(parent)
-                } else if (!wasOpen) {
-                    isEnabled = false
-                    onBackPressedDispatcher.onBackPressed()
-                }
+                handleBackNavigation(this, ignoreHistory = false)
             }
-        })
+        }
+        onBackPressedDispatcher.addCallback(this, backCallback)
+        val directoryIcon = binding.toolbar.findViewById<ImageButton>(R.id.fileBrowserHistoryIcon)
+        directoryIcon.visibility = View.VISIBLE
+        directoryIcon.setOnClickListener {
+            addToHistory = false
+            handleBackNavigation(backCallback, ignoreHistory = true)
+        }
 
+    }
+
+    private fun handleBackNavigation(
+        callback: OnBackPressedCallback,
+        ignoreHistory: Boolean = false
+    ) {
+        val wasOpen = checkCloseDrawerIsOpen()
+        if (wasOpen) return
+        if (pdfOnly && currentDir.absolutePath != rootDir.absolutePath && !ignoreHistory) {
+            val parent = currentDir.parentFile
+            addToHistory = false
+            if (parent != null) showFiles(parent)
+        } else {
+            callback.isEnabled = false
+            onBackPressedDispatcher.onBackPressed()
+            callback.isEnabled = true
+        }
     }
 
     private fun trackRecyclerViewOffset() {
@@ -221,7 +239,8 @@ class FileBrowserActivity : BaseDrawerActivity() {
 
     private fun reinstateLastFolderPosition(items: List<FileItem>, targetPath: String) {
         lifecycleScope.launch {
-            val savedState = dataStoreManager.findTrackerInHistoryByDirectory(targetPath, addToHistory)
+            val savedState =
+                dataStoreManager.findTrackerInHistoryByDirectory(targetPath, addToHistory)
             if (savedState != null) {
                 Log.e(
                     "NIGEL_HURNELL",
@@ -353,7 +372,10 @@ class FileBrowserActivity : BaseDrawerActivity() {
             val key: Preferences.Key<String> =
                 if (pdfOnly) DataStoreManager.PDF_FILE_BROWSER_KEY else DataStoreManager.IMAGE_FILE_BROWSER_KEY
             dataStoreManager.saveTracker(key, currentTracker, saveCurrent, addToHistory)
-            Log.i("NIGEL_HURNELL", "saveLastFolderTracker $directory $position $offset $saveCurrent $addToHistory ")
+            Log.i(
+                "NIGEL_HURNELL",
+                "saveLastFolderTracker $directory $position $offset $saveCurrent $addToHistory "
+            )
         }
     }
 

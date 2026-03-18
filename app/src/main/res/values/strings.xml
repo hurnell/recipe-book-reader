@@ -93,5 +93,6 @@
     <string name="delete_book">Delete</string>
     <string name="delete">Delete?</string>
     <string name="placeholder_for_alert_book_preview">Placeholder for alert book preview</string>
+    <string name="go_back_in_history_icon">Go back in history</string>
 
 </resources>

@@ -17,4 +17,9 @@
     </style>
     <style name="ThemeOverlay.App.DarkAccent" parent="">
         <item name="colorPrimary">@color/border_blue</item> </style>
+    <style name="FileBrowserToolbarTheme" parent="ThemeOverlay.AppCompat.ActionBar">
+        <item name="colorControlNormal">@color/nav_text</item>
+        <item name="actionMenuTextColor">@color/nav_text</item>
+        <item name="displayOptions">showCustom|useLogo|showHome</item>
+    </style>
 </resources>
