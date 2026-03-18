@@ -25,64 +25,65 @@ import android.widget.ImageView
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
-import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.GravityCompat
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import apk.hurnell.recipebookreader.adapters.BookAdapter
-import apk.hurnell.recipebookreader.databinding.ActivityRecipeBookBinding
-import apk.hurnell.recipebookreader.helpers.FunctionalStructuredTextWalker
-import apk.hurnell.recipebookreader.ui.PinchRecyclerView
-import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.Insets
 import androidx.core.graphics.createBitmap
+import androidx.core.view.GravityCompat
+import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import apk.hurnell.recipebookreader.helpers.PdfRepository
-import apk.hurnell.recipebookreader.model.TocItem
-import apk.hurnell.recipebookreader.ui.TocFragment
-import com.artifex.mupdf.fitz.Document
-import com.artifex.mupdf.fitz.Link
-import com.google.gson.Gson
-import java.io.File
-import kotlin.math.abs
-import kotlinx.coroutines.*
-import kotlin.math.floor
 import androidx.core.view.updateLayoutParams
+import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import androidx.work.Data
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import apk.hurnell.recipebookreader.adapters.BookAdapter
+import apk.hurnell.recipebookreader.databinding.ActivityRecipeBookBinding
 import apk.hurnell.recipebookreader.databinding.DialogBookmarkBinding
 import apk.hurnell.recipebookreader.helpers.Coordinates
 import apk.hurnell.recipebookreader.helpers.DataStoreManager
+import apk.hurnell.recipebookreader.helpers.FunctionalStructuredTextWalker
+import apk.hurnell.recipebookreader.helpers.PdfRepository
 import apk.hurnell.recipebookreader.model.BaseBookmarkTocItem
 import apk.hurnell.recipebookreader.model.BaseTracker
 import apk.hurnell.recipebookreader.model.BookHistoryItem
 import apk.hurnell.recipebookreader.model.BookmarkItem
+import apk.hurnell.recipebookreader.model.TocItem
+import apk.hurnell.recipebookreader.ui.PinchRecyclerView
+import apk.hurnell.recipebookreader.ui.TocFragment
 import apk.hurnell.recipebookreader.ui.TocFragmentListener
-import com.artifex.mupdf.fitz.Rect
-import com.google.android.material.floatingactionbutton.FloatingActionButton
-import androidx.work.Data
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
 import apk.hurnell.recipebookreader.workers.IsbnScanWorker
+import com.artifex.mupdf.fitz.Document
 import com.artifex.mupdf.fitz.Font
 import com.artifex.mupdf.fitz.Image
+import com.artifex.mupdf.fitz.Link
 import com.artifex.mupdf.fitz.Matrix
 import com.artifex.mupdf.fitz.Page
 import com.artifex.mupdf.fitz.Pixmap
 import com.artifex.mupdf.fitz.Point
 import com.artifex.mupdf.fitz.Quad
+import com.artifex.mupdf.fitz.Rect
 import com.artifex.mupdf.fitz.StructuredTextWalker
+import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.gson.Gson
+import kotlinx.coroutines.*
+import java.io.File
 import java.nio.ByteBuffer
 import java.util.concurrent.TimeUnit
+import kotlin.math.abs
+import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
+import androidx.core.net.toUri
 
 data class RecipeBookTracker(
     val portrait: Boolean?,
@@ -184,16 +185,14 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                 incrementSp -= 1
                 incrementSp = max(incrementSp, COPY_TEXT_MIN)
                 updateFontSizeForCopyText(
-                    -1F,
-                    incrementSp,
-                    btnIncreaseFontSize,
-                    btnDecreaseFontSize
+                    -1F, incrementSp, btnIncreaseFontSize, btnDecreaseFontSize
                 )
             }
         }
         initialisePreviewLayout()
 
         val pdfFilePath = intent.getStringExtra("PDF_PATH")
+        val externalLinkPage = intent.getIntExtra("EXTERNAL_LINK_PAGE", -1)
         if (pdfFilePath == null) {
             Log.e(LOG_TAG, "No PDF path provided")
             finish()
@@ -213,7 +212,9 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                     return@launch
                 }
                 document = currentDocument
-                onDocumentReady(currentDocument, bookmarkTocItem, recipeBookTracked)
+                onDocumentReady(
+                    currentDocument, bookmarkTocItem, recipeBookTracked, externalLinkPage
+                )
 
                 val book =
                     repository.getOrCreateBook(pdfFile, pdfFilePath, currentDocument) ?: run {
@@ -229,9 +230,8 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                     finish()
                     return@launch
                 }
-                binding.recipeBookToolbar.menu
-                    .findItem(R.id.action_search)
-                    ?.isVisible = !book.scanned
+                binding.recipeBookToolbar.menu.findItem(R.id.action_search)?.isVisible =
+                    !book.scanned
                 loadBookHistory(bookId)
                 if (!book.name.isNullOrEmpty()) {
                     binding.recipeBookToolbar.title = book.name
@@ -239,7 +239,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                 if (repository.hasToc(bookId)) {
                     initializeTocFragment(bookId)
                     binding.btnShowToc.visibility = View.VISIBLE
-                } else {
+                } else if (!repository.getTocUnavailable(bookId)) {
                     Log.d(LOG_TAG, "Generating TOC in background...")
                     binding.horizontalLoader.visibility = View.VISIBLE
                     binding.horizontalLoader.progress = 0
@@ -258,18 +258,15 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
 
                         tocSuccess
                     }
-                    val workData = Data.Builder()
-                        .putString("pdf_path", pdfFilePath)
-                        .putLong("book_id", bookId)
-                        .build()
+                    val workData =
+                        Data.Builder().putString("pdf_path", pdfFilePath).putLong("book_id", bookId)
+                            .build()
 
-                    val isbnWork = OneTimeWorkRequestBuilder<IsbnScanWorker>()
-                        .setInputData(workData)
-                        .setBackoffCriteria(
-                            androidx.work.BackoffPolicy.EXPONENTIAL,
-                            10, TimeUnit.SECONDS
-                        )
-                        .build()
+                    val isbnWork =
+                        OneTimeWorkRequestBuilder<IsbnScanWorker>().setInputData(workData)
+                            .setBackoffCriteria(
+                                androidx.work.BackoffPolicy.EXPONENTIAL, 10, TimeUnit.SECONDS
+                            ).build()
 
                     WorkManager.getInstance(this@RecipeBookActivity).enqueue(isbnWork)
 
@@ -279,7 +276,21 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                             binding.btnShowToc.visibility = View.VISIBLE
                             initializeTocFragment(bookId)
                         }
+                    } else {
+                        binding.horizontalLoader.visibility = View.GONE
+                        repository.setTocUnavailable(bookId)
+                        Toast.makeText(
+                            this@RecipeBookActivity,
+                            "This book has no table of contents",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
+                } else {
+                    Toast.makeText(
+                        this@RecipeBookActivity,
+                        "This book has no table of contents",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
 
             } catch (e: Exception) {
@@ -308,20 +319,22 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         }
 
     }
-    private fun initialisePreviewLayout(){
+
+    private fun initialisePreviewLayout() {
         recipeImagePreviewWrapper = findViewById(R.id.recipeImagePreviewWrapper)
         recipeImagePreview = findViewById(R.id.recipeImagePreview)
         recipeImagePreviewTitle = findViewById(R.id.recipeImagePreviewTitle)
         recipeImageBookTitle = findViewById(R.id.recipeImageBookTitle)
         recipeImageBookTitle?.visibility = View.GONE
-        recipeImagePreviewTitle?.visibility =View.GONE
+        recipeImagePreviewTitle?.visibility = View.GONE
         closePreviewButton = findViewById(R.id.closePreviewButton)
         closePreviewButton?.setOnClickListener { hideRecipeImagePreview() }
     }
 
-    private fun hideRecipeImagePreview(){
+    private fun hideRecipeImagePreview() {
         recipeImagePreviewWrapper?.visibility = View.GONE
     }
+
     private fun gotoSubsequentPage(up: Boolean) {
         val page = binding.pageSeekBar.progress + 1
         val tocItem = repository.getSubsequentTocItem(page, lastTocId, up, currentBookId)
@@ -355,14 +368,11 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     ) {
         val currentSizePx = copyText!!.textSize
         val incrementPx = TypedValue.applyDimension(
-            TypedValue.COMPLEX_UNIT_SP,
-            spChange,
-            copyText!!.resources.displayMetrics
+            TypedValue.COMPLEX_UNIT_SP, spChange, copyText!!.resources.displayMetrics
         )
 
         copyText!!.setTextSize(
-            TypedValue.COMPLEX_UNIT_PX,
-            currentSizePx + incrementPx
+            TypedValue.COMPLEX_UNIT_PX, currentSizePx + incrementPx
         )
         btnDecreaseFontSize.visibility =
             if (incrementSp == COPY_TEXT_MIN) View.INVISIBLE else View.VISIBLE
@@ -495,8 +505,12 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     }
 
     private fun onDocumentReady(
-        doc: Document, bookmarkTocItem: BaseBookmarkTocItem?, recipeBookTracked: RecipeBookTracker?
+        doc: Document,
+        bookmarkTocItem: BaseBookmarkTocItem?,
+        recipeBookTracked: RecipeBookTracker?,
+        externalLinkPage: Int
     ) {
+
         val metrics = resources.displayMetrics
         val horizontalBars = if (::systemBars.isInitialized) systemBars.right else 0
         val initialUw = metrics.widthPixels - horizontalBars
@@ -509,6 +523,9 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         var currentPage = 0
         if (bookmarkTocItem != null) {
             currentPage = bookmarkTocItem.page
+        } else if (recipeBookTracked == null && externalLinkPage != -1) {
+            currentPage = externalLinkPage
+            binding.bookRecyclerView.scrollToPosition(currentPage)
         }
         updatePageText(currentPage, totalPages)
 
@@ -621,8 +638,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                                     translate = pinchRv.getTranslate()
                                 )
                                 val dialog = AlertDialog.Builder(this@RecipeBookActivity)
-                                    .setTitle("Create Bookmark")
-                                    .setView(dialogBinding.root)
+                                    .setTitle("Create Bookmark").setView(dialogBinding.root)
                                     .setPositiveButton("Create Bookmark") { _, _ ->
                                         val bookmarkText =
                                             dialogBinding.enterBookmarkText.text.toString()
@@ -639,11 +655,9 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                                                 Toast.LENGTH_SHORT
                                             ).show()
                                         }
-                                    }
-                                    .setNegativeButton("Cancel") { dialog, _ ->
+                                    }.setNegativeButton("Cancel") { dialog, _ ->
                                         dialog.dismiss()
-                                    }
-                                    .create()
+                                    }.create()
 
                                 dialog.show()
                                 dialog.window?.setLayout(
@@ -844,7 +858,42 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     }
 
     private fun handleExternalLink(uri: String?) {
+        if (uri.isNullOrEmpty()) return
 
+        try {
+            if (uri.startsWith("http://") || uri.startsWith("https://")) {
+                val intent = Intent(Intent.ACTION_VIEW).apply {
+                    data = uri.toUri()
+                }
+                startActivity(intent)
+                return
+            }
+            if (uri.startsWith("file://")) {
+                val cleanUri = uri.removePrefix("file://")
+
+                val parts = cleanUri.split("#")
+                val filePath = parts[0]
+
+                var page = 0
+                if (parts.size > 1 && parts[1].startsWith("page=")) {
+                    page = parts[1].substringAfter("page=").toIntOrNull()?.minus(1) ?: 0
+                }
+
+                val file = File(filePath)
+
+                if (file.exists() && file.extension.equals("pdf", ignoreCase = true)) {
+                    val intent = Intent(this, RecipeBookActivity::class.java).apply {
+                        putExtra("PDF_PATH", file.absolutePath)
+                        putExtra("EXTERNAL_LINK_PAGE", page + 1)
+                    }
+                    startActivity(intent)
+                } else {
+                    Toast.makeText(this, "File not found or not a PDF", Toast.LENGTH_SHORT).show()
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(LOG_TAG, "Failed to handle external link", e)
+        }
     }
 
     private fun handleInternalLink(rv: PinchRecyclerView, link: Link, w: Float) {
@@ -915,10 +964,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     }
 
     private fun displayImageInOverlay(
-        document: Document?,
-        currentPage: Int,
-        px: Float,
-        py: Float
+        document: Document?, currentPage: Int, px: Float, py: Float
     ) {
         lifecycleScope.launch(Dispatchers.IO) {
             var page: Page? = null
@@ -958,9 +1004,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                     override fun beginStruct(standard: String?, raw: String?, index: Int) {}
                     override fun endStruct() {}
                     override fun onVector(
-                        bbox: Rect?,
-                        info: StructuredTextWalker.VectorInfo?,
-                        argb: Int
+                        bbox: Rect?, info: StructuredTextWalker.VectorInfo?, argb: Int
                     ) {
                     }
                 })
@@ -998,11 +1042,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     }
 
     private fun getTextNearClickPoint(
-        document: Document?,
-        currentPage: Int,
-        x: Float,
-        y: Float,
-        byLine: Boolean
+        document: Document?, currentPage: Int, x: Float, y: Float, byLine: Boolean
     ): String {
         if (document == null) {
             return ""
@@ -1187,7 +1227,9 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         lifecycleScope.launch {
             dataStoreManager.saveLastActivity(this@RecipeBookActivity::class.java.name)
             val currentTracker = buildTracker()
-            dataStoreManager.saveTracker(DataStoreManager.RECIPE_BOOK_KEY, currentTracker,
+            dataStoreManager.saveTracker(
+                DataStoreManager.RECIPE_BOOK_KEY,
+                currentTracker,
                 saveCurrent = true,
                 addToHistory = false
             )
