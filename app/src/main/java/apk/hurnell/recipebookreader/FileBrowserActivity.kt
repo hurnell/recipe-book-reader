@@ -45,8 +45,6 @@ class FileBrowserActivity : BaseDrawerActivity() {
     private var targetSha: String? = null
     private var targetBookName: String? = null
     private lateinit var adapter: FileAdapter
-    private val rootDir = Environment.getExternalStorageDirectory()
-    private var currentDir: File = File(rootDir, "Documents")
     private var lastScrollPosition: Int = 0
     private var lastScrollOffset: Int = 0
 
@@ -190,14 +188,16 @@ class FileBrowserActivity : BaseDrawerActivity() {
 
     override fun onResume() {
         super.onResume()
-        refreshFilesAndUI()
+        refreshFilesAndUI(false)
     }
 
-    override fun refreshFilesAndUI() {
+    override fun refreshFilesAndUI(reloadAdapter: Boolean) {
         if (findViewById<DrawerLayout>(R.id.drawer_layout) != null) {
             drawerLayout.closeDrawer(GravityCompat.START, false)
         }
-        //showFiles(currentDir)
+        if (reloadAdapter) {
+            showFiles(currentDir)
+        }
     }
 
     private fun requestStoragePermission() {
