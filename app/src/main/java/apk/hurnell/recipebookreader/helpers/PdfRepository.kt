@@ -48,7 +48,7 @@ class PdfRepository(
 
     fun loadCategories(): List<Category> = dbHelper.loadCategories()
 
-    fun updateIsAlternateCover(sha: String, isAlternateCover: Int){
+    fun updateIsAlternateCover(sha: String, isAlternateCover: Int) {
         dbHelper.updateIsAlternateCover(sha, isAlternateCover)
     }
 
@@ -183,11 +183,24 @@ class PdfRepository(
         }
     }
 
-    fun getSubsequentTocItem(page: Int, lastTokId: Long?, up: Boolean, currentBookId: Long): TocItem? {
-        return dbHelper.getSubsequentTocItem(page,lastTokId, up, currentBookId)
+    fun getSubsequentTocItem(
+        page: Int,
+        lastTokId: Long?,
+        up: Boolean,
+        currentBookId: Long
+    ): TocItem? {
+        return dbHelper.getSubsequentTocItem(page, lastTokId, up, currentBookId)
     }
 
     fun deleteBook(currentBookId: Long): Boolean {
         return dbHelper.deleteBook(currentBookId)
+    }
+
+    fun setTocUnavailable(bookId: Long): Boolean {
+        return dbHelper.setTocUnavailable(bookId)
+    }
+
+    fun getTocUnavailable(bookId: Long): Boolean {
+        return dbHelper.getTocUnavailable(bookId)
     }
 }

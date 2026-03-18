@@ -1273,4 +1273,26 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
             }
         }
     }
+
+    fun setTocUnavailable(bookId: Long): Boolean {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put("toc_unavailable", 1)
+        }
+        val rowsUpdated = db.update("books", values, "id = ?", arrayOf(bookId.toString()))
+        return rowsUpdated == 1
+    }
+
+    fun getTocUnavailable(bookId: Long): Boolean {
+        val db = readableDatabase
+        return db.query(
+            "books", arrayOf(
+                "toc_unavailable",
+            ), "id = ?", arrayOf(bookId.toString()), null, null, null
+        ).use { cursor ->
+            if (cursor.moveToFirst()) {
+                cursor.getIntOrNull(cursor.getColumnIndexOrThrow("toc_unavailable")) == 1
+            } else false
+        }
+    }
 }
