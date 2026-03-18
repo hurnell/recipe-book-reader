@@ -90,6 +90,7 @@ ON t.book_id_fk = b.id;
     offset REAL DEFAULT NULL,
     scale REAL NOT NULL,
     translate REAL NOT NULL,
+    is_image INTEGER DEFAULT 0,
     unique_key TEXT UNIQUE
 );
 ```
