@@ -17,6 +17,7 @@ import com.google.gson.Gson
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.flow.firstOrNull
 
 data class HistoryEntry(
     val keyName: String,
@@ -154,6 +155,23 @@ class DataStoreManager(private val context: Context) {
         return foundTracker
     }
 
+    suspend fun getLastHistoryEntry(): HistoryEntry? {
+        val preferences = context.dataStore.data.firstOrNull() ?: return null
+        val historyJson = preferences[TRACKER_HISTORY_KEY] ?: return null
+
+        return try {
+            val type = object : TypeToken<List<String>>() {}.type
+            val history: List<String> = gson.fromJson(historyJson, type)
+
+            if (history.isNotEmpty()) {
+                gson.fromJson(history.last(), HistoryEntry::class.java)
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
     suspend fun popAndGetPrevious(currentKeyName: String): HistoryEntry? {
         var previousEntry: HistoryEntry? = null
 
