@@ -179,7 +179,6 @@ class BookmarksActivity : BaseDrawerActivity() {
     }
 
     fun populateAdapter() {
-        val dataStoreManager = DataStoreManager(applicationContext)
         lifecycleScope.launch {
             val tracker = dataStoreManager.bookmarksState.firstOrNull()
             if (tracker != null) {
@@ -202,7 +201,7 @@ class BookmarksActivity : BaseDrawerActivity() {
         saveBookmarksTracker(currentCategory, lastScrollPosition, lastScrollOffset, false)
     }
 
-    override fun refreshFilesAndUI() {
+    override fun refreshFilesAndUI(reloadAdapter: Boolean) {
 
     }
 
