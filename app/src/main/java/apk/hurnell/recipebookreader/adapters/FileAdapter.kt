@@ -102,7 +102,9 @@ class FileAdapter(
 
                 binding.fileIcon.setImageResource(getIconResource(item.file))
             } else {
-                binding.fileName.text = bookInfo.name
+                if (bookInfo.name != "") {
+                    binding.fileName.text = bookInfo.name
+                }
                 bookInfo.let { info ->
                     val thumbnailFile = File(itemView.context.filesDir, "${info.sha}.png")
 
