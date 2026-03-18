@@ -92,7 +92,7 @@ class RecentBooksActivity : BaseDrawerActivity() {
 
     }
 
-    override fun refreshFilesAndUI() {
+    override fun refreshFilesAndUI(reloadAdapter: Boolean) {
 
     }
 

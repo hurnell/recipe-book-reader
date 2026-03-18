@@ -78,7 +78,7 @@ class BookShelfActivity : BaseDrawerActivity() {
         refreshCategories()
         val position = categories.indexOf(currentCategory)
         spinner.setSelection(position)
-        populateShelf(currentCategory, acceptZero)
+        populateShelf(currentCategory, acceptZero, true)
     }
 
     fun applySavedSettings() {
@@ -95,7 +95,7 @@ class BookShelfActivity : BaseDrawerActivity() {
         }
     }
 
-    override fun refreshFilesAndUI() {
+    override fun refreshFilesAndUI(reloadAdapter: Boolean) {
         populateShelf(currentCategory)
         val position = categories.indexOf(currentCategory)
         spinner.setSelection(position)
@@ -118,7 +118,7 @@ class BookShelfActivity : BaseDrawerActivity() {
         }
     }
 
-    private fun populateShelf(category: String, acceptZero: Boolean = true) {
+    private fun populateShelf(category: String, acceptZero: Boolean = true, fromSaved: Boolean = false) {
         val categoryChanged = currentCategory != category
         currentCategory = category
         val allBooks: List<FileItem> = getBookShelfBooks(category)
@@ -165,8 +165,9 @@ class BookShelfActivity : BaseDrawerActivity() {
             lastScrollPosition = 0
             lastScrollOffset = 0
         }
-
-        saveBookShelfTracker(currentCategory, lastScrollPosition, lastScrollOffset, false)
+        if (!fromSaved) {
+            saveBookShelfTracker(currentCategory, lastScrollPosition, lastScrollOffset, false)
+        }
     }
 
 

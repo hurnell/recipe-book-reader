@@ -440,7 +440,7 @@ class EveryTocActivity : BaseDrawerActivity() {
         imm.hideSoftInputFromWindow(windowToken, 0)
     }
 
-    override fun refreshFilesAndUI() {}
+    override fun refreshFilesAndUI(reloadAdapter: Boolean) {}
     fun hideRecipeImagePreview() {
         recipeImagePreviewWrapper?.visibility = View.GONE
     }
