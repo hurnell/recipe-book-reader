@@ -9,6 +9,7 @@ import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.graphics.Typeface
 import android.os.Bundle
+import android.os.Environment
 import android.util.Log
 import android.view.View
 import android.widget.ArrayAdapter
@@ -40,6 +41,7 @@ import apk.hurnell.recipebookreader.model.Book
 import apk.hurnell.recipebookreader.ui.EditableCategoryView
 import apk.hurnell.recipebookreader.ui.EditableTextView
 import com.bumptech.glide.Glide
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -78,6 +80,8 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
     protected var btnRevertCover: ImageButton? = null
     protected var addToHistory: Boolean = true
 
+    protected val rootDir: File = Environment.getExternalStorageDirectory()
+    protected var currentDir: File = File(rootDir, "Documents")
     protected var btnCloseGallery: ImageButton? = null
     protected var btnDeleteBook: ImageButton? = null
     protected var coverOptionsRecycler: RecyclerView? = null
@@ -86,6 +90,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         override fun handleOnBackPressed() {
             if (!checkCloseDrawerIsOpen()) {
                 val currentKey = getDataStoreKey()
+                addToHistory = false
                 if (currentKey != null) {
                     lifecycleScope.launch {
                         val destination = dataStoreManager.popAndGetPrevious(currentKey)
@@ -113,11 +118,11 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
     }
 
     protected fun navigateBackToSavedActivity(forcedDestination: HistoryEntry?) {
-
         lifecycleScope.launch {
             var lastActivityName = dataStoreManager.lastActivityFlow.first()
             lastActivityName =
                 getActivityNameFromDataStoreKey(forcedDestination?.keyName, lastActivityName)
+
             val simpleActivities = arrayOf(
                 "apk.hurnell.recipebookreader.BookmarksActivity",
                 "apk.hurnell.recipebookreader.BookShelfActivity",
@@ -125,41 +130,84 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                 "apk.hurnell.recipebookreader.RecentBooksActivity",
                 "apk.hurnell.recipebookreader.FileBrowserActivity",
             )
-            if (lastActivityName.isNullOrEmpty()) {
-                lastActivityName = "apk.hurnell.recipebookreader.FileBrowserActivity"
-            }
-            try {
-                if (lastActivityName in simpleActivities) {
-                    val targetClass = Class.forName(lastActivityName)
-                    val intent = Intent(this@BaseDrawerActivity, targetClass)
-                    startActivity(intent)
-                    addToHistory = false
+
+            if (lastActivityName == "apk.hurnell.recipebookreader.RecipeBookActivity") {
+                val lastEntry = dataStoreManager.getLastHistoryEntry()
+                val homeIntentClassName = getActivityNameFromDataStoreKey(
+                    lastEntry?.keyName,
+                    "apk.hurnell.recipebookreader.FileBrowserActivity"
+                )
+                val directory =
+                    if (homeIntentClassName == "apk.hurnell.recipebookreader.FileBrowserActivity") {
+                        lastEntry?.trackerJson?.let { json ->
+                            try {
+                                Gson().fromJson(json, FileBrowserTracker::class.java).directory
+                            } catch (e: Exception) {
+                                null
+                            }
+                        }
+                    } else {
+                        null
+                    }
+                if (directory != null) {
+                    val file = File(directory)
+                    if (file.exists()) {
+                        currentDir = file
+                    }
+                }
+                val homeIntentClass = Class.forName(homeIntentClassName!!)
+                val homeIntent = Intent(this@BaseDrawerActivity, homeIntentClass)
+                startActivity(homeIntent)
+                val success = navigateToSavedRecipeBookState()
+
+                if (success) {
                     finish()
+                    return@launch
+                } else {
+                    finish()
+                    return@launch
                 }
-                if (lastActivityName == "apk.hurnell.recipebookreader.RecipeBookActivity") {
-                    navigateToSavedRecipeBookState()
-                }
-            } catch (e: ClassNotFoundException) {
+            }
+            val targetClassName = if (lastActivityName in simpleActivities) {
+                lastActivityName
+            } else {
+                "apk.hurnell.recipebookreader.FileBrowserActivity"
+            }
+
+            try {
+                val targetClass = Class.forName(targetClassName!!)
+                startActivity(Intent(this@BaseDrawerActivity, targetClass))
+                finish()
+            } catch (e: Exception) {
+                startActivity(Intent(this@BaseDrawerActivity, FileBrowserActivity::class.java))
+                finish()
             }
         }
     }
 
-    protected fun navigateToSavedRecipeBookState() {
-        val dataStoreManager = DataStoreManager(applicationContext)
-        lifecycleScope.launch {
-            val tracker = dataStoreManager.recipeBookState.firstOrNull()
-            if (tracker != null) {
+    protected suspend fun getTracker(): RecipeBookTracker? {
+        return try {
+            dataStoreManager.recipeBookState.firstOrNull()
+        } catch (e: Exception) {
+            null
+        }
+    }
 
-                val intent = Intent(this@BaseDrawerActivity, RecipeBookActivity::class.java).apply {
-                    putExtra("PDF_PATH", tracker.location)
-                    val savedStateJson = tracker.let { Gson().toJson(it) }
-                    if (savedStateJson != null) {
-                        putExtra("SAVED_STATE_JSON", savedStateJson)
-                    }
-                }
-                addToHistory = false
-                startActivity(intent)
+    protected suspend fun navigateToSavedRecipeBookState(): Boolean {
+        val tracker = getTracker()
+
+        return if (tracker != null) {
+            val intent = Intent(this@BaseDrawerActivity, RecipeBookActivity::class.java).apply {
+                putExtra("PDF_PATH", tracker.location)
+                val savedStateJson = Gson().toJson(tracker)
+                putExtra("SAVED_STATE_JSON", savedStateJson)
             }
+            addToHistory = false
+            startActivity(intent)
+            finish()
+            true
+        } else {
+            false
         }
     }
 
@@ -202,7 +250,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
 
     }
 
-    abstract fun refreshFilesAndUI()
+    abstract fun refreshFilesAndUI(reloadAdapter: Boolean = false)
 
     override fun setContentView(layoutResID: Int) {
         super.setContentView(layoutResID)
@@ -586,7 +634,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                     val success = repository.deleteBook(book.id)
                     if (success) {
                         hideBookInfoOverlay()
-                        refreshFilesAndUI()
+                        refreshFilesAndUI(true)
                     }
                 }
             } catch (e: Exception) {
@@ -639,7 +687,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                 btnCloseGallery?.visibility = View.GONE
                 btnSearchCovers?.visibility = View.VISIBLE
                 toggleOtherButtons(null, true)
-                this.refreshFilesAndUI()
+                this.refreshFilesAndUI(true)
             }
             ?.start()
     }
