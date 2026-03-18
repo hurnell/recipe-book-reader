@@ -9,10 +9,9 @@ class LauncherActivity : BaseDrawerActivity() {
         super.onCreate(savedInstanceState)
 
         navigateBackToSavedActivity(null)
-        finish()
     }
 
-    override fun refreshFilesAndUI() {
+    override fun refreshFilesAndUI(reloadAdapter: Boolean) {
 
     }
 }
