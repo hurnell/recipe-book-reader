@@ -1,6 +1,7 @@
 package apk.hurnell.recipebookreader.adapters
 
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -13,6 +14,7 @@ class AllBookmarkAdapter(
     private val onDeleteClick: (BookmarkItem) -> Unit,
     private val onEditClick: (BookmarkItem) -> Unit,
     private val onLongClick: (BookmarkItem) -> Unit,
+    private val onImageIconClick: (BookmarkItem) -> Unit
 ) : ListAdapter<BookmarkItem, AllBookmarkAdapter.BookmarkViewHolder>(AllBookmarksDiffCallback) {
 
     class BookmarkViewHolder(val binding: ListItemBookmarkAllBinding) : RecyclerView.ViewHolder(binding.root)
@@ -32,6 +34,8 @@ class AllBookmarkAdapter(
         holder.binding.bookmarkPage.text = item.page.toString()
         holder.binding.bookmarkBookTitle.text = item.bookTitle
         holder.binding.bookmarkTitle.setOnClickListener { onClick(item) }
+        holder.binding.viewBookmarkImage.setOnClickListener { onImageIconClick(item) }
+        holder.binding.viewBookmarkImage.visibility = if (item.isImage) View.VISIBLE else View.GONE
         holder.binding.deleteBookmark.setOnClickListener { onDeleteClick(item) }
         holder.binding.editBookmark.setOnClickListener {
             item.position = position
