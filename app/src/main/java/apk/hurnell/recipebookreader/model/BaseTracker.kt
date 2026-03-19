@@ -18,4 +18,12 @@ open class BaseTracker {
         }
         return result
     }
+    fun asJson(): String {
+        val properties = getProperties()
+        var result = ""
+        properties.forEach { (name, value) ->
+            result = "$result\"$name\":\"$value\","
+        }
+        return "{$result}"
+    }
 }
