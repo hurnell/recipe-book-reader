@@ -10,5 +10,6 @@ data class Row(
     val page: Int,
     val level: Int,
     val scale: Float,
-    val translate: Float
+    val translate: Float,
+    val parentTitle: String?
 )
