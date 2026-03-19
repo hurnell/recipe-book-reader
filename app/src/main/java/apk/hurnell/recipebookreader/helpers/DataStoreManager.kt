@@ -146,16 +146,16 @@ class DataStoreManager(private val context: Context) {
         val historyJson = preferences[TRACKER_HISTORY_KEY] ?: return
         val type = object : TypeToken<List<String>>() {}.type
         val entries: List<String> = gson.fromJson(historyJson, type)
-        Log.i("LOG_TAG", "--- Full History (${entries.size} items) ---")
+        Log.i(LOG_TAG, "--- Full History (${entries.size} items) ---")
         entries.forEachIndexed { index, json ->
             try {
                 val entry = gson.fromJson(json, HistoryEntry::class.java)
                 Log.i(
-                    "LOG_TAG",
+                    LOG_TAG,
                     "[$index] Key: ${entry.keyName} | Data: ${entry.trackerJson}"
                 )
             } catch (e: Exception) {
-                Log.e("LOG_TAG", "[$index] Corrupt entry")
+                Log.e(LOG_TAG, "[$index] Corrupt entry")
             }
         }
     }
