@@ -8,7 +8,6 @@
     <string name="file_browser">File Browser</string>
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
-    <string name="controls">Controls</string>
     <string name="recent_books">Recent Books</string>
     <string name="recently_viewed_books">Recently Viewed Books</string>
     <string name="book_shelf">Book Shelf</string>
@@ -21,26 +20,14 @@
     <string name="processing_recipe_book">Processing Recipe Book…</string>
     <string name="page_indicator">%1$d / %2$d</string>
     <string name="pdf_preview">PDF preview</string>
-    <string name="loading">Loading…</string>
-    <string name="author" />
-    <string name="edit_save_title">Edit or Save Title</string>
     <string name="general_title">Title</string>
-    <string name="unknown_value"/>
     <string name="generic_editable_text_view_edit_button">Generic Editable Text View Edit Button</string>
     <string name="generic_editable_text_view_cancel_button">Generic Editable Text View Cancel Button</string>
     <string name="label_for_editable_widget">Label For Editable Widger</string>
-    <string name="clear_button_for_toc">Clear Button for TOC</string>
-    <string name="search_toc">Search TOC…</string>
     <string name="toggle_toc_list_expanded">Toggle TOC list expanded</string>
     <string name="lowercase_chars">abcdefghijklmnopqrstuvwxyz</string>
-    <string name="search_chars">abcdefghijklmnopqrstuvwxyz0123456789 </string>
     <string name="choose_or_type_new_category">Choose or type new category</string>
     <string name="toggle_links_button">Toggle links button</string>
-    <string name="right_hand_book_cover">Right Hand Book Cover</string>
-    <string name="center_book_cover">Center Book Cover</string>
-    <string name="left_hand_book_cover">Left Hand Book Cover</string>
-    <string name="book_cover_for_single_item">Book cover for single item</string>
-    <string name="single_book_cover">Single Book Cover</string>
     <string name="the_image_of_the_book_cover_on_the_book_shelf">The image of the book cover on the book shelf</string>
     <string name="warning_that_the_categories_are_not_set_for_this_book">Warning that the categories are not set for this book</string>
     <string name="search_tables_of_contents">Search Tables of Contents</string>
@@ -48,11 +35,9 @@
     <string name="table_of_contents_text">Table of Contents Text</string>
     <string name="name_of_the_book">Name of the Book</string>
     <string name="indication_of_toc_item_hierarchy">Indication of TOC item Hierarchy</string>
-    <string name="filter_toc_items">Filter TOC items</string>
     <string name="zero"/>
     <string name="search_toc_entries">Search TOCs</string>
     <string name="button_to_begin_search_of_toc">Button to Begin Search of TOC</string>
-    <string name="button_to_clear_search_field">Button to clear search field</string>
     <string name="search_online">Search online</string>
     <string name="close_gallery">Close gallery</string>
     <string name="optional_book_cover">Optional Book Cover</string>
@@ -64,12 +49,9 @@
     <string name="bookmark_id_or_null_if_not_bookmarked">The bookmark id of the saved toc item</string>
     <string name="go_back_in_history">Go back in history</string>
     <string name="put_the_application_in_the_background">Put the application in the background</string>
-    <string name="enter_bookmark">Enter bookmark</string>
-    <string name="search_recipe">Search recipe…</string>
     <string name="search">Search</string>
     <string name="execute_search">Execute Search</string>
     <string name="clear_search">Clear Search</string>
-    <string name="search_text_input">Search</string>
     <string name="button_to_close_drawer">Button to close drawer</string>
     <string name="page_number">Page %1$d</string>
     <string name="page_12">Page 12</string>
@@ -80,13 +62,10 @@
     <string name="placeholder_for_all_bookmark_title">Placeholder bookmark list item bookmark all</string>
     <string name="placeholder_list_item_bookmark_all_title">Placeholder for book title list item bookmark all</string>
     <string name="placeholder_for_list_item_toc_title">Placeholder for list item toc title</string>
-    <string name="placeholder_toast_full_text">Placeholder toast full text</string>
     <string name="placeholder_for_editable_text">Placeholder for editable text</string>
     <string name="placeholder_every_toc_page_number">114</string>
     <string name="placeholder_for_bookmark_text">Placeholder for bookmark text</string>
     <string name="placeholder_for_bookmark_fragment_page">122</string>
-    <string name="placeholder_for_image_preview_name">Placeholder for image preview name</string>
-    <string name="placeholder_for_image_preview_book_name">Placeholder for image preview book name</string>
     <string name="close">Close</string>
     <string name="placeholder_recipe_image_preview_title">Placeholder recipe image preview title</string>
     <string name="placeholder_recipe_image_book_title">Placeholder recipe image book title</string>
@@ -94,5 +73,6 @@
     <string name="delete">Delete?</string>
     <string name="placeholder_for_alert_book_preview">Placeholder for alert book preview</string>
     <string name="go_back_in_history_icon">Go back in history</string>
+    <string name="also_delete_file">Also delete file</string>
 
 </resources>
