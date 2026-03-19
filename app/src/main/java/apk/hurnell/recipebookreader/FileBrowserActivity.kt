@@ -64,6 +64,10 @@ class FileBrowserActivity : BaseDrawerActivity() {
         pdfOnly = intent.getBooleanExtra(EXTRA_PDF_ONLY, true)
         targetSha = intent.getStringExtra(EXTRA_TARGET_SHA)
         targetBookName = intent.getStringExtra(EXTRA_TARGET_BOOK_NAME)
+        val stopAddToHistory = intent.getBooleanExtra("STOP_ADD_TO_HISTORY", false)
+        if (stopAddToHistory) {
+            addToHistory = false
+        }
 
         loadingOverlay = binding.loadingOverlay
         loadingOverlay.visibility = View.GONE
@@ -108,14 +112,33 @@ class FileBrowserActivity : BaseDrawerActivity() {
     ) {
         val wasOpen = checkCloseDrawerIsOpen()
         if (wasOpen) return
+        val deleteTracker = FileBrowserTracker(
+            currentDir.absolutePath,
+            0,
+            0
+        )
         if (pdfOnly && currentDir.absolutePath != rootDir.absolutePath && !ignoreHistory) {
             val parent = currentDir.parentFile
             addToHistory = false
-            if (parent != null) showFiles(parent)
+            lifecycleScope.launch {
+                dataStoreManager.deleteCurrentFileDirectory(pdfOnly, deleteTracker, true)
+            }
+            closeAppConfirmed = false
+            if (parent != null) {
+                showFiles(parent)
+            }
+        } else if(!fullyCloseFromFileBrowser){
+            handleBackPressLogic(true){
+                addToHistory = false
+                lifecycleScope.launch {
+                    dataStoreManager.deleteCurrentFileDirectory(pdfOnly, deleteTracker, true)
+                }
+                callback.isEnabled = false
+                onBackPressedDispatcher.onBackPressed()
+                callback.isEnabled = true
+            }
         } else {
-            callback.isEnabled = false
-            onBackPressedDispatcher.onBackPressed()
-            callback.isEnabled = true
+            finish()
         }
     }
 
@@ -147,7 +170,7 @@ class FileBrowserActivity : BaseDrawerActivity() {
             ignoreSavedPosition = true
             File(rootDir, "Documents")
         }
-        showFiles(currentDir, ignoreSavedPosition, tracker)
+        showFiles(currentDir, ignoreSavedPosition, tracker, true)
     }
 
     private fun browserShowBookInfoOverlay(file: File) {
@@ -206,7 +229,8 @@ class FileBrowserActivity : BaseDrawerActivity() {
 
     override fun onResume() {
         super.onResume()
-        refreshFilesAndUI(false)
+        addToHistory = false
+        refreshFilesAndUI(currentDir.absolutePath != initialDir.absolutePath)
     }
 
     override fun refreshFilesAndUI(reloadAdapter: Boolean) {
@@ -242,10 +266,6 @@ class FileBrowserActivity : BaseDrawerActivity() {
             val savedState =
                 dataStoreManager.findTrackerInHistoryByDirectory(targetPath, addToHistory)
             if (savedState != null) {
-                Log.e(
-                    "NIGEL_HURNELL",
-                    "reinstateLastFolderPosition $targetPath ${savedState.asString()}"
-                )
                 adapter.submitList(items) {
                     val layoutManager =
                         binding.fileRecyclerView.layoutManager as? LinearLayoutManager
@@ -263,7 +283,8 @@ class FileBrowserActivity : BaseDrawerActivity() {
     private fun showFiles(
         dir: File,
         ignoreSavedPosition: Boolean = true,
-        saved: FileBrowserTracker? = null
+        saved: FileBrowserTracker? = null,
+        isStart: Boolean = false
     ) {
         if (saved == null) {
             saveLastFolderTracker(
@@ -274,6 +295,14 @@ class FileBrowserActivity : BaseDrawerActivity() {
             )
         }
         currentDir = dir
+        if (saved == null) {
+            saveLastFolderTracker(
+                currentDir.absolutePath,
+                0,
+                0,
+                true
+            )
+        }
         val items = dir.listFiles()
             ?.filter {
                 it.canRead() && (it.isDirectory || isFileType(it.extension))
@@ -288,7 +317,6 @@ class FileBrowserActivity : BaseDrawerActivity() {
             adapter.submitList(items)
         } else {
             val ensuredSaved = saved!!
-            Log.e("NIGEL_HURNELL", " ensured saved ${ensuredSaved.asString()}")
             adapter.submitList(items) {
                 val layoutManager = binding.fileRecyclerView.layoutManager as? LinearLayoutManager
                 layoutManager?.scrollToPositionWithOffset(
@@ -334,7 +362,18 @@ class FileBrowserActivity : BaseDrawerActivity() {
                 setPadding(16, 8, 16, 8)
                 setTextColor(ContextCompat.getColor(context, R.color.dark_text))
                 setOnClickListener {
-                    if (file != currentDir) showFiles(file)
+                    if (file != currentDir) {
+                        lifecycleScope.launch {
+                            val deleteTracker = FileBrowserTracker(
+                                file.absolutePath,
+                                0,
+                                0
+                            )
+                            addToHistory = false
+                            dataStoreManager.deleteCurrentFileDirectory(pdfOnly,deleteTracker, true)
+                            showFiles(file)
+                        }
+                    }
                 }
             }
             binding.breadcrumbLayout.addView(textView)
@@ -363,21 +402,23 @@ class FileBrowserActivity : BaseDrawerActivity() {
         saveCurrent: Boolean
     ) {
         lifecycleScope.launch {
+            val key: Preferences.Key<String> =
+                if (pdfOnly) DataStoreManager.PDF_FILE_BROWSER_KEY else DataStoreManager.IMAGE_FILE_BROWSER_KEY
+            val total = dataStoreManager.getTotalEntries(key.name, true)
+            if (total > 0 && directory == initialDir.absolutePath) {
+                return@launch
+            }
             dataStoreManager.saveLastActivity(this@FileBrowserActivity::class.java.name)
             val currentTracker = FileBrowserTracker(
                 directory,
                 position,
                 offset
             )
-            val key: Preferences.Key<String> =
-                if (pdfOnly) DataStoreManager.PDF_FILE_BROWSER_KEY else DataStoreManager.IMAGE_FILE_BROWSER_KEY
             dataStoreManager.saveTracker(key, currentTracker, saveCurrent, addToHistory)
-            Log.i(
-                "NIGEL_HURNELL",
-                "saveLastFolderTracker $directory $position $offset $saveCurrent $addToHistory "
-            )
+            addToHistory = true
         }
     }
+
 
     override fun onPause() {
         super.onPause()
