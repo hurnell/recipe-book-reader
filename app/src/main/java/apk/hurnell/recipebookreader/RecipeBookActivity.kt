@@ -129,6 +129,9 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     private var recipeImagePreview: ImageView? = null
     private var closePreviewButton: ImageButton? = null
 
+    var lastClickTime: Long = 0
+    val DOUBLE_CLICK_TIME_DELTA: Long = 300
+
     companion object {
         private const val LOG_TAG = "NIGEL_HURNELL"
         private const val LINK_STATE_LINKS_ON = 0
@@ -310,7 +313,24 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                 else -> false
             }
         }
+        for (i in 0 until binding.recipeBookToolbar.childCount) {
+            val v = binding.recipeBookToolbar.getChildAt(i)
+            if (v is TextView) {
+                v.setOnClickListener {
+                    val clickTime = System.currentTimeMillis()
+                    if (clickTime - lastClickTime < DOUBLE_CLICK_TIME_DELTA) {
+                        onToolbarDoubleClick()
+                    }
+                    lastClickTime = clickTime
+                }
+            }
+        }
+    }
 
+    private fun onToolbarDoubleClick() {
+        lifecycleScope.launch {
+            dataStoreManager.logFullHistorySafely()
+        }
     }
 
     private fun initialisePreviewLayout() {
@@ -811,9 +831,6 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         binding.stopLinks.setOnClickListener {
             toggleLinks()
             copyTextContainer?.visibility = View.GONE
-            lifecycleScope.launch {
-                dataStoreManager.logFullHistorySafely()
-            }
         }
 
         binding.pageSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
