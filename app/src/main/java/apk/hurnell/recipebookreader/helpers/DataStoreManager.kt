@@ -1,6 +1,7 @@
 package apk.hurnell.recipebookreader.helpers
 
 import android.content.Context
+import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -17,6 +18,7 @@ import com.google.gson.Gson
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 
 data class HistoryEntry(
@@ -39,6 +41,7 @@ class DataStoreManager(private val context: Context) {
         val IMAGE_FILE_BROWSER_KEY = stringPreferencesKey("image_file_browser_tracker")
         val RECENT_BOOKS_KEY = stringPreferencesKey("recent_books_tracker")
         val RECIPE_BOOK_KEY = stringPreferencesKey("recipe_book_tracker")
+        private const val LOG_TAG = "NIGEL_HURNELL"
     }
 
     suspend fun saveLastActivity(activityName: String) {
@@ -63,25 +66,26 @@ class DataStoreManager(private val context: Context) {
             if (saveCurrent) {
                 settings[key] = snapshot
             }
+            val currentHistoryJson = settings[TRACKER_HISTORY_KEY]
+            val type = object : TypeToken<MutableList<String>>() {}.type
+            val history: MutableList<String> = if (currentHistoryJson != null) {
+                gson.fromJson(currentHistoryJson, type)
+            } else {
+                mutableListOf()
+            }
             if (addToHistory) {
-                val currentHistoryJson = settings[TRACKER_HISTORY_KEY]
-                val type = object : TypeToken<MutableList<String>>() {}.type
-                val history: MutableList<String> = if (currentHistoryJson != null) {
-                    gson.fromJson(currentHistoryJson, type)
-                } else {
-                    mutableListOf()
-                }
                 removeOldEntries(history, key.name, snapshot)
-
                 val newEntry = HistoryEntry(keyName = key.name, trackerJson = snapshot)
                 history.add(gson.toJson(newEntry))
 
                 if (history.size > 100) history.removeAt(0)
-
                 settings[TRACKER_HISTORY_KEY] = gson.toJson(history)
+            } else if(key.name == "pdf_file_browser_tracker" || key.name == "image_file_browser_tracker"){
+                removeOldEntries(history, key.name, snapshot)
             }
         }
     }
+
 
     private fun removeOldEntries(
         history: MutableList<String>,
@@ -96,7 +100,6 @@ class DataStoreManager(private val context: Context) {
         if (isFileBrowser) {
             val newTrackerMap: Map<String, Any> = gson.fromJson(newSnapshot, mapType)
             val newDir = newTrackerMap["directory"]
-
             history.removeAll { existingJson ->
                 try {
                     val existingEntry = gson.fromJson(existingJson, HistoryEntry::class.java)
@@ -117,6 +120,42 @@ class DataStoreManager(private val context: Context) {
                 } catch (e: Exception) {
                     false
                 }
+            }
+        }
+    }
+
+    suspend fun getTotalEntries(currentDataStoreKey: String?, countAll: Boolean = false): Int {
+        val preferences = context.dataStore.data.first()
+        val historyJson = preferences[TRACKER_HISTORY_KEY] ?: return 0
+        val type = object : TypeToken<List<String>>() {}.type
+        val history: List<String> = gson.fromJson(historyJson, type)
+        return history.count { json ->
+            try {
+                val entry = gson.fromJson(json, HistoryEntry::class.java)
+                if (countAll) {
+                    entry.keyName == currentDataStoreKey
+                } else {
+                    entry.keyName != currentDataStoreKey
+                }
+            } catch (e: Exception) { false }
+        }
+    }
+
+    suspend fun logFullHistorySafely() {
+        val preferences = context.dataStore.data.first()
+        val historyJson = preferences[TRACKER_HISTORY_KEY] ?: return
+        val type = object : TypeToken<List<String>>() {}.type
+        val entries: List<String> = gson.fromJson(historyJson, type)
+        Log.i("LOG_TAG", "--- Full History (${entries.size} items) ---")
+        entries.forEachIndexed { index, json ->
+            try {
+                val entry = gson.fromJson(json, HistoryEntry::class.java)
+                Log.i(
+                    "LOG_TAG",
+                    "[$index] Key: ${entry.keyName} | Data: ${entry.trackerJson}"
+                )
+            } catch (e: Exception) {
+                Log.e("LOG_TAG", "[$index] Corrupt entry")
             }
         }
     }
@@ -146,7 +185,7 @@ class DataStoreManager(private val context: Context) {
             }
 
             if (indexToRemove != -1) {
-                val matchedJson = history.removeAt(indexToRemove)
+                val matchedJson = history[indexToRemove]
                 val entry = gson.fromJson(matchedJson, HistoryEntry::class.java)
                 foundTracker = gson.fromJson(entry.trackerJson, FileBrowserTracker::class.java)
                 settings[TRACKER_HISTORY_KEY] = gson.toJson(history)
@@ -190,7 +229,6 @@ class DataStoreManager(private val context: Context) {
                 } catch (e: Exception) {
                     null
                 }
-                history.removeAt(history.size - 1)
             }
             settings[TRACKER_HISTORY_KEY] = gson.toJson(history)
         }
@@ -215,6 +253,41 @@ class DataStoreManager(private val context: Context) {
         return context.dataStore.data.map { preferences ->
             val json = preferences[key]
             if (json != null) gson.fromJson(json, clazz) else null
+        }
+    }
+
+    suspend fun deleteCurrentFileDirectory(
+        pdfOnly: Boolean,
+        deleteTracker: FileBrowserTracker,
+        deleteChildren: Boolean = false
+    ) {
+        val targetKeyName = if (pdfOnly) PDF_FILE_BROWSER_KEY.name else IMAGE_FILE_BROWSER_KEY.name
+        val targetDirectory = deleteTracker.directory
+
+        context.dataStore.edit { settings ->
+            val currentHistoryJson = settings[TRACKER_HISTORY_KEY] ?: return@edit
+            val type = object : TypeToken<MutableList<String>>() {}.type
+            val history: MutableList<String> = gson.fromJson(currentHistoryJson, type)
+            val removed = history.removeAll { json ->
+                try {
+                    val entry = gson.fromJson(json, HistoryEntry::class.java)
+                    if (entry.keyName == targetKeyName) {
+                        val tracker = gson.fromJson(entry.trackerJson, FileBrowserTracker::class.java)
+                        if (deleteChildren) {
+                            tracker.directory.startsWith(targetDirectory)
+                        } else {
+                            tracker.directory == targetDirectory
+                        }
+                    } else {
+                        false
+                    }
+                } catch (e: Exception) {
+                    false
+                }
+            }
+            if (removed) {
+                settings[TRACKER_HISTORY_KEY] = gson.toJson(history)
+            }
         }
     }
 
