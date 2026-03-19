@@ -18,6 +18,7 @@
 
             <androidx.appcompat.widget.Toolbar
                 android:id="@+id/toolbar"
+                android:tag="fileBrowserTag"
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
                 android:background="@color/pastel_blue"
@@ -25,7 +26,9 @@
                 app:titleEnabled="false">
 
                 <LinearLayout
+                    android:id="@+id/toolbarTitleHolder"
                     android:layout_width="wrap_content"
+                    android:tag="fileBrowserLayoutTag"
                     android:layout_height="match_parent"
                     android:gravity="center_vertical"
                     android:orientation="horizontal">
