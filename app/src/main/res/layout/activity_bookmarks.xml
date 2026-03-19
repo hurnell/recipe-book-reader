@@ -68,6 +68,9 @@
                 android:textColor="@android:color/white"
                 android:textStyle="bold" />
         </LinearLayout>
+
+        <include layout="@layout/overlay_image_preview" />
+
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
     <include layout="@layout/overlay_container_holder" />
