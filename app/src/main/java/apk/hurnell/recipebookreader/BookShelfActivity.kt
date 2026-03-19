@@ -165,17 +165,14 @@ class BookShelfActivity : BaseDrawerActivity() {
             lastScrollPosition = 0
             lastScrollOffset = 0
         }
-        if (!fromSaved) {
-            saveBookShelfTracker(currentCategory, lastScrollPosition, lastScrollOffset, false)
-        }
+
     }
 
 
     private fun saveBookShelfTracker(
         category: String,
         position: Int,
-        offset: Int,
-        saveCurrent: Boolean
+        offset: Int
     ) {
         lifecycleScope.launch {
             dataStoreManager.saveLastActivity(this@BookShelfActivity::class.java.name)
@@ -187,7 +184,7 @@ class BookShelfActivity : BaseDrawerActivity() {
             dataStoreManager.saveTracker(
                 DataStoreManager.BOOK_SHELF_KEY,
                 currentTracker,
-                saveCurrent,
+                true,
                 addToHistory
             )
         }
@@ -208,6 +205,6 @@ class BookShelfActivity : BaseDrawerActivity() {
 
     override fun onPause() {
         super.onPause()
-        saveBookShelfTracker(currentCategory, lastScrollPosition, lastScrollOffset, true)
+        saveBookShelfTracker(currentCategory, lastScrollPosition, lastScrollOffset)
     }
 }
