@@ -2,7 +2,6 @@ package apk.hurnell.recipebookreader
 
 import android.annotation.SuppressLint
 import android.app.Activity
-import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.res.ColorStateList
@@ -24,7 +23,6 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.SeekBar
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
@@ -84,6 +82,8 @@ import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
 import androidx.core.net.toUri
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.snackbar.Snackbar
 
 data class RecipeBookTracker(
     val portrait: Boolean?,
@@ -96,6 +96,7 @@ data class RecipeBookTracker(
 
 
 class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
+    private val dataStoreManager by lazy { DataStoreManager(applicationContext) }
 
     private lateinit var binding: ActivityRecipeBookBinding
 
@@ -279,18 +280,10 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                     } else {
                         binding.horizontalLoader.visibility = View.GONE
                         repository.setTocUnavailable(bookId)
-                        Toast.makeText(
-                            this@RecipeBookActivity,
-                            "This book has no table of contents",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        displaySnackBarMessage("❌ This book has no table of contents", binding.root)
                     }
                 } else {
-                    Toast.makeText(
-                        this@RecipeBookActivity,
-                        "This book has no table of contents",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    displaySnackBarMessage("❌ This book has no table of contents", binding.root)
                 }
 
             } catch (e: Exception) {
@@ -617,7 +610,6 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                                 pinchRv.translationX - initialTransX
                             ) > 5 || abs(pinchRv.getScaleFactor() - initialScale) > 0.01f)
 
-                        Log.i(LOG_TAG, "is released = ${touchContext?.asString()} ")
                         if (!hasMoved && touchContext != null) {
                             if (linkState == LINK_STATE_BOOKMARKS && touchContext.isReleased) {
                                 val text = getTextNearClickPoint(
@@ -637,23 +629,27 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                                     scale = pinchRv.getScaleFactor(),
                                     translate = pinchRv.getTranslate()
                                 )
-                                val dialog = AlertDialog.Builder(this@RecipeBookActivity)
+                                val dialog = MaterialAlertDialogBuilder(
+                                    this@RecipeBookActivity,
+                                    R.style.ThemeOverlay_App_MaterialAlertDialog
+                                )
                                     .setTitle("Create Bookmark").setView(dialogBinding.root)
-                                    .setPositiveButton("Create Bookmark") { _, _ ->
+                                    .setPositiveButton("Create") { _, _ ->
                                         val bookmarkText =
                                             dialogBinding.enterBookmarkText.text.toString()
 
                                         if (bookmarkText.isNotBlank()) {
                                             currentBookmarkItem.title = bookmarkText
+                                            currentBookmarkItem.isImage =
+                                                dialogBinding.hasImageCheckbox.isChecked
                                             saveBookmark(
                                                 currentBookmarkItem
                                             )
                                         } else {
-                                            Toast.makeText(
-                                                this@RecipeBookActivity,
-                                                "Name cannot be empty",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
+                                            displaySnackBarMessage(
+                                                "❌ Name cannot be empty",
+                                                binding.root
+                                            )
                                         }
                                     }.setNegativeButton("Cancel") { dialog, _ ->
                                         dialog.dismiss()
@@ -664,6 +660,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                                     (resources.displayMetrics.widthPixels * 0.9).toInt(), // 90% of screen width
                                     ViewGroup.LayoutParams.WRAP_CONTENT // height wraps content
                                 )
+                                dialog.window?.setBackgroundDrawableResource(R.drawable.alert_background)
                                 dialog.window?.setSoftInputMode(
                                     android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN
                                 )
@@ -695,6 +692,14 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
             override fun onTouchEvent(rv: RecyclerView, e: MotionEvent) {}
             override fun onRequestDisallowInterceptTouchEvent(disallowIntercept: Boolean) {}
         })
+    }
+
+    private fun displaySnackBarMessage(text: String, rootLayout: ViewGroup) {
+        val snackBar = Snackbar.make(rootLayout, text, Snackbar.LENGTH_LONG)
+        val textView =
+            snackBar.view.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)
+        textView.maxLines = 5
+        snackBar.show()
     }
 
     private fun setupStaticListeners() {
@@ -746,11 +751,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
 
         binding.btnCloseApp.setOnClickListener {
             if (!triedToClose) {
-                Toast.makeText(
-                    this@RecipeBookActivity,
-                    "Click once more to close Recipe Book Reader",
-                    Toast.LENGTH_SHORT
-                ).show()
+                displaySnackBarMessage("Click once more to close Recipe Book Reader", binding.root)
             } else {
                 moveTaskToBack(true)
             }
@@ -786,6 +787,9 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         binding.stopLinks.setOnClickListener {
             toggleLinks()
             copyTextContainer?.visibility = View.GONE
+            lifecycleScope.launch {
+                dataStoreManager.logFullHistorySafely()
+            }
         }
 
         binding.pageSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -888,7 +892,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                     }
                     startActivity(intent)
                 } else {
-                    Toast.makeText(this, "File not found or not a PDF", Toast.LENGTH_SHORT).show()
+                    displaySnackBarMessage("❌ File not found or not a PDF", binding.root)
                 }
             }
         } catch (e: Exception) {
@@ -1223,7 +1227,6 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
 
     override fun onPause() {
         super.onPause()
-        val dataStoreManager = DataStoreManager(applicationContext)
         lifecycleScope.launch {
             dataStoreManager.saveLastActivity(this@RecipeBookActivity::class.java.name)
             val currentTracker = buildTracker()
