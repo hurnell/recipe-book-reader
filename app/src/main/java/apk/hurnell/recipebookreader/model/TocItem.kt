@@ -6,7 +6,7 @@ data class TocItem(
     override val bookTitle: String? = null,
     override val bookLocation: String? = null,
     val parentId: Int? = null,
-    val title: String,
+    override var title: String,
     val hierarchy: String? = null,
     override val page: Int,
     override val offset: Int? = null,

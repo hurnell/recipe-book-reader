@@ -3,7 +3,7 @@ package apk.hurnell.recipebookreader.model
 data class BookmarkItem(
     override val tocId: Long? = null,
     val bookmarkId: Long?,
-    var title: String,
+    override var title: String,
     override val bookTitle: String?,
     override val bookLocation: String?,
     override val bookId: Long?,
