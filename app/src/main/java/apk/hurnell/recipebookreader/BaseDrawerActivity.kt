@@ -3,15 +3,16 @@ package apk.hurnell.recipebookreader
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Typeface
 import android.os.Bundle
 import android.os.Environment
 import android.util.Log
 import android.view.View
+import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.FrameLayout
 import android.widget.ImageButton
@@ -19,13 +20,14 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Spinner
-import android.widget.Toast
+import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
@@ -40,8 +42,21 @@ import apk.hurnell.recipebookreader.model.BaseBookmarkTocItem
 import apk.hurnell.recipebookreader.model.Book
 import apk.hurnell.recipebookreader.ui.EditableCategoryView
 import apk.hurnell.recipebookreader.ui.EditableTextView
+import com.artifex.mupdf.fitz.Document
+import com.artifex.mupdf.fitz.Font
+import com.artifex.mupdf.fitz.Image
+import com.artifex.mupdf.fitz.Matrix
+import com.artifex.mupdf.fitz.Page
+import com.artifex.mupdf.fitz.Pixmap
+import com.artifex.mupdf.fitz.Point
+import com.artifex.mupdf.fitz.Quad
+import com.artifex.mupdf.fitz.Rect
+import com.artifex.mupdf.fitz.StructuredTextWalker
+import com.artifex.mupdf.fitz.android.AndroidDrawDevice
 import com.bumptech.glide.Glide
-import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.android.material.checkbox.MaterialCheckBox
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.snackbar.Snackbar
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -50,6 +65,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
+import java.nio.ByteBuffer
 
 abstract class BaseDrawerActivity : AppCompatActivity() {
     protected val dataStoreManager by lazy { DataStoreManager(applicationContext) }
@@ -62,7 +78,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
     protected var categories = mutableListOf("All")
     protected var currentCategory = "All"
     protected lateinit var spinner: Spinner
-
+    protected var closeAppConfirmed: Boolean = false
 
     protected lateinit var loadingOverlay: LinearLayout
 
@@ -79,31 +95,41 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
     protected var btnPickCover: ImageButton? = null
     protected var btnRevertCover: ImageButton? = null
     protected var addToHistory: Boolean = true
-
+    protected var fullyCloseFromFileBrowser: Boolean = false
     protected val rootDir: File = Environment.getExternalStorageDirectory()
+    protected val initialDir: File = File(rootDir, "Documents")
     protected var currentDir: File = File(rootDir, "Documents")
     protected var btnCloseGallery: ImageButton? = null
     protected var btnDeleteBook: ImageButton? = null
     protected var coverOptionsRecycler: RecyclerView? = null
+    protected var recipeImagePreviewWrapper: FrameLayout? = null
+    protected var recipeImagePreviewTitle: TextView? = null
+    protected var recipeImageBookTitle: TextView? = null
+    protected var recipeImagePreview: ImageView? = null
+    protected var closePreviewButton: ImageButton? = null
 
     private val drawerBackCallback = object : OnBackPressedCallback(true) {
         override fun handleOnBackPressed() {
             if (!checkCloseDrawerIsOpen()) {
                 val currentKey = getDataStoreKey()
                 addToHistory = false
-                if (currentKey != null) {
+                if (currentKey != null && !fullyCloseFromFileBrowser) {
                     lifecycleScope.launch {
                         val destination = dataStoreManager.popAndGetPrevious(currentKey)
                         if (destination != null) {
                             navigateBackToSavedActivity(destination)
                         } else {
-                            isEnabled = false
-                            onBackPressedDispatcher.onBackPressed()
+                            handleBackPressLogic(false) {
+                                isEnabled = false
+                                onBackPressedDispatcher.onBackPressed()
+                            }
                         }
                     }
                 } else {
-                    isEnabled = false
-                    onBackPressedDispatcher.onBackPressed()
+                    handleBackPressLogic(false) {
+                        isEnabled = false
+                        onBackPressedDispatcher.onBackPressed()
+                    }
                 }
             }
         }
@@ -117,7 +143,44 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         return false
     }
 
+    private fun checkDataStoreEntries(callback: (Boolean) -> Unit) {
+        val currentDataStoreKey = getDataStoreKey()
+        lifecycleScope.launch {
+            val count = dataStoreManager.getTotalEntries(currentDataStoreKey)
+            callback(count > 0)
+        }
+    }
+
+    protected fun handleBackPressLogic(
+        callIfNotEmpty: Boolean = false,
+        onConfirmToClose: () -> Unit
+    ) {
+        val currentDataStoreKey = getDataStoreKey()
+
+        lifecycleScope.launch {
+            val count = dataStoreManager.getTotalEntries(currentDataStoreKey)
+            val hasResults = count > 0
+            if (hasResults && callIfNotEmpty) {
+                onConfirmToClose()
+            }
+            if (hasResults) {
+                return@launch
+            }
+            if (!closeAppConfirmed) {
+                if (callIfNotEmpty) {
+                    fullyCloseFromFileBrowser = true
+                }
+                closeAppConfirmed = true
+                displaySnackBarMessage("Click once more to close Recipe Book Reader", drawerLayout)
+
+            } else {
+                onConfirmToClose()
+            }
+        }
+    }
+
     protected fun navigateBackToSavedActivity(forcedDestination: HistoryEntry?) {
+        addToHistory = false
         lifecycleScope.launch {
             var lastActivityName = dataStoreManager.lastActivityFlow.first()
             lastActivityName =
@@ -156,7 +219,9 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                     }
                 }
                 val homeIntentClass = Class.forName(homeIntentClassName!!)
-                val homeIntent = Intent(this@BaseDrawerActivity, homeIntentClass)
+                val homeIntent = Intent(this@BaseDrawerActivity, homeIntentClass).apply {
+                    putExtra("STOP_ADD_TO_HISTORY", true)
+                }
                 startActivity(homeIntent)
                 val success = navigateToSavedRecipeBookState()
 
@@ -185,6 +250,118 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         }
     }
 
+    protected fun buildPageImageIntoView(item: BaseBookmarkTocItem) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            var document: Document? = null
+            var page: Page? = null
+            var pixmap: Pixmap? = null
+
+            try {
+                val file = File(item.bookLocation!!)
+                document = repository.openPdfFast(file)
+                page = document.loadPage(item.page)
+
+                var imageCount = 0
+                var capturedImage: Image? = null
+
+                val st = page.toStructuredText("preserve-images,preserve-whitespace")
+                st.walk(object : StructuredTextWalker {
+                    override fun onImageBlock(bbox: Rect, matrix: Matrix?, image: Image?) {
+                        imageCount++
+                        capturedImage = image
+                    }
+
+                    override fun beginTextBlock(bbox: Rect) {}
+                    override fun endTextBlock() {}
+                    override fun onChar(
+                        c: Int,
+                        origin: Point?,
+                        font: Font?,
+                        size: Float,
+                        quad: Quad?,
+                        argb: Int,
+                        flags: Int
+                    ) {
+                    }
+
+                    override fun beginLine(bbox: Rect?, wmode: Int, dir: Point?) {}
+                    override fun endLine() {}
+                    override fun beginStruct(standard: String?, raw: String?, index: Int) {}
+                    override fun endStruct() {}
+                    override fun onVector(
+                        bbox: Rect?,
+                        info: StructuredTextWalker.VectorInfo?,
+                        argb: Int
+                    ) {
+                    }
+                })
+
+                if (imageCount == 1 && capturedImage != null) {
+                    pixmap = capturedImage!!.toPixmap()
+                    val width = pixmap.width
+                    val height = pixmap.height
+
+                    val rgbBytes = pixmap.samples
+                    val rgbaBytes = ByteArray(width * height * 4)
+                    for (i in 0 until (width * height)) {
+                        rgbaBytes[i * 4 + 0] = rgbBytes[i * 3 + 0]
+                        rgbaBytes[i * 4 + 1] = rgbBytes[i * 3 + 1]
+                        rgbaBytes[i * 4 + 2] = rgbBytes[i * 3 + 2]
+                        rgbaBytes[i * 4 + 3] = 255.toByte()
+                    }
+
+                    val bitmap = createBitmap(width, height)
+                    bitmap.copyPixelsFromBuffer(ByteBuffer.wrap(rgbaBytes))
+                    withContext(Dispatchers.Main) {
+                        recipeImagePreview?.apply {
+                            visibility = View.VISIBLE
+                            setImageBitmap(bitmap)
+                        }
+                        recipeImagePreviewWrapper?.visibility = View.VISIBLE
+                    }
+                } else if (imageCount > 1 || imageCount == 0) {
+                    renderWholePageAsFallback(page)
+                }
+
+            } catch (e: Exception) {
+                renderWholePageAsFallback(page)
+            } finally {
+                pixmap?.destroy()
+                page?.destroy()
+                document?.destroy()
+            }
+        }
+    }
+
+    protected suspend fun renderWholePageAsFallback(page: Page?) {
+        if (page == null) return
+
+        val bounds = page.bounds
+        val pageWidth = bounds.x1 - bounds.x0
+        val displayDensity = resources.displayMetrics.density
+
+        val targetBitmapWidth = (200 * displayDensity).toInt()
+        val scale = targetBitmapWidth.toFloat() / pageWidth
+
+        val bitmapHeight = ((bounds.y1 - bounds.y0) * scale).toInt()
+        val bitmap = createBitmap(targetBitmapWidth, bitmapHeight)
+        val device = AndroidDrawDevice(bitmap, 0, 0)
+
+        try {
+            page.run(device, Matrix(scale, scale), null)
+        } finally {
+            device.close()
+            device.destroy()
+        }
+        withContext(Dispatchers.Main) {
+            recipeImagePreview?.apply {
+                visibility = View.VISIBLE
+                setImageBitmap(bitmap)
+            }
+            recipeImagePreviewWrapper?.visibility = View.VISIBLE
+        }
+    }
+
     protected suspend fun getTracker(): RecipeBookTracker? {
         return try {
             dataStoreManager.recipeBookState.firstOrNull()
@@ -195,7 +372,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
 
     protected suspend fun navigateToSavedRecipeBookState(): Boolean {
         val tracker = getTracker()
-
+        closeAppConfirmed = false
         return if (tracker != null) {
             val intent = Intent(this@BaseDrawerActivity, RecipeBookActivity::class.java).apply {
                 putExtra("PDF_PATH", tracker.location)
@@ -238,7 +415,6 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
     }
 
     companion object {
-
         private const val LOG_TAG = "NIGEL_HURNELL"
     }
 
@@ -263,7 +439,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
     }
 
     protected fun refreshCategories() {
-
+        closeAppConfirmed = false
         val usedCategories = repository.getUsedCategories(this::class.simpleName)
 
         val set = LinkedHashSet<String>()
@@ -283,7 +459,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         recipeBookState: RecipeBookTracker? = null
     ) {
         loadingOverlay.visibility = View.VISIBLE
-
+        closeAppConfirmed = false
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val bookmarkTocJson = bookmarkTocItem?.let { Gson().toJson(it) }
@@ -301,12 +477,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     loadingOverlay.visibility = View.GONE
-                    Toast.makeText(
-                        this@BaseDrawerActivity,
-                        "Error opening PDF: ${e.message}",
-                        Toast.LENGTH_LONG
-                    ).show()
-                    Log.e("NIGEL_HURNELL", "Failed to open PDF", e)
+                    displaySnackBarMessage("Error opening PDF: ${e.message}", drawerLayout)
                 }
             }
         }
@@ -406,9 +577,6 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         if (book.name != null && book.author != null) {
             lifecycleScope.launch {
                 val urls = GetCoverUrlHelper().getAllAvailableCovers(book)
-                for (url in urls) {
-                    Log.e("A", url)
-                }
                 if (urls.isNotEmpty()) {
                     bookPreviewImage?.visibility = View.GONE
                     bookPreviewWrapper?.visibility = View.GONE
@@ -448,11 +616,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                         btnRevertCover?.visibility = View.VISIBLE
                     }
                     toggleOtherButtons(null, true)
-                    Toast.makeText(
-                        this@BaseDrawerActivity,
-                        "No thumbnail images found online ❌",
-                        Toast.LENGTH_LONG
-                    ).show()
+                    displaySnackBarMessage("No thumbnail images found online ❌", drawerLayout)
                 }
             }
 
@@ -470,7 +634,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
             saveBitmapAsCover(scaledBitmap, sha)
             true
         } catch (e: Exception) {
-            Log.e("SAVE_COVER", "Error saving PNG for $sha", e)
+            Log.e(LOG_TAG, "Error saving PNG for $sha", e)
             false
         }
     }
@@ -485,7 +649,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
             }
             true
         } catch (e: Exception) {
-            Log.e("SAVE_COVER", "Error writing bitmap to disk for $sha", e)
+            Log.e(LOG_TAG, "Error writing bitmap to disk for $sha", e)
             false
         }
     }
@@ -631,16 +795,67 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                     btnPickCover?.visibility = View.VISIBLE
                 }
                 btnDeleteBook?.setOnClickListener {
-                    val success = repository.deleteBook(book.id)
-                    if (success) {
-                        hideBookInfoOverlay()
-                        refreshFilesAndUI(true)
+                    val dialogView = layoutInflater.inflate(R.layout.dialog_delete_confirm, null)
+                    val checkBox =
+                        dialogView.findViewById<MaterialCheckBox>(R.id.deleteFileCheckbox)
+
+                    val dialog = MaterialAlertDialogBuilder(
+                        this@BaseDrawerActivity,
+                        R.style.ThemeOverlay_App_MaterialAlertDialog
+                    )
+                        .setTitle("Remove Book?")
+                        .setMessage("Are you sure you want to remove this book?")
+                        .setView(dialogView)
+                        .setNegativeButton("Cancel") { dialog, _ ->
+                            dialog.dismiss()
+                        }
+                        .setPositiveButton("Remove") { _, _ ->
+                            val shouldDeleteFile = checkBox.isChecked
+                            if (shouldDeleteFile) {
+                                val location = book.location
+                                if (location != null) {
+                                    val bookFile = File(book.location)
+                                    if (bookFile.exists()) {
+                                        bookFile.delete()
+                                    }
+                                }
+                            }
+                            val success = repository.deleteBook(book.id)
+                            if (success) {
+                                hideBookInfoOverlay()
+                                refreshFilesAndUI(true)
+                            }
+                        }
+                        .create()
+                    checkBox.setOnCheckedChangeListener { _, isChecked ->
+                        val positiveButton =
+                            dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE)
+                        dialog.setTitle(if (isChecked) "Delete Book & File?" else "Remove Book?")
+                        dialog.setMessage(if (isChecked) "Are you sure you want to delete this book?" else "Are you sure you want to remove this book?")
+                        positiveButton.text = if (isChecked) "Delete" else "Remove"
                     }
+                    dialog.window?.setLayout(
+                        (resources.displayMetrics.widthPixels * 0.9).toInt(), // 90% of screen width
+                        ViewGroup.LayoutParams.WRAP_CONTENT // height wraps content
+                    )
+                    dialog.window?.setSoftInputMode(
+                        android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN
+                    )
+                    dialog.window?.setBackgroundDrawableResource(R.drawable.alert_background)
+                    dialog.show()
                 }
             } catch (e: Exception) {
-                Log.e("NIGEL_HURNELL", "Error opening PDF: ${e.message}", e)
+                Log.e(LOG_TAG, "Error opening PDF: ${e.message}", e)
             }
         }
+    }
+
+    protected fun displaySnackBarMessage(text: String, rootLayout: ViewGroup) {
+        val snackBar = Snackbar.make(rootLayout, text, Snackbar.LENGTH_LONG)
+        val textView =
+            snackBar.view.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)
+        textView.maxLines = 5
+        snackBar.show()
     }
 
     protected fun refreshCoverForSha(updatedSha: String?) {
