@@ -2,6 +2,11 @@
 ## Clear app storage (data and cache)
 ```shell
 adb shell pm clear  apk.hurnell.recipebookreader
+adb shell
+run-as apk.hurnell.recipebookreader
+ls files/datastore
+rm files/datastore/app_settings.preferences_pb
+
 ```
 
 Gemini said
