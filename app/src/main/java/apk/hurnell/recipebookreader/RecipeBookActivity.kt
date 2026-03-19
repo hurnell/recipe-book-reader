@@ -694,9 +694,15 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         })
     }
 
-    private fun displaySnackBarMessage(text: String, rootLayout: ViewGroup) {
-        val snackBar = Snackbar.make(rootLayout, text, Snackbar.LENGTH_LONG)
-        val textView = snackBar.view.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)
+    private fun displaySnackBarMessage(
+        text: String,
+        rootLayout: ViewGroup,
+        isCloseWarning: Boolean = false
+    ) {
+        val duration = if (isCloseWarning) Snackbar.LENGTH_INDEFINITE else Snackbar.LENGTH_LONG
+        val snackBar = Snackbar.make(rootLayout, text, duration)
+        val textView =
+            snackBar.view.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)
         textView.maxLines = 5
         val params = snackBar.view.layoutParams as ViewGroup.MarginLayoutParams
         params.setMargins(
@@ -706,6 +712,9 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
             150
         )
         snackBar.view.layoutParams = params
+        if (isCloseWarning) {
+            snackBar.setDuration(5000)
+        }
         snackBar.show()
     }
 
@@ -758,7 +767,11 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
 
         binding.btnCloseApp.setOnClickListener {
             if (!triedToClose) {
-                displaySnackBarMessage("Click once more to close Recipe Book Reader", binding.root)
+                displaySnackBarMessage(
+                    "Click once more to close Recipe Book Reader",
+                    binding.root,
+                    true
+                )
             } else {
                 moveTaskToBack(true)
             }
