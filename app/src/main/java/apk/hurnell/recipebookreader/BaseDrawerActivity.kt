@@ -60,7 +60,6 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
@@ -164,6 +163,10 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
             drawerLayout.closeDrawer(GravityCompat.START)
             return true
         }
+        if (bookInfoOverlay?.visibility == View.VISIBLE) {
+            hideBookInfoOverlay()
+            return true
+        }
         return false
     }
 
@@ -195,7 +198,11 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                     fullyCloseFromFileBrowser = true
                 }
                 closeAppConfirmed = true
-                displaySnackBarMessage("Click once more to close Recipe Book Reader", drawerLayout, true)
+                displaySnackBarMessage(
+                    "Click once more to close Recipe Book Reader",
+                    drawerLayout,
+                    true
+                )
                 delay(5000)
                 closeAppConfirmed = false
                 fullyCloseFromFileBrowser = false
