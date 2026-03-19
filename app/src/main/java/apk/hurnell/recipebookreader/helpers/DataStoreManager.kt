@@ -158,6 +158,32 @@ class DataStoreManager(private val context: Context) {
                 Log.e(LOG_TAG, "[$index] Corrupt entry")
             }
         }
+        logAll()
+    }
+
+    fun logOne(tracker: BaseTracker?, trackerName: String){
+        if (tracker != null) {
+            Log.i(LOG_TAG, "$trackerName: ${tracker.asJson()}")
+        } else {
+            Log.i(LOG_TAG, "$trackerName is null")
+        }
+    }
+
+    suspend fun logAll(){
+        val bookmarksTracker = bookmarksState.firstOrNull()
+        logOne(bookmarksTracker, "bookmarksTracker")
+        val everyTocTracker = everyTocState.firstOrNull()
+        logOne(everyTocTracker, "everyTocTracker")
+        val bookShelfTracker  = bookShelfState.firstOrNull()
+        logOne(bookShelfTracker, "bookShelfTracker")
+        val pdfFileBrowserTracker = pdfFileBrowserState.firstOrNull()
+        logOne(pdfFileBrowserTracker, "pdfFileBrowserTracker")
+        val imageFileBrowserTracker = imageFileBrowserState.firstOrNull()
+        logOne(imageFileBrowserTracker, "imageFileBrowserTracker")
+        val recentBooksTracker = recentBooksState.firstOrNull()
+        logOne(recentBooksTracker, "recentBooksTracker")
+        val recipeBookTracker = recipeBookState.firstOrNull()
+        logOne(recipeBookTracker, "recipeBookTracker")
     }
 
     suspend fun findTrackerInHistoryByDirectory(
