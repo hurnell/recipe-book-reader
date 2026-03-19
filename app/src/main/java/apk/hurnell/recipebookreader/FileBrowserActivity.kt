@@ -123,7 +123,6 @@ class FileBrowserActivity : BaseDrawerActivity() {
             lifecycleScope.launch {
                 dataStoreManager.deleteCurrentFileDirectory(pdfOnly, deleteTracker, true)
             }
-            closeAppConfirmed = false
             if (parent != null) {
                 showFiles(parent)
             }

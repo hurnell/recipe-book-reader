@@ -60,6 +60,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
@@ -192,7 +193,10 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                 }
                 closeAppConfirmed = true
                 displaySnackBarMessage("Click once more to close Recipe Book Reader", drawerLayout)
-
+                lifecycleScope.launch {
+                    delay(5000)
+                    closeAppConfirmed = false
+                }
             } else {
                 onConfirmToClose()
             }
@@ -392,7 +396,6 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
 
     protected suspend fun navigateToSavedRecipeBookState(): Boolean {
         val tracker = getTracker()
-        closeAppConfirmed = false
         return if (tracker != null) {
             val intent = Intent(this@BaseDrawerActivity, RecipeBookActivity::class.java).apply {
                 putExtra("PDF_PATH", tracker.location)
@@ -459,7 +462,6 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
     }
 
     protected fun refreshCategories() {
-        closeAppConfirmed = false
         val usedCategories = repository.getUsedCategories(this::class.simpleName)
 
         val set = LinkedHashSet<String>()
@@ -479,7 +481,6 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         recipeBookState: RecipeBookTracker? = null
     ) {
         loadingOverlay.visibility = View.VISIBLE
-        closeAppConfirmed = false
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val bookmarkTocJson = bookmarkTocItem?.let { Gson().toJson(it) }
