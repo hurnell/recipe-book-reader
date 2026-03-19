@@ -943,11 +943,14 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
                 t.level AS TOC_LEVEL, 
                 t.bookmark_id AS bookmark_id,
                 t.scale AS toc_scale, 
-                translate AS toc_translate,
-                b.name AS book_tite
+                t.translate AS toc_translate,
+                b.name AS book_title,
+                p.title AS parent_title
             FROM toc AS t
-            LEFT JOIN books AS  b
-            ON t.book_id_fk = b.id
+            LEFT JOIN books AS b
+                ON t.book_id_fk = b.id
+            LEFT JOIN toc AS p
+                ON t.parent_id = p.id
             WHERE t.book_id_fk = ?
             ORDER BY t.id
         """.trimIndent(), arrayOf(bookId.toString())
@@ -957,6 +960,7 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
         val rows = mutableListOf<Row>()
         cursor.use {
             while (cursor.moveToNext()) {
+
                 rows.add(
                     Row(
                         id = cursor.getLong(0),
@@ -969,6 +973,7 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
                         bookmarkId = cursor.getIntOrNull(5),
                         scale = cursor.getFloat(6),
                         translate = cursor.getFloat(7),
+                        parentTitle = cursor.getStringOrNull(9)
                     )
                 )
             }
@@ -979,11 +984,12 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
     fun createBookmark(item: BookmarkItem): Boolean {
         val db = writableDatabase
         val bookIdStr = item.bookId?.toString() ?: "NULL"
-        val uniqueKey = "$bookIdStr|${item.title}|${item.page}|${item.offset}"
+        val uniqueKey = "$bookIdStr|${item.title}|${item.page}|${item.offset}|${item.tocId}"
+        val isImage = if(item.isImage) 1L else 0L
         val insertSql = """
         INSERT OR IGNORE INTO bookmarks 
-        (book_id_fk, title, page, `offset`,  scale, translate, unique_key)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        (book_id_fk, title, page, `offset`,  scale, translate, unique_key, is_image)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     """.trimIndent()
 
 
@@ -995,6 +1001,7 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
             stmt.bindDouble(5, item.scale.toDouble())
             stmt.bindDouble(6, item.translate.toDouble())
             stmt.bindString(7, uniqueKey)
+            stmt.bindLong(8, isImage)
 
             stmt.executeInsert()
         }
@@ -1010,8 +1017,10 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
 
     fun updateBookmark(item: BookmarkItem, currentCategory: String): List<BookmarkItem> {
         val db = writableDatabase
+        val isImageInt = if (item.isImage) 1 else 0
         val values = ContentValues().apply {
             put("title", item.title)
+            put("is_image", isImageInt)
         }
         db.update("bookmarks", values, "id = ?", arrayOf(item.bookmarkId.toString()))
         return getAllBookmarks(currentCategory)
@@ -1059,7 +1068,8 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
                 m.scale AS bookmark_scale, 
                 m.translate AS bookmark_translate,
                 b.name AS book_tite,
-                b.location AS book_location
+                b.location AS book_location,
+                m.is_image AS bookmark_is_image
             FROM bookmarks AS m
             LEFT JOIN books AS  b
             ON m.book_id_fk = b.id
@@ -1084,6 +1094,7 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
                         scale = cursor.getFloat(5),
                         translate = cursor.getFloat(6),
                         bookLocation = cursor.getStringOrNull(8),
+                        isImage = cursor.getIntOrNull(9) == 1,
                     )
                 )
             }
