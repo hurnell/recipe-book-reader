@@ -7,7 +7,6 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.view.*
 import android.widget.TextView
-import android.widget.Toast
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -132,15 +131,6 @@ class TocFragment : Fragment() {
         return map
     }
 
-    private fun reloadAndShowToast(toastText: String) {
-        loadTocAsync()
-        Toast.makeText(
-            context,
-            toastText,
-            Toast.LENGTH_SHORT
-        ).show()
-    }
-
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         repository = PdfRepository(requireContext())
@@ -154,9 +144,10 @@ class TocFragment : Fragment() {
                 if (item.bookmarkId == null) {
                     val success = repository.createBookmark(item.toBookmarkItem())
                     if (success) {
-                        val toastText =
+                        val message =
                             "✅Bookmark with title ${item.title} for book ${item.bookTitle} to bookmarks"
-                        reloadAndShowToast(toastText)
+                        displaySnackBarMessage(message, tocFragmentRootLayout)
+
                         loadBookmarksAsync(true)
                     }
                 } else {
@@ -174,7 +165,7 @@ class TocFragment : Fragment() {
                 checkDeleteBookmark(item, false)
             },
             onLongClick = { item ->
-                displayClickResult(item.title, tocFragmentRootLayout)
+                displaySnackBarMessage(item.title, tocFragmentRootLayout)
             }
         )
 
@@ -185,7 +176,7 @@ class TocFragment : Fragment() {
         toggleVisibleChoices(true)
     }
 
-    fun displayClickResult(text: String, rootLayout: ConstraintLayout) {
+    fun displaySnackBarMessage(text: String, rootLayout: ConstraintLayout) {
         val snackBar = Snackbar.make(rootLayout, text, Snackbar.LENGTH_LONG)
         val textView =
             snackBar.view.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)
@@ -197,14 +188,14 @@ class TocFragment : Fragment() {
         val message =
             if (fromToc) "This item is already bookmarked. Do want to delete the bookmark." else "Are you sure you want to delete this bookmark"
         val alertTitle = if (fromToc) "Already Bookmarked" else "Delete Bookmark?"
-        AlertDialog.Builder(requireContext())
+        AlertDialog.Builder(requireContext(),R.style.ThemeOverlay_App_MaterialAlertDialog)
             .setTitle(alertTitle)
             .setMessage(message)
             .setPositiveButton("Delete") { dialog, _ ->
                 val success = repository.deleteBookmark(item)
                 if (success) {
-                    val toastText = "❌ Bookmark with title ${item.title} deleted"
-                    reloadAndShowToast(toastText)
+                    val message = "❌ Bookmark with title ${item.title} deleted"
+                    displaySnackBarMessage(message, tocFragmentRootLayout)
                     loadBookmarksAsync(fromToc)
                 }
                 dialog.dismiss()
@@ -255,12 +246,14 @@ class TocFragment : Fragment() {
                     tocId = row.id,
                     bookId = row.bookId,
                     bookTitle = row.bookTitle,
+                    parentId = row.parentId?.toInt(),
                     title = row.title,
                     bookmarkId = row.bookmarkId,
                     page = row.page,
                     level = row.level,
                     scale = row.scale,
                     translate = row.translate,
+                    hierarchy = row.parentTitle,
                     children = build(row.id),
                     isExpanded = expandedMap[row.id] ?: false
                 )
