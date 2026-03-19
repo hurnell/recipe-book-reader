@@ -26,6 +26,7 @@ data class TocItem(
             bookLocation = bookLocation,
             bookId = bookId,
             page = page,
+            isImage = hierarchy == "Images",
             offset = null,
             scale = scale,
             translate = translate
