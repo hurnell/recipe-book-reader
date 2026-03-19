@@ -1,23 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="black">#FF000000</color>
-    <!--color name="dark_text">#FF666666</color-->
     <color name="dark_text">#FF666666</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="grey">#DDDDDD</color>
     <color name="mid_gray">#FFBBBBBB</color>
-    <!--color name="icon_tint">#FF888888</color-->
     <color name="icon_tint">#FF888888</color>
     <color name="dark_gray">#FF666666</color>
     <color name="pastel_blue">#FFC6E2E7</color>
     <color name="book_highlight">#FFC0392B</color>
-    <color name="dark_blue">#FF111844</color>
-    <color name="border_blue">#FF6c95b0</color>
     <color name="transparent">#00000000</color>
-    <color name="links_working">#FF16A085</color>
     <color name="links_off">#FFC0392B</color>
-    <color name="tr_red">#33C0392B</color>
     <color name="nav_text">#FF0099CC</color>
-    <color name="shadow_ambient_default">#0A000000</color>
-    <color name="shadow_spot_default">#30000000</color>
 </resources>
