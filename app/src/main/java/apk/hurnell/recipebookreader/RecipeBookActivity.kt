@@ -696,9 +696,16 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
 
     private fun displaySnackBarMessage(text: String, rootLayout: ViewGroup) {
         val snackBar = Snackbar.make(rootLayout, text, Snackbar.LENGTH_LONG)
-        val textView =
-            snackBar.view.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)
+        val textView = snackBar.view.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)
         textView.maxLines = 5
+        val params = snackBar.view.layoutParams as ViewGroup.MarginLayoutParams
+        params.setMargins(
+            params.leftMargin,
+            params.topMargin,
+            params.rightMargin,
+            150
+        )
+        snackBar.view.layoutParams = params
         snackBar.show()
     }
 
@@ -757,6 +764,10 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
             }
 
             triedToClose = true
+            lifecycleScope.launch {
+                delay(5000)
+                triedToClose = false
+            }
         }
 
         binding.btnBackInHistory.setOnClickListener {
