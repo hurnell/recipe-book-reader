@@ -3,6 +3,4 @@
     <dimen name="default_category_text_size">16sp</dimen>
     <dimen name="copy_text_width">300dp</dimen>
     <dimen name="copy_text_height">250dp</dimen>
-    <dimen name="edit_overlay_width">300dp</dimen>
-    <dimen name="edit_overlay_height">400dp</dimen>
 </resources>
