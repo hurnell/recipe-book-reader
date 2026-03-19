@@ -13,6 +13,7 @@ import android.os.Environment
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.OvershootInterpolator
 import android.widget.ArrayAdapter
 import android.widget.FrameLayout
 import android.widget.ImageButton
@@ -135,6 +136,25 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         }
     }
 
+    protected fun handleClickToBuildPageImage(wrapper: FrameLayout, item: BaseBookmarkTocItem) {
+        val content = wrapper.getChildAt(0)
+        recipeImagePreviewTitle?.text = item.title
+        recipeImageBookTitle?.text = item.bookTitle
+        wrapper.visibility = View.VISIBLE
+        wrapper.alpha = 0f
+        content.scaleX = 0.8f
+        content.scaleY = 0.8f
+        wrapper.animate().alpha(1f).setDuration(200).start()
+        content.animate()
+            .scaleX(1f)
+            .scaleY(1f)
+            .setDuration(300)
+            .setInterpolator(OvershootInterpolator())
+            .start()
+        recipeImagePreview?.visibility = View.INVISIBLE
+        buildPageImageIntoView(item)
+    }
+    
     protected fun checkCloseDrawerIsOpen(): Boolean {
         if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
             drawerLayout.closeDrawer(GravityCompat.START)

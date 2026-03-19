@@ -139,25 +139,7 @@ class EveryTocActivity : BaseDrawerActivity() {
             onClickEye = { item ->
                 if (item.bookLocation != null) {
                     val wrapper = recipeImagePreviewWrapper ?: return@EveryTocAdapter
-                    val content = wrapper.getChildAt(0)
-
-                    recipeImagePreviewTitle?.text = item.title
-                    recipeImageBookTitle?.text = item.bookTitle
-                    wrapper.visibility = View.VISIBLE
-                    wrapper.alpha = 0f
-                    content.scaleX = 0.8f
-                    content.scaleY = 0.8f
-
-                    wrapper.animate().alpha(1f).setDuration(200).start()
-
-                    content.animate()
-                        .scaleX(1f)
-                        .scaleY(1f)
-                        .setDuration(300)
-                        .setInterpolator(OvershootInterpolator())
-                        .start()
-                    recipeImagePreview?.visibility = View.INVISIBLE
-                    buildPageImageIntoView(item)
+                    handleClickToBuildPageImage(wrapper, item)
                 }
 
             }

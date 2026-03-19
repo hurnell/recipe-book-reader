@@ -88,21 +88,7 @@ class BookmarksActivity : BaseDrawerActivity() {
         }, onImageIconClick = { item ->
             if (item.isImage) {
                 val wrapper = recipeImagePreviewWrapper ?: return@AllBookmarkAdapter
-                val content = wrapper.getChildAt(0)
-
-                recipeImagePreviewTitle?.text = item.title
-                recipeImageBookTitle?.text = item.bookTitle
-                wrapper.visibility = View.VISIBLE
-                wrapper.alpha = 0f
-                content.scaleX = 0.8f
-                content.scaleY = 0.8f
-
-                wrapper.animate().alpha(1f).setDuration(200).start()
-
-                content.animate().scaleX(1f).scaleY(1f).setDuration(300)
-                    .setInterpolator(OvershootInterpolator()).start()
-                recipeImagePreview?.visibility = View.INVISIBLE
-                buildPageImageIntoView(item)
+                handleClickToBuildPageImage(wrapper, item)
             }
         })
         binding.bookmarksRecyclerView.adapter = bookmarkAdapter
