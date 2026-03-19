@@ -1,34 +1,22 @@
 package apk.hurnell.recipebookreader
 
-import android.app.AlertDialog
-import com.artifex.mupdf.fitz.*
-import java.nio.ByteBuffer
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
-import android.util.Log
 import android.view.inputmethod.EditorInfo
 import android.view.View
+import android.view.ViewGroup
 import android.view.animation.OvershootInterpolator
 import android.widget.AdapterView
-import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.adapters.EveryTocAdapter
 import apk.hurnell.recipebookreader.model.TocItem
-import androidx.coordinatorlayout.widget.CoordinatorLayout
 import android.view.inputmethod.InputMethodManager
-import android.widget.FrameLayout
-import android.widget.ImageButton
-import android.widget.ImageView
-import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
 import apk.hurnell.recipebookreader.databinding.ActivityEveryTocBinding
 import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.model.BaseTracker
-import com.artifex.mupdf.fitz.Matrix
-import com.artifex.mupdf.fitz.android.AndroidDrawDevice
-import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -36,8 +24,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
-import androidx.core.graphics.createBitmap
-import com.artifex.mupdf.fitz.StructuredTextWalker
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 data class EveryTocTracker(
     val currentCategory: String,
@@ -55,11 +42,6 @@ class EveryTocActivity : BaseDrawerActivity() {
     private var lastScrollOffset = 0
     private var currentSearchTerm: String = ""
     private var currentCount: String = ""
-    private var recipeImagePreviewWrapper: FrameLayout? = null
-    private var recipeImagePreviewTitle: TextView? = null
-    private var recipeImageBookTitle: TextView? = null
-    private var recipeImagePreview: ImageView? = null
-    private var closePreviewButton: ImageButton? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -98,7 +80,7 @@ class EveryTocActivity : BaseDrawerActivity() {
 
         adapter = EveryTocAdapter(
             onLongClickTitle = { item ->
-                displayClickResult(item.title, binding.rootLayout)
+                displaySnackBarMessage(item.title, binding.rootLayout)
             },
             onClickTitle = { item ->
                 if (item.bookLocation != null) {
@@ -107,39 +89,33 @@ class EveryTocActivity : BaseDrawerActivity() {
                 }
             },
             onClickBook = { item ->
-                displayClickResult(item.bookTitle!!, binding.rootLayout)
+                displaySnackBarMessage(item.bookTitle!!, binding.rootLayout)
 
             },
             onClickHierarchy = { item ->
-                displayClickResult(item.hierarchy!!, binding.rootLayout)
+                displaySnackBarMessage(item.hierarchy!!, binding.rootLayout)
             },
             onClickBookmark = { item ->
                 if (item.bookmarkId == null) {
                     val success = repository.createBookmark(item.toBookmarkItem())
                     if (success) {
-                        val toastText =
-                            "✅Bookmark with title \"${item.title}\" for book \"${item.bookTitle}\" to bookmarks"
-                        Toast.makeText(
-                            this,
-                            toastText,
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        val message =
+                            "✅Bookmark with title \"${item.title}\" added to bookmarks"
+                        displaySnackBarMessage(message, binding.rootLayout)
                     }
                     applyChosenTextAndCategory()
                 } else {
-                    AlertDialog.Builder(this)
+                    val dialog = MaterialAlertDialogBuilder(
+                        this,
+                        R.style.ThemeOverlay_App_MaterialAlertDialog
+                    )
                         .setTitle("Delete Bookmark?")
                         .setMessage("Are you sure you want to delete the bookmark?")
                         .setPositiveButton("Delete") { dialog, _ ->
                             val success = repository.deleteBookmark(item.toBookmarkItem())
                             if (success) {
-                                val toastText = "❌ Bookmark with title \"${item.title}\" deleted"
-                                Toast.makeText(
-                                    this@EveryTocActivity,
-                                    toastText,
-                                    Toast.LENGTH_SHORT
-                                ).show()
-
+                                val message = "❌ Bookmark with title \"${item.title}\" deleted"
+                                displaySnackBarMessage(message, binding.rootLayout)
                             }
                             this@EveryTocActivity.applyChosenTextAndCategory()
                             dialog.dismiss()
@@ -147,7 +123,17 @@ class EveryTocActivity : BaseDrawerActivity() {
                         .setNegativeButton("Cancel") { dialog, _ ->
                             dialog.dismiss()
                         }
-                        .show()
+                        .create()
+
+                    dialog.window?.setLayout(
+                        (resources.displayMetrics.widthPixels * 0.9).toInt(), // 90% of screen width
+                        ViewGroup.LayoutParams.WRAP_CONTENT // height wraps content
+                    )
+                    dialog.window?.setSoftInputMode(
+                        android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN
+                    )
+                    dialog.window?.setBackgroundDrawableResource(R.drawable.alert_background)
+                    dialog.show()
                 }
             },
             onClickEye = { item ->
@@ -200,119 +186,6 @@ class EveryTocActivity : BaseDrawerActivity() {
         addTextWatcher()
         applySavedSettings()
 
-    }
-
-    fun buildPageImageIntoView(item: TocItem) {
-        lifecycleScope.launch(Dispatchers.IO) {
-            var document: Document? = null
-            var page: Page? = null
-            var pixmap: Pixmap? = null
-
-            try {
-                val file = File(item.bookLocation!!)
-                document = repository.openPdfFast(file)
-                page = document.loadPage(item.page)
-
-                var imageCount = 0
-                var capturedImage: Image? = null
-
-                val st = page.toStructuredText("preserve-images,preserve-whitespace")
-                st.walk(object : StructuredTextWalker {
-                    override fun onImageBlock(bbox: Rect, matrix: Matrix?, image: Image?) {
-                        imageCount++
-                        capturedImage = image
-                    }
-
-                    override fun beginTextBlock(bbox: Rect) {}
-                    override fun endTextBlock() {}
-                    override fun onChar(
-                        c: Int,
-                        origin: Point?,
-                        font: Font?,
-                        size: Float,
-                        quad: Quad?,
-                        argb: Int,
-                        flags: Int
-                    ) {
-                    }
-
-                    override fun beginLine(bbox: Rect?, wmode: Int, dir: Point?) {}
-                    override fun endLine() {}
-                    override fun beginStruct(standard: String?, raw: String?, index: Int) {}
-                    override fun endStruct() {}
-                    override fun onVector(
-                        bbox: Rect?,
-                        info: StructuredTextWalker.VectorInfo?,
-                        argb: Int
-                    ) {
-                    }
-                })
-
-                if (imageCount == 1 && capturedImage != null) {
-                    pixmap = capturedImage!!.toPixmap()
-                    val width = pixmap.width
-                    val height = pixmap.height
-
-                    val rgbBytes = pixmap.samples
-                    val rgbaBytes = ByteArray(width * height * 4)
-                    for (i in 0 until (width * height)) {
-                        rgbaBytes[i * 4 + 0] = rgbBytes[i * 3 + 0]
-                        rgbaBytes[i * 4 + 1] = rgbBytes[i * 3 + 1]
-                        rgbaBytes[i * 4 + 2] = rgbBytes[i * 3 + 2]
-                        rgbaBytes[i * 4 + 3] = 255.toByte()
-                    }
-
-                    val bitmap = createBitmap(width, height)
-                    bitmap.copyPixelsFromBuffer(ByteBuffer.wrap(rgbaBytes))
-                    withContext(Dispatchers.Main) {
-                        recipeImagePreview?.apply {
-                            visibility = View.VISIBLE
-                            setImageBitmap(bitmap)
-                        }
-                        recipeImagePreviewWrapper?.visibility = View.VISIBLE
-                    }
-                } else if (imageCount > 1 || imageCount == 0) {
-                    renderWholePageAsFallback(page)
-                }
-
-            } catch (e: Exception) {
-                Log.e("PDF_EXTRACT", "Extraction failed: ${e.message}")
-                renderWholePageAsFallback(page)
-            } finally {
-                pixmap?.destroy()
-                page?.destroy()
-                document?.destroy()
-            }
-        }
-    }
-
-    private suspend fun renderWholePageAsFallback(page: Page?) {
-        if (page == null) return
-
-        val bounds = page.bounds
-        val pageWidth = bounds.x1 - bounds.x0
-        val displayDensity = resources.displayMetrics.density
-
-        val targetBitmapWidth = (200 * displayDensity).toInt()
-        val scale = targetBitmapWidth.toFloat() / pageWidth
-
-        val bitmapHeight = ((bounds.y1 - bounds.y0) * scale).toInt()
-        val bitmap = createBitmap(targetBitmapWidth, bitmapHeight)
-        val device = AndroidDrawDevice(bitmap, 0, 0)
-
-        try {
-            page.run(device, Matrix(scale, scale), null)
-        } finally {
-            device.close()
-            device.destroy()
-        }
-        withContext(Dispatchers.Main) {
-            recipeImagePreview?.apply {
-                visibility = View.VISIBLE
-                setImageBitmap(bitmap)
-            }
-            recipeImagePreviewWrapper?.visibility = View.VISIBLE
-        }
     }
 
     fun applySavedSettings() {
@@ -371,14 +244,6 @@ class EveryTocActivity : BaseDrawerActivity() {
             binding.resultCountTextView.text = currentCount
             adapter.submitList(null)
         }
-    }
-
-    fun displayClickResult(text: String, rootLayout: CoordinatorLayout) {
-        val snackBar = Snackbar.make(rootLayout, text, Snackbar.LENGTH_LONG)
-        val textView =
-            snackBar.view.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)
-        textView.maxLines = 5
-        snackBar.show()
     }
 
     fun addTextWatcher() {
@@ -462,7 +327,7 @@ class EveryTocActivity : BaseDrawerActivity() {
             dataStoreManager.saveTracker(
                 DataStoreManager.EVERY_TOC_KEY,
                 currentTracker,
-                saveCurrent = true,
+                true,
                 addToHistory
             )
         }
