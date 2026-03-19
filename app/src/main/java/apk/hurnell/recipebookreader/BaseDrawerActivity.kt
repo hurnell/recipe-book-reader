@@ -60,6 +60,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
@@ -109,6 +110,8 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
     protected var recipeImageBookTitle: TextView? = null
     protected var recipeImagePreview: ImageView? = null
     protected var closePreviewButton: ImageButton? = null
+    var lastClickTime: Long = 0
+    val DOUBLE_CLICK_TIME_DELTA: Long = 300
 
     private val drawerBackCallback = object : OnBackPressedCallback(true) {
         override fun handleOnBackPressed() {
@@ -155,7 +158,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         recipeImagePreview?.visibility = View.INVISIBLE
         buildPageImageIntoView(item)
     }
-    
+
     protected fun checkCloseDrawerIsOpen(): Boolean {
         if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
             drawerLayout.closeDrawer(GravityCompat.START)
@@ -192,11 +195,10 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                     fullyCloseFromFileBrowser = true
                 }
                 closeAppConfirmed = true
-                displaySnackBarMessage("Click once more to close Recipe Book Reader", drawerLayout)
-                lifecycleScope.launch {
-                    delay(5000)
-                    closeAppConfirmed = false
-                }
+                displaySnackBarMessage("Click once more to close Recipe Book Reader", drawerLayout, true)
+                delay(5000)
+                closeAppConfirmed = false
+                fullyCloseFromFileBrowser = false
             } else {
                 onConfirmToClose()
             }
@@ -871,11 +873,19 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         }
     }
 
-    protected fun displaySnackBarMessage(text: String, rootLayout: ViewGroup) {
-        val snackBar = Snackbar.make(rootLayout, text, Snackbar.LENGTH_LONG)
+    protected fun displaySnackBarMessage(
+        text: String,
+        rootLayout: ViewGroup,
+        isCloseWarning: Boolean = false
+    ) {
+        val duration = if (isCloseWarning) Snackbar.LENGTH_INDEFINITE else Snackbar.LENGTH_LONG
+        val snackBar = Snackbar.make(rootLayout, text, duration)
         val textView =
             snackBar.view.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)
         textView.maxLines = 5
+        if (isCloseWarning) {
+            snackBar.setDuration(5000)
+        }
         snackBar.show()
     }
 
@@ -942,6 +952,37 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         toggle.drawerArrowDrawable.color = ContextCompat.getColor(this, R.color.nav_text)
         drawerLayout.addDrawerListener(toggle)
         toggle.syncState()
+        for (i in 0 until toolbar.childCount) {
+            val v = toolbar.getChildAt(i)
+            if (v is TextView) {
+                v.setOnClickListener {
+                    val clickTime = System.currentTimeMillis()
+                    if (clickTime - lastClickTime < DOUBLE_CLICK_TIME_DELTA) {
+                        onToolbarDoubleClick()
+                    }
+                    lastClickTime = clickTime
+                }
+            } else if (v is LinearLayout && v.tag == "fileBrowserLayoutTag") {
+                for (j in 0 until v.childCount) {
+                    val lv = v.getChildAt(j)
+                    if (lv is TextView) {
+                        lv.setOnClickListener {
+                            val clickTime = System.currentTimeMillis()
+                            if (clickTime - lastClickTime < DOUBLE_CLICK_TIME_DELTA) {
+                                onToolbarDoubleClick()
+                            }
+                            lastClickTime = clickTime
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun onToolbarDoubleClick() {
+        lifecycleScope.launch {
+            dataStoreManager.logFullHistorySafely()
+        }
     }
 
 }
