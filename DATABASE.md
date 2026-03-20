@@ -13,7 +13,8 @@
         toc_unavailable INTEGER DEFAULT 0,
         category INTEGER DEFAULT NULL,
         sub_category INTEGER DEFAULT NULL,
-        alternate_cover INTEGER DEFAULT 0
+        alternate_cover INTEGER DEFAULT 0,
+        volume_title INTEGER DEFAULT 0
     );
 ```
 ```sqldelight
