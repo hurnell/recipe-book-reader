@@ -82,6 +82,7 @@ import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
 import androidx.core.net.toUri
+import apk.hurnell.recipebookreader.model.Book
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 
@@ -114,6 +115,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     private var document: Document? = null
     private var triedToClose: Boolean = false
     private var currentBookId: Long = -1L
+    private var currentBook: Book? = null
     private var scanned: Boolean = false
     private var clearSearchMenuItem: MenuItem? = null
     private var isbnScanJob: Job? = null
@@ -234,6 +236,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                     finish()
                     return@launch
                 }
+                currentBook = book
                 binding.recipeBookToolbar.menu.findItem(R.id.action_search)?.isVisible =
                     !book.scanned
                 loadBookHistory(bookId)
@@ -353,6 +356,9 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         val tocItem = repository.getSubsequentTocItem(page, lastTocId, up, currentBookId)
         if (tocItem != null) {
             handleBaseBookmarkTocItemNavigation(tocItem)
+            if (currentBook?.volumeTitle == true) {
+                displaySnackBarMessage(tocItem.title, binding.root, Snackbar.LENGTH_SHORT)
+            }
         }
     }
 
@@ -717,9 +723,8 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     private fun displaySnackBarMessage(
         text: String,
         rootLayout: ViewGroup,
-        isCloseWarning: Boolean = false
+        duration: Int = Snackbar.LENGTH_LONG
     ) {
-        val duration = if (isCloseWarning) Snackbar.LENGTH_INDEFINITE else Snackbar.LENGTH_LONG
         val snackBar = Snackbar.make(rootLayout, text, duration)
         val textView =
             snackBar.view.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)
@@ -732,7 +737,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
             150
         )
         snackBar.view.layoutParams = params
-        if (isCloseWarning) {
+        if (duration == Snackbar.LENGTH_INDEFINITE) {
             snackBar.setDuration(5000)
         }
         snackBar.show()
@@ -790,7 +795,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                 displaySnackBarMessage(
                     "Click once more to close Recipe Book Reader",
                     binding.root,
-                    true
+                    Snackbar.LENGTH_INDEFINITE
                 )
             } else {
                 moveTaskToBack(true)
