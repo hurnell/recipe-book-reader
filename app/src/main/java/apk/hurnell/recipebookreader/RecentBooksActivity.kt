@@ -16,10 +16,11 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.io.File
 import apk.hurnell.recipebookreader.databinding.ActivityRecentBooksBinding
+import com.google.gson.annotations.SerializedName
 
 data class RecentBooksTracker(
-    val lastScrollPosition: Int,
-    val lastScrollOffset: Int
+    @SerializedName("lastScrollPosition") val lastScrollPosition: Int,
+    @SerializedName("lastScrollOffset") val lastScrollOffset: Int
 ) : BaseTracker()
 
 class RecentBooksActivity : BaseDrawerActivity() {

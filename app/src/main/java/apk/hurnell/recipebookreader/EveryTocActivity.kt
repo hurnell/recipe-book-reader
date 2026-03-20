@@ -6,7 +6,6 @@ import android.text.TextWatcher
 import android.view.inputmethod.EditorInfo
 import android.view.View
 import android.view.ViewGroup
-import android.view.animation.OvershootInterpolator
 import android.widget.AdapterView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -25,12 +24,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.gson.annotations.SerializedName
 
 data class EveryTocTracker(
-    val currentCategory: String,
-    val searchTerm: String,
-    val lastScrollPosition: Int,
-    val lastScrollOffset: Int
+    @SerializedName("currentCategory") val currentCategory: String,
+    @SerializedName("searchTerm") val searchTerm: String,
+    @SerializedName("lastScrollPosition") val lastScrollPosition: Int,
+    @SerializedName("lastScrollOffset") val lastScrollOffset: Int
 ) : BaseTracker()
 
 class EveryTocActivity : BaseDrawerActivity() {

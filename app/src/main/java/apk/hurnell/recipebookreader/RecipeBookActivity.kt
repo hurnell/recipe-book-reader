@@ -85,14 +85,15 @@ import androidx.core.net.toUri
 import apk.hurnell.recipebookreader.model.Book
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
+import com.google.gson.annotations.SerializedName
 
 data class RecipeBookTracker(
-    val portrait: Boolean?,
-    val location: String?,
-    val pageIndex: Int?,
-    val offset: Int?,
-    val translationX: Float?,
-    val scale: Float?
+    @SerializedName("portrait") val portrait: Boolean?,
+    @SerializedName("location") val location: String?,
+    @SerializedName("pageIndex") val pageIndex: Int?,
+    @SerializedName("offset") val offset: Int?,
+    @SerializedName("translationX") val translationX: Float?,
+    @SerializedName("scale") val scale: Float?
 ) : BaseTracker()
 
 

@@ -11,14 +11,15 @@ import apk.hurnell.recipebookreader.databinding.ActivityBookShelfBinding
 import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.model.BaseTracker
 import apk.hurnell.recipebookreader.model.FileItem
+import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.io.File
 
 data class BookShelfTracker(
-    val category: String,
-    val lastScrollPosition: Int,
-    val lastScrollOffset: Int
+    @SerializedName("category") val category: String,
+    @SerializedName("lastScrollPosition") val lastScrollPosition: Int,
+    @SerializedName("lastScrollOffset") val lastScrollOffset: Int
 ) : BaseTracker()
 
 class BookShelfActivity : BaseDrawerActivity() {
@@ -118,7 +119,11 @@ class BookShelfActivity : BaseDrawerActivity() {
         }
     }
 
-    private fun populateShelf(category: String, acceptZero: Boolean = true, fromSaved: Boolean = false) {
+    private fun populateShelf(
+        category: String,
+        acceptZero: Boolean = true,
+        fromSaved: Boolean = false
+    ) {
         val categoryChanged = currentCategory != category
         currentCategory = category
         val allBooks: List<FileItem> = getBookShelfBooks(category)

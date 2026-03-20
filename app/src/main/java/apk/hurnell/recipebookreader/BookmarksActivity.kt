@@ -15,12 +15,15 @@ import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.model.BaseTracker
 import apk.hurnell.recipebookreader.model.BookmarkItem
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.io.File
 
 data class BookmarksTracker(
-    val currentCategory: String, val lastScrollPosition: Int, val lastScrollOffset: Int
+    @SerializedName("currentCategory") val currentCategory: String,
+    @SerializedName("lastScrollPosition") val lastScrollPosition: Int,
+    @SerializedName("lastScrollOffset") val lastScrollOffset: Int
 ) : BaseTracker()
 
 class BookmarksActivity : BaseDrawerActivity() {
