@@ -103,6 +103,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
     protected var currentDir: File = File(rootDir, "Documents")
     protected var btnCloseGallery: ImageButton? = null
     protected var btnDeleteBook: ImageButton? = null
+    protected var volumeTitleCheckbox: MaterialCheckBox? = null
     protected var coverOptionsRecycler: RecyclerView? = null
     protected var recipeImagePreviewWrapper: FrameLayout? = null
     protected var recipeImagePreviewTitle: TextView? = null
@@ -806,6 +807,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                 btnPickCover = findViewById(R.id.btnPickCover)
                 btnCloseGallery = findViewById(R.id.btnCloseGallery)
                 btnDeleteBook = findViewById(R.id.btnDeleteBook)
+                volumeTitleCheckbox = findViewById(R.id.volumeTitleCheckbox)
                 btnSearchCovers?.setOnClickListener {
                     showPossibleBookCovers(book)
                 }
@@ -873,6 +875,10 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                     )
                     dialog.window?.setBackgroundDrawableResource(R.drawable.alert_background)
                     dialog.show()
+                }
+                volumeTitleCheckbox?.isChecked = book.volumeTitle
+                volumeTitleCheckbox?.setOnCheckedChangeListener { _, isChecked ->
+                    repository.updateVolumeTitleStatus(book.id, isChecked)
                 }
             } catch (e: Exception) {
                 Log.e(LOG_TAG, "Error opening PDF: ${e.message}", e)

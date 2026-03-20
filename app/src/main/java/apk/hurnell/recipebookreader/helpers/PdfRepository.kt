@@ -203,4 +203,8 @@ class PdfRepository(
     fun getTocUnavailable(bookId: Long): Boolean {
         return dbHelper.getTocUnavailable(bookId)
     }
+
+    fun updateVolumeTitleStatus(bookId: Long, checked: Boolean): Boolean {
+        return dbHelper.updateVolumeTitleStatus(bookId, checked)
+    }
 }

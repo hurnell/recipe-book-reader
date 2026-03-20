@@ -105,7 +105,8 @@ class DatabaseHelper(private val context: Context) :
                 "toc_unavailable",
                 "category",
                 "sub_category",
-                "alternate_cover"
+                "alternate_cover",
+                "volume_title"
             ), "id = ?", arrayOf(bookId.toString()), null, null, null
         ).use { cursor ->
             if (cursor.moveToFirst()) {
@@ -122,7 +123,8 @@ class DatabaseHelper(private val context: Context) :
                     tocUnavailable = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("toc_unavailable")),
                     category = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("category")),
                     subCategory = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("sub_category")),
-                    alternateCover = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("alternate_cover")) == 1
+                    alternateCover = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("alternate_cover")) == 1,
+                    volumeTitle = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("volume_title")) == 1
                 )
             } else null
         }
@@ -866,7 +868,8 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
                 "toc_unavailable",
                 "category",
                 "sub_category",
-                "alternate_cover"
+                "alternate_cover",
+                "volume_title"
             ), "location = ?", arrayOf(location), null, null, null
         ).use { cursor ->
             if (cursor.moveToFirst()) {
@@ -883,7 +886,8 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
                     tocUnavailable = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("toc_unavailable")),
                     category = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("category")),
                     subCategory = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("sub_category")),
-                    alternateCover = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("alternate_cover")) == 1
+                    alternateCover = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("alternate_cover")) == 1,
+                    volumeTitle = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("volume_title")) == 1
                 )
             } else null
         }
@@ -1305,5 +1309,15 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
                 cursor.getIntOrNull(cursor.getColumnIndexOrThrow("toc_unavailable")) == 1
             } else false
         }
+    }
+
+    fun updateVolumeTitleStatus(bookId: Long, checked: Boolean): Boolean {
+        val db = writableDatabase
+        val volumeTitle = if (checked) 1 else 0
+        val values = ContentValues().apply {
+            put("volume_title", volumeTitle)
+        }
+        val rowsUpdated = db.update("books", values, "id = ?", arrayOf(bookId.toString()))
+        return rowsUpdated == 1
     }
 }
