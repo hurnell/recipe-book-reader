@@ -5,7 +5,6 @@ import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.os.Environment
 import android.provider.Settings
-import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.HorizontalScrollView
@@ -297,8 +296,8 @@ class FileBrowserActivity : BaseDrawerActivity() {
         if (saved == null) {
             saveLastFolderTracker(
                 currentDir.absolutePath,
-                0,
-                0,
+                lastScrollPosition,
+                lastScrollOffset,
                 true
             )
         }
