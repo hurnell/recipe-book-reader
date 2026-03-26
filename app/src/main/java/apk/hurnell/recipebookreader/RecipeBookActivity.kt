@@ -553,11 +553,17 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         if (bookmarkTocItem != null) {
             val pinchRv = binding.bookRecyclerView
             pinchRv.scrollToPosition(bookmarkTocItem.page)
-            binding.bookRecyclerView.setScaleFactor(
+            val historyItem = binding.bookRecyclerView.setScaleFactor(
                 bookmarkTocItem.scale.coerceAtMost(3.0f),
                 bookmarkTocItem.page,
                 bookmarkTocItem.translate
             )
+            if (bookmarkTocItem.bookId != null && bookmarkTocItem.bookId != -1L) {
+                currentBookId = bookmarkTocItem.bookId!!
+            }
+            historyItem.bookId = bookmarkTocItem.bookId
+            historyItem.offset = bookmarkTocItem.offset
+            history = repository.addBookHistoryItem(historyItem)
             toggleBars(false)
             updatePageText(bookmarkTocItem.page, totalPages)
             if (bookmarkTocItem.offset != null) {
@@ -721,6 +727,16 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         })
     }
 
+    private fun isSameAsHistoryItem(historyItem: BookHistoryItem): Boolean {
+        val samePage = historyItem.page == binding.pageSeekBar.progress
+        val sameOffset =
+            historyItem.offset == binding.bookRecyclerView.computeVerticalScrollOffset()
+        val sameScale = binding.bookRecyclerView.getScaleFactor() == historyItem.scale
+        val sameTranslation =
+            binding.bookRecyclerView.getTestTranslationX() == historyItem.translationX
+        return samePage && sameOffset && sameScale && sameTranslation
+    }
+
     private fun displaySnackBarMessage(
         text: String,
         rootLayout: ViewGroup,
@@ -811,17 +827,31 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
 
         binding.btnBackInHistory.setOnClickListener {
             if (history.isNotEmpty()) {
-                val latestHistoryItem = history.first()
+                var latestHistoryItem = history.first()
+                val sameHistoryItem = isSameAsHistoryItem(latestHistoryItem)
+                if (sameHistoryItem) {
+                    history = repository.removeBookHistoryItem(
+                        latestHistoryItem.id!!,
+                        currentBookId
+                    )
+                    if (history.isEmpty()) {
+                        finish()
+                        return@setOnClickListener
+                    }
+                    latestHistoryItem = history.first()
+                }
                 binding.bookRecyclerView.handleReturnToRecipeBookHistoryItem(latestHistoryItem)
                 binding.bookRecyclerView.post {
                     val requestedOffset = latestHistoryItem.offset
                     val actualOffset = binding.bookRecyclerView.computeVerticalScrollOffset()
                     val diff = requestedOffset?.minus(actualOffset)
-                    if (diff != 0) {
-                        binding.bookRecyclerView.scrollBy(0, diff!!)
+                    if (diff != null && diff != 0) {
+                        binding.bookRecyclerView.scrollBy(0, diff)
                     }
-                    history =
-                        repository.removeBookHistoryItem(latestHistoryItem.id!!, currentBookId)
+                    history = repository.removeBookHistoryItem(
+                        latestHistoryItem.id!!,
+                        currentBookId
+                    )
                 }
             } else {
                 finish()
@@ -1267,9 +1297,9 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     }
 
     override fun onDestroy() {
-        super.onDestroy()
         repository.clearBookHistory(currentBookId)
         document?.destroy()
+        super.onDestroy()
     }
 
     override fun onPause() {
