@@ -288,9 +288,6 @@ class EveryTocActivity : BaseDrawerActivity() {
     }
 
     override fun refreshFilesAndUI(reloadAdapter: Boolean) {}
-    fun hideRecipeImagePreview() {
-        recipeImagePreviewWrapper?.visibility = View.GONE
-    }
 
     private fun saveEveryTocTracker(
         category: String,

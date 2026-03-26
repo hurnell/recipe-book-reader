@@ -168,6 +168,10 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
             hideBookInfoOverlay()
             return true
         }
+        if (recipeImagePreviewWrapper?.visibility == View.VISIBLE) {
+            hideRecipeImagePreview()
+            return true
+        }
         return false
     }
 
@@ -996,6 +1000,10 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         lifecycleScope.launch {
             dataStoreManager.logFullHistorySafely()
         }
+    }
+
+    protected fun hideRecipeImagePreview() {
+        recipeImagePreviewWrapper?.visibility = View.GONE
     }
 
 }

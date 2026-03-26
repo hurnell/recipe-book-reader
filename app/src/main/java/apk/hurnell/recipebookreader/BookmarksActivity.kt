@@ -212,11 +212,6 @@ class BookmarksActivity : BaseDrawerActivity() {
 
     }
 
-    fun hideRecipeImagePreview() {
-        recipeImagePreviewWrapper?.visibility = View.GONE
-    }
-
-
     private fun saveBookmarksTracker(
         category: String, position: Int, offset: Int
     ) {
