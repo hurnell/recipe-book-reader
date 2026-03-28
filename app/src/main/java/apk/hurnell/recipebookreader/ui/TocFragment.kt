@@ -27,7 +27,6 @@ import apk.hurnell.recipebookreader.databinding.FragmentTocBinding
 class TocFragment : Fragment() {
     private var _binding: FragmentTocBinding? = null
     private val binding get() = _binding!!
-    private lateinit var tocFragmentRootLayout: ConstraintLayout
     private lateinit var repository: PdfRepository
     private var bookId: Int = -1
     private var onPageSelected: ((BaseBookmarkTocItem) -> Unit)? = null
@@ -83,6 +82,7 @@ class TocFragment : Fragment() {
             toggleVisibleChoices(
                 item.itemId == R.id.action_show_toc
             )
+            hideKeyboard()
             true
         }
     }
@@ -146,7 +146,7 @@ class TocFragment : Fragment() {
                     if (success) {
                         val message =
                             "✅Bookmark with title ${item.title} for book ${item.bookTitle} to bookmarks"
-                        displaySnackBarMessage(message, tocFragmentRootLayout)
+                        displaySnackBarMessage(message, binding.tocFragmentRootLayout)
 
                         loadBookmarksAsync(true)
                     }
@@ -165,7 +165,7 @@ class TocFragment : Fragment() {
                 checkDeleteBookmark(item, false)
             },
             onLongClick = { item ->
-                displaySnackBarMessage(item.title, tocFragmentRootLayout)
+                displaySnackBarMessage(item.title, binding.tocFragmentRootLayout)
             }
         )
 
@@ -195,7 +195,7 @@ class TocFragment : Fragment() {
                 val success = repository.deleteBookmark(item)
                 if (success) {
                     val message = "❌ Bookmark with title ${item.title} deleted"
-                    displaySnackBarMessage(message, tocFragmentRootLayout)
+                    displaySnackBarMessage(message, binding.tocFragmentRootLayout)
                     loadBookmarksAsync(fromToc)
                 }
                 dialog.dismiss()
