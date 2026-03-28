@@ -108,6 +108,17 @@ ON t.book_id_fk = b.id;
         scale REAL
     );
 ```
+### The conversion table
+```sqldelight
+    DROP TABLE IF EXISTS weight_chart;
+    CREATE TABLE weight_chart (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ingredient TEXT NOT NULL,
+        volume TEXT NOT NULL,
+        ounces TEXT NOT NULL,
+        grams TEXT NOT NULL
+    );
+```
 
 ```sqldelight
 SELECT b.name, c.category AS main_category, sc.category AS sub_category
