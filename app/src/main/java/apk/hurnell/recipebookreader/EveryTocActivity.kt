@@ -239,7 +239,7 @@ class EveryTocActivity : BaseDrawerActivity() {
                 if (isUpdating || s == null) return
 
                 val original = s.toString()
-                val filtered = original.lowercase().replace(Regex("[^a-z0-9 ]"), "")
+                val filtered = original.lowercase().replace(Regex("[^a-z0-9 ]'\""), "")
 
                 if (original != filtered) {
                     isUpdating = true

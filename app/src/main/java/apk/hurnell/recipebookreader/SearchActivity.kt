@@ -100,7 +100,7 @@ class SearchActivity : AppCompatActivity() {
 
     private fun setupSearchTriggers() {
         binding.btnDoSearch.setOnClickListener {
-            val query = binding.searchEditText.text.toString()
+            val query = binding.searchEditText.text.toString().trim()
             if (query.isNotBlank()) {
                 startSearch(query)
                 hideKeyboard()

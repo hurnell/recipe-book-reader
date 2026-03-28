@@ -55,8 +55,12 @@ class PdfSearchHelper(private val document: Document) {
                         val lineBuilder = StringBuilder()
                         line.chars?.forEach { char -> lineBuilder.append(char.c.toChar()) }
                         val lineText = lineBuilder.toString().trim()
-
-                        if (lineText.contains(query, ignoreCase = true)) {
+                        val normalizedLine = lineText
+                            .replace("’", "'")
+                            .replace("‘", "'")
+                            .replace("“", "\"")
+                            .replace("”", "\"")
+                        if (normalizedLine.contains(query, ignoreCase = true)) {
                             matchingLines.add(lineText)
                             foundRectangles.add(line.bbox)
                         }

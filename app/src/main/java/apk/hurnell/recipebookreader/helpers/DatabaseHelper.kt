@@ -389,7 +389,7 @@ FROM books AS b
 LEFT JOIN toc AS t ON b.id = t.book_id_fk 
 LEFT JOIN toc_hierarchy h ON t.id = h.id
 LEFT JOIN categories AS c ON b.category = c.id OR b.sub_category = c.id
-WHERE t.title LIKE ? 
+WHERE REPLACE(REPLACE(REPLACE(t.title, '“', '"'), '”', '"'), '’', '''') LIKE ? 
 $categoryFilter
 GROUP BY t.id
 ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
@@ -923,9 +923,9 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
             FROM books AS b 
             LEFT JOIN toc AS t ON b.id = t.book_id_fk 
             LEFT JOIN categories AS c ON b.category = c.id OR b.sub_category = c.id
-            WHERE t.title LIKE ? 
+            WHERE REPLACE(REPLACE(REPLACE(t.title, '“', '"'), '”', '"'), '’', '''') LIKE ? 
             $categoryFilter
-            GROUP BY t.id
+            GROUP BY t.id 
         )
     """.trimIndent()
 
