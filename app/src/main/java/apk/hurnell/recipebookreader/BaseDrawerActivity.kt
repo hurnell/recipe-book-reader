@@ -2,6 +2,7 @@ package apk.hurnell.recipebookreader
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
@@ -14,6 +15,7 @@ import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.OvershootInterpolator
+import android.view.inputmethod.InputMethodManager
 import android.widget.ArrayAdapter
 import android.widget.FrameLayout
 import android.widget.ImageButton
@@ -954,6 +956,14 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
             }
             ?.start()
     }
+    private fun closeKeyboard() {
+        val view = this.currentFocus
+        if (view != null) {
+            val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.hideSoftInputFromWindow(view.windowToken, 0)
+            view.clearFocus()
+        }
+    }
 
     protected fun setupDrawer(toolbar: Toolbar) {
         drawerLayout = findViewById(R.id.drawer_layout)
@@ -966,6 +976,13 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
             toolbar,
             R.string.navigation_drawer_open, R.string.navigation_drawer_close
         )
+        drawerLayout.addDrawerListener(object : DrawerLayout.SimpleDrawerListener() {
+            override fun onDrawerStateChanged(newState: Int) {
+                if (newState != DrawerLayout.STATE_IDLE) {
+                    closeKeyboard()
+                }
+            }
+        })
         toggle.drawerArrowDrawable.color = ContextCompat.getColor(this, R.color.nav_text)
         drawerLayout.addDrawerListener(toggle)
         toggle.syncState()
