@@ -100,7 +100,7 @@ class EveryTocActivity : BaseDrawerActivity() {
                     val success = repository.createBookmark(item.toBookmarkItem())
                     if (success) {
                         val message =
-                            "✅Bookmark with title \"${item.title}\" added to bookmarks"
+                            "✅ Bookmark with title \"${item.title}\" added to bookmarks"
                         displaySnackBarMessage(message, binding.rootLayout)
                     }
                     applyChosenTextAndCategory()
