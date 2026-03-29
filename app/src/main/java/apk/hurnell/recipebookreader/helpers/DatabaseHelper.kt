@@ -989,7 +989,7 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
         val db = writableDatabase
         val bookIdStr = item.bookId?.toString() ?: "NULL"
         val uniqueKey = "$bookIdStr|${item.title}|${item.page}|${item.offset}|${item.tocId}"
-        val isImage = if(item.isImage) 1L else 0L
+        val isImage = if (item.isImage) 1L else 0L
         val insertSql = """
         INSERT OR IGNORE INTO bookmarks 
         (book_id_fk, title, page, `offset`,  scale, translate, unique_key, is_image)
@@ -1319,5 +1319,169 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
         }
         val rowsUpdated = db.update("books", values, "id = ?", arrayOf(bookId.toString()))
         return rowsUpdated == 1
+    }
+
+    fun parseQuantity(qty: String): Double {
+        val trimmed = qty.trim()
+
+        val unicodeFractions = mapOf(
+            '½' to 0.5,
+            '⅓' to 1.0 / 3,
+            '⅔' to 2.0 / 3,
+            '¼' to 0.25,
+            '¾' to 0.75,
+            '⅕' to 0.2,
+            '⅖' to 0.4,
+            '⅗' to 0.6,
+            '⅘' to 0.8,
+            '⅙' to 1.0 / 6,
+            '⅚' to 5.0 / 6,
+            '⅛' to 0.125,
+            '⅜' to 0.375,
+            '⅝' to 0.625,
+            '⅞' to 0.875
+        )
+
+        // Step 1: Replace unicode fractions with space-separated decimal value
+        var qtyStr = trimmed
+        var total = 0.0
+
+        // Handle mixed unicode fractions like "1½" or "2¾"
+        val mixedUnicodeRegex = Regex("""(\d+)([½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞])""")
+        mixedUnicodeRegex.findAll(qtyStr).forEach { m ->
+            val base = m.groupValues[1].toDouble()
+            val frac = unicodeFractions[m.groupValues[2][0]] ?: 0.0
+            total += base + frac
+            // remove matched part from string to avoid double-count
+            qtyStr = qtyStr.replace(m.value, "")
+        }
+
+        // Step 2: Sum standalone unicode fractions
+        val unicodeValue = qtyStr.mapNotNull { unicodeFractions[it] }.sum()
+        total += unicodeValue
+
+        // Remove any unicode fraction characters from string
+        qtyStr = qtyStr.replace(Regex("[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]"), "").trim()
+
+        // Step 3: Handle remaining numbers/fractions
+        if (qtyStr.contains(" ")) {
+            val parts = qtyStr.split(" ")
+            if (parts.size >= 2) {
+                // Mixed fraction like "1 1/2"
+                total += parts[0].toDoubleOrNull() ?: 0.0
+                total += parseFraction(parts[1])
+            } else {
+                total += parts[0].toDoubleOrNull() ?: 0.0
+            }
+        } else if (qtyStr.contains("/")) {
+            total += parseFraction(qtyStr)
+        } else if (qtyStr.isNotEmpty()) {
+            total += qtyStr.toDoubleOrNull() ?: 0.0
+        }
+
+        return total
+    }
+
+    private fun parseFraction(frac: String): Double {
+        val parts = frac.split("/")
+        return if (parts.size == 2) {
+            val numerator = parts[0].toDoubleOrNull() ?: 0.0
+            val denominator = parts[1].toDoubleOrNull() ?: 1.0
+            numerator / denominator
+        } else 0.0
+    }
+
+    fun parseInput(text: String?): Triple<Double, String, String>? {
+        if (text.isNullOrBlank()) return null
+        val cleanedText = text.replace(Regex("""\s*\(.*?\)"""), "").trim()
+        val regex =
+            Regex("""^\s*([\d\s./½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]+(?:\s*cups?))\s+(.*)$""", RegexOption.IGNORE_CASE)
+
+        val match = regex.find(cleanedText) ?: return null
+        val (volumeStr, ingredient) = match.destructured
+        val quantity = parseQuantity(volumeStr.trim())
+        return Triple(quantity, volumeStr.trim(), ingredient.trim())
+    }
+    private fun convertGrams(gramsStr: String, originalCups: Float, targetCups: Double): String {
+        return try {
+            if ("to" in gramsStr) {
+                // Range like "227 to 241"
+                val parts = gramsStr.split("to").map { it.trim().toFloat() }
+                if (parts.size == 2) {
+                    val convertedLow = parts[0] * targetCups / originalCups
+                    val convertedHigh = parts[1] * targetCups / originalCups
+                    "%.1f to %.1f".format(convertedLow, convertedHigh)
+                } else gramsStr
+            } else {
+                // Single number
+                val value = gramsStr.toFloat()
+                "%.1f".format(value * targetCups / originalCups)
+            }
+        } catch (e: Exception) {
+            gramsStr // fallback if parsing fails
+        }
+    }
+    private fun normalizeQuotes(parsedIngredient: String?): String? {
+        return parsedIngredient
+            ?.replace("“", "\"")
+            ?.replace("”", "\"")
+            ?.replace("‘", "'")
+            ?.replace("’", "'")
+    }
+
+    fun getChartConversion(searchedIngredient: String?): String {
+        val db = readableDatabase
+        val result = StringBuilder()
+
+        val parsedResult = parseInput(searchedIngredient)
+        val third = parsedResult?.third
+        var parsedIngredient = searchedIngredient
+
+        if (third != null) {
+            parsedIngredient = third
+        }
+        parsedIngredient = normalizeQuotes(parsedIngredient)
+        val first = parsedResult?.first
+        val second = parsedResult?.second
+        db.query(
+            "weight_chart",
+            arrayOf("ingredient", "volume", "grams", "decimal_cups"),
+            """
+                ingredient LIKE ? 
+                OR ingredient LIKE ? 
+                OR ingredient LIKE ? 
+                OR ingredient LIKE ?
+                """.trimIndent(),
+            arrayOf(
+                parsedIngredient,
+                "$parsedIngredient %",   // starts with "butter "
+                "% $parsedIngredient",   // ends with " butter"
+                "% $parsedIngredient %"  // in middle "salted butter"
+            ),
+            null,
+            null,
+            null
+        ).use { cursor ->
+
+            val ingredientCol = cursor.getColumnIndexOrThrow("ingredient")
+            val volumeCol = cursor.getColumnIndexOrThrow("volume")
+            val gramsCol = cursor.getColumnIndexOrThrow("grams")
+            val decimalCupsCol = cursor.getColumnIndexOrThrow("decimal_cups")
+
+            while (cursor.moveToNext()) {
+                val ingredient = cursor.getString(ingredientCol)
+                val volume = cursor.getString(volumeCol)
+                val grams = cursor.getString(gramsCol)
+                val decimalCups = cursor.getFloatOrNull(decimalCupsCol)
+                if (decimalCups != null && first != 0.0 && first != null && second != null) {
+                    val convertedGrams = convertGrams(grams, decimalCups, first)
+                    result.append("$ingredient - $second - ${convertedGrams.replace(".0", "")} g\n")
+                } else {
+                    result.append("$ingredient - $volume - $grams g\n")
+                }
+            }
+        }
+
+        return result.toString().trim()
     }
 }
