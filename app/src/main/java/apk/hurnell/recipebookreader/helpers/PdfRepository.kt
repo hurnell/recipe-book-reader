@@ -207,4 +207,8 @@ class PdfRepository(
     fun updateVolumeTitleStatus(bookId: Long, checked: Boolean): Boolean {
         return dbHelper.updateVolumeTitleStatus(bookId, checked)
     }
+
+    fun getChartConversion(ingredient: String?): String {
+        return dbHelper.getChartConversion(ingredient)
+    }
 }
