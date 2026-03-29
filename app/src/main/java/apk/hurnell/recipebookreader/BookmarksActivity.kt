@@ -148,8 +148,9 @@ class BookmarksActivity : BaseDrawerActivity() {
             .setPositiveButton("Delete") { dialog, _ ->
                 val success = repository.deleteBookmark(item)
                 if (success) {
-                    val message = "❌ Bookmark with title ${item.title} deleted"
+                    val message = "❌ Bookmark with title \"${item.title}\" deleted"
                     displaySnackBarMessage(message, binding.rootLayout)
+                    this@BookmarksActivity.reloadBookmarks(true)
                 }
                 dialog.dismiss()
             }.setNegativeButton("Cancel") { dialog, _ ->
