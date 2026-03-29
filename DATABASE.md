@@ -116,7 +116,8 @@ ON t.book_id_fk = b.id;
         ingredient TEXT NOT NULL,
         volume TEXT NOT NULL,
         ounces TEXT NOT NULL,
-        grams TEXT NOT NULL
+        grams TEXT NOT NULL,
+        decimal_cups REAL DEFAULT NULL
     );
 ```
 
