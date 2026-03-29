@@ -145,7 +145,7 @@ class TocFragment : Fragment() {
                     val success = repository.createBookmark(item.toBookmarkItem())
                     if (success) {
                         val message =
-                            "✅Bookmark with title ${item.title} for book ${item.bookTitle} to bookmarks"
+                            "✅ Bookmark with title \"${item.title}\" added to bookmarks"
                         displaySnackBarMessage(message, binding.tocFragmentRootLayout)
 
                         loadBookmarksAsync(true)
@@ -194,7 +194,7 @@ class TocFragment : Fragment() {
             .setPositiveButton("Delete") { dialog, _ ->
                 val success = repository.deleteBookmark(item)
                 if (success) {
-                    val message = "❌ Bookmark with title ${item.title} deleted"
+                    val message = "❌ Bookmark with title \"${item.title}\" deleted"
                     displaySnackBarMessage(message, binding.tocFragmentRootLayout)
                     loadBookmarksAsync(fromToc)
                 }
