@@ -7,6 +7,8 @@ import android.content.pm.ActivityInfo
 import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.os.Bundle
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import android.util.Log
 import android.util.TypedValue
 import android.view.KeyEvent
@@ -28,6 +30,7 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import android.view.ActionMode
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.Insets
@@ -38,7 +41,6 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.updateLayoutParams
-import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.work.Data
@@ -121,10 +123,12 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     private var clearSearchMenuItem: MenuItem? = null
     private var isbnScanJob: Job? = null
     private var lastTocId: Long? = null
+    private var ingredient:String? = null
 
     private var copyTextContainer: ConstraintLayout? = null
     private var horizontalScrollView: HorizontalScrollView? = null
     private var copyText: TextView? = null
+    private var btnShowMeasurement: FloatingActionButton? = null
 
     private var recipeImagePreviewWrapper: FrameLayout? = null
     private var recipeImagePreviewTitle: TextView? = null
@@ -173,10 +177,30 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         setupStaticListeners()
 
         copyText = findViewById(R.id.copyText)
+        btnShowMeasurement = findViewById(R.id.btnShowMeasurement)
         copyTextContainer = findViewById(R.id.copyTextContainer)
         horizontalScrollView = findViewById(R.id.horizontalScrollView)
         copyTextContainer?.setOnClickListener {
             copyTextContainer?.visibility = View.GONE
+        }
+        btnShowMeasurement?.setOnClickListener {
+            val start: Int? = copyText?.selectionStart
+            val end: Int? = copyText?.selectionEnd
+            if (start != null && end != null){
+                ingredient = copyText?.text?.subSequence(start, end)?.toString()
+            }
+            if (ingredient != null) {
+                val conversion = repository.getChartConversion(ingredient)
+                if (conversion.isNotEmpty()) {
+                    Log.i(LOG_TAG, conversion)
+                    displaySnackBarMessage(
+                        conversion,
+                        binding.root,
+                        Snackbar.LENGTH_INDEFINITE,
+                        15
+                    )
+                }
+            }
         }
         var incrementSp = 0f
         if (copyText != null) {
@@ -194,6 +218,24 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                 updateFontSizeForCopyText(
                     -1F, incrementSp, btnIncreaseFontSize, btnDecreaseFontSize
                 )
+            }
+        }
+        copyText?.customSelectionActionModeCallback = object : ActionMode.Callback {
+            override fun onCreateActionMode(mode: ActionMode?, menu: Menu?): Boolean {
+                btnShowMeasurement?.visibility = View.VISIBLE
+                return true
+            }
+
+            override fun onPrepareActionMode(mode: ActionMode?, menu: Menu?): Boolean {
+                return false
+            }
+
+            override fun onActionItemClicked(mode: ActionMode?, item: MenuItem?): Boolean {
+                return true
+            }
+
+            override fun onDestroyActionMode(mode: ActionMode?) {
+                btnShowMeasurement?.visibility = View.INVISIBLE
             }
         }
         initialisePreviewLayout()
@@ -740,12 +782,13 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     private fun displaySnackBarMessage(
         text: String,
         rootLayout: ViewGroup,
-        duration: Int = Snackbar.LENGTH_LONG
+        duration: Int = Snackbar.LENGTH_LONG,
+        maxLines: Int = 5
     ) {
         val snackBar = Snackbar.make(rootLayout, text, duration)
         val textView =
             snackBar.view.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)
-        textView.maxLines = 5
+        textView.maxLines = maxLines
         val params = snackBar.view.layoutParams as ViewGroup.MarginLayoutParams
         params.setMargins(
             params.leftMargin,
