@@ -65,6 +65,23 @@
         tools:ignore="AccessibilityClassName" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/btnShowMeasurement"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:contentDescription="@string/toggle_links_button"
+        android:src="@drawable/ic_weight"
+        app:backgroundTint="@color/white"
+        app:borderWidth="0dp"
+        app:fabCustomSize="32dp"
+        app:layout_constraintStart_toStartOf="@+id/horizontalScrollView"
+        app:layout_constraintEnd_toEndOf="@+id/horizontalScrollView"
+        app:layout_constraintTop_toBottomOf="@+id/horizontalScrollView"
+        app:maxImageSize="32dp"
+        android:visibility="invisible"
+        app:tint="@null"
+        tools:ignore="AccessibilityClassName" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/btnIncreaseFontSize"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
