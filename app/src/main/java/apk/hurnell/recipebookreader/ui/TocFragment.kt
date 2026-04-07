@@ -1,6 +1,5 @@
 package apk.hurnell.recipebookreader.ui
 
-import android.app.AlertDialog
 import android.content.Context
 import android.os.Bundle
 import android.text.Editable
@@ -23,6 +22,7 @@ import kotlinx.coroutines.withContext
 import apk.hurnell.recipebookreader.model.TocItem
 import com.google.android.material.snackbar.Snackbar
 import apk.hurnell.recipebookreader.databinding.FragmentTocBinding
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 class TocFragment : Fragment() {
     private var _binding: FragmentTocBinding? = null
@@ -56,6 +56,7 @@ class TocFragment : Fragment() {
             throw RuntimeException("$context must implement TocFragmentListener")
         }
     }
+
     object TocMenuIds {
         var SHOW_TOC = R.id.action_show_toc
         var SHOW_BOOKMARKS = R.id.action_show_bookmarks
@@ -149,9 +150,11 @@ class TocFragment : Fragment() {
                         displaySnackBarMessage(message, binding.tocFragmentRootLayout)
 
                         loadBookmarksAsync(true)
+                        loadTocAsync()
                     }
                 } else {
                     checkDeleteBookmark(item.toBookmarkItem(), true)
+
                 }
             }
         )
@@ -188,7 +191,10 @@ class TocFragment : Fragment() {
         val message =
             if (fromToc) "This item is already bookmarked. Do want to delete the bookmark." else "Are you sure you want to delete this bookmark"
         val alertTitle = if (fromToc) "Already Bookmarked" else "Delete Bookmark?"
-        AlertDialog.Builder(requireContext(),R.style.ThemeOverlay_App_MaterialAlertDialog)
+        MaterialAlertDialogBuilder(
+            requireContext(),
+            R.style.ThemeOverlay_App_MaterialAlertDialog
+        )
             .setTitle(alertTitle)
             .setMessage(message)
             .setPositiveButton("Delete") { dialog, _ ->
@@ -197,6 +203,7 @@ class TocFragment : Fragment() {
                     val message = "❌ Bookmark with title \"${item.title}\" deleted"
                     displaySnackBarMessage(message, binding.tocFragmentRootLayout)
                     loadBookmarksAsync(fromToc)
+                    loadTocAsync()
                 }
                 dialog.dismiss()
             }
@@ -248,6 +255,7 @@ class TocFragment : Fragment() {
                     bookTitle = row.bookTitle,
                     parentId = row.parentId?.toInt(),
                     title = row.title,
+                    normalisedTitle = row.normalisedTitle,
                     bookmarkId = row.bookmarkId,
                     page = row.page,
                     level = row.level,
@@ -279,6 +287,7 @@ class TocFragment : Fragment() {
     fun setShowingToc(tocShowing: Boolean) {
         toggleVisibleChoices(tocShowing)
     }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
