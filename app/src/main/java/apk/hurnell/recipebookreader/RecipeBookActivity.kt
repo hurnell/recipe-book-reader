@@ -123,7 +123,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     private var clearSearchMenuItem: MenuItem? = null
     private var isbnScanJob: Job? = null
     private var lastTocId: Long? = null
-    private var ingredient:String? = null
+    private var ingredient: String? = null
 
     private var copyTextContainer: ConstraintLayout? = null
     private var horizontalScrollView: HorizontalScrollView? = null
@@ -186,7 +186,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         btnShowMeasurement?.setOnClickListener {
             val start: Int? = copyText?.selectionStart
             val end: Int? = copyText?.selectionEnd
-            if (start != null && end != null){
+            if (start != null && end != null) {
                 ingredient = copyText?.text?.subSequence(start, end)?.toString()
             }
             if (ingredient != null) {
@@ -716,6 +716,8 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
 
                                         if (bookmarkText.isNotBlank()) {
                                             currentBookmarkItem.title = bookmarkText
+                                            currentBookmarkItem.normalisedTitle =
+                                                repository.normalizeText(bookmarkText)
                                             currentBookmarkItem.isImage =
                                                 dialogBinding.hasImageCheckbox.isChecked
                                             saveBookmark(
