@@ -5,6 +5,7 @@ interface  BaseBookmarkTocItem {
      val bookId: Long?
      val bookTitle: String?
      var title: String
+     var normalisedTitle: String
      val bookLocation: String?
      val page: Int
      val offset: Int?

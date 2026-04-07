@@ -6,6 +6,7 @@ data class BookmarkItem(
     @SerializedName("tocId") override val tocId: Long? = null,
     @SerializedName("bookmarkId") val bookmarkId: Long?,
     @SerializedName("title") override var title: String,
+    @SerializedName("normalisedTitle") override var normalisedTitle: String,
     @SerializedName("bookTitle") override val bookTitle: String?,
     @SerializedName("bookLocation") override val bookLocation: String?,
     @SerializedName("bookId") override val bookId: Long?,

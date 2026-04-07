@@ -6,6 +6,7 @@ data class Row(
     val bookTitle: String,
     val parentId: Long?,
     val title: String,
+    val normalisedTitle: String,
     val bookmarkId: Int?,
     val page: Int,
     val level: Int,
