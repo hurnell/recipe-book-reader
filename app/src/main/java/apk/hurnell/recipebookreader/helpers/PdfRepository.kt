@@ -211,4 +211,8 @@ class PdfRepository(
     fun getChartConversion(ingredient: String?): String {
         return dbHelper.getChartConversion(ingredient)
     }
+
+    fun normalizeText(title: String): String {
+        return dbHelper.normalizeText(title)
+    }
 }

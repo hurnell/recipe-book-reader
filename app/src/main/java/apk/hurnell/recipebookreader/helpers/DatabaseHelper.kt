@@ -37,7 +37,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
-
+import java.text.Normalizer
 
 class DatabaseHelper(private val context: Context) :
     SQLiteOpenHelper(context.applicationContext, DB_NAME, null, 1) {
@@ -342,9 +342,9 @@ class DatabaseHelper(private val context: Context) :
     fun getFilteredEveryToc(currentText: String, currentCategory: String): MutableList<TocItem> {
         val db = readableDatabase
         val selectionArgs = if (currentCategory == "All") {
-            arrayOf("%$currentText%")
+            arrayOf("%$currentText%", "%$currentText%")
         } else {
-            arrayOf("%$currentText%", currentCategory)
+            arrayOf("%$currentText%", "%$currentText%",  currentCategory)
         }
         val categoryFilter = if (currentCategory == "All") "" else "AND c.category = ?"
         val list = mutableListOf<TocItem>()
@@ -379,6 +379,7 @@ SELECT
     t.id AS toc_id,
     t.parent_id AS parent_id,
     t.title AS toc_title,
+    t.normalised_title AS normalised_title,
     t.bookmark_id AS toc_bookmark_id,
     h.parent_path AS breadcrumbs, 
     t.page AS toc_page,
@@ -389,7 +390,7 @@ FROM books AS b
 LEFT JOIN toc AS t ON b.id = t.book_id_fk 
 LEFT JOIN toc_hierarchy h ON t.id = h.id
 LEFT JOIN categories AS c ON b.category = c.id OR b.sub_category = c.id
-WHERE REPLACE(REPLACE(REPLACE(t.title, '“', '"'), '”', '"'), '’', '''') LIKE ? 
+WHERE t.title LIKE ? OR t.normalised_title LIKE ?
 $categoryFilter
 GROUP BY t.id
 ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
@@ -402,6 +403,8 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
                 val titleIndex = cursor.getColumnIndexOrThrow("toc_title")
                 if (cursor.isNull(titleIndex)) continue
                 val rawTitle = cursor.getString(titleIndex)
+                val normalisedTitleIndex = cursor.getColumnIndexOrThrow("normalised_title")
+                val normalisedTitle = cursor.getString(normalisedTitleIndex)
                 val bookIdIndex = cursor.getColumnIndexOrThrow("book_id")
                 val bookId = cursor.getLongOrNull(bookIdIndex)
 
@@ -436,6 +439,7 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
                         bookLocation = bookLocation,
                         parentId = parentId,
                         title = rawTitle,
+                        normalisedTitle = normalisedTitle,
                         hierarchy = hierarchyField,
                         page = page - 1,
                         level = level,
@@ -784,8 +788,8 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
             ) {
                 val stmt = db.compileStatement(
                     """
-                INSERT INTO toc (book_id_fk, parent_id, level, title, page, scale, translate)
-                VALUES (?,?,?,?,?,?,?)
+                INSERT INTO toc (book_id_fk, parent_id, level, title, normalised_title, page, scale, translate)
+                VALUES (?,?,?,?,?,?,?,?)
                 """.trimIndent()
                 )
 
@@ -809,10 +813,12 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
                     stmt.bindLong(1, bookId)
                     parentId?.let { stmt.bindLong(2, it) } ?: stmt.bindNull(2)
                     stmt.bindLong(3, level.toLong())
-                    stmt.bindString(4, entry.title ?: "")
-                    stmt.bindLong(5, page.toLong())
-                    stmt.bindDouble(6, pageCoordinates.targetScale.toDouble())
-                    stmt.bindDouble(7, pageCoordinates.translatingPercentage.toDouble())
+                    val title = entry.title ?: ""
+                    stmt.bindString(4, title)
+                    stmt.bindString(5, normalizeText(title))
+                    stmt.bindLong(6, page.toLong())
+                    stmt.bindDouble(7, pageCoordinates.targetScale.toDouble())
+                    stmt.bindDouble(8, pageCoordinates.translatingPercentage.toDouble())
 
                     val rowId = stmt.executeInsert()
                     processed++
@@ -906,9 +912,9 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
     fun currentQuery(currentText: String, currentCategory: String): Long {
         val db = readableDatabase
         val selectionArgs = if (currentCategory == "All") {
-            arrayOf("%$currentText%")
+            arrayOf("%$currentText%", "%$currentText%")
         } else {
-            arrayOf("%$currentText%", currentCategory)
+            arrayOf("%$currentText%", "%$currentText%", currentCategory)
         }
         val categoryFilter = if (currentCategory == "All") "" else "AND c.category = ?"
 
@@ -923,7 +929,7 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
             FROM books AS b 
             LEFT JOIN toc AS t ON b.id = t.book_id_fk 
             LEFT JOIN categories AS c ON b.category = c.id OR b.sub_category = c.id
-            WHERE REPLACE(REPLACE(REPLACE(t.title, '“', '"'), '”', '"'), '’', '''') LIKE ? 
+            WHERE t.title LIKE ? OR t.normalised_title LIKE ?
             $categoryFilter
             GROUP BY t.id 
         )
@@ -943,6 +949,7 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
                 t.id AS toc_id,
                 t.parent_id AS parent_id, 
                 t.title AS toc_title, 
+                t.normalised_title AS normalised_title, 
                 t.page AS page_title, 
                 t.level AS TOC_LEVEL, 
                 t.bookmark_id AS bookmark_id,
@@ -969,15 +976,16 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
                     Row(
                         id = cursor.getLong(0),
                         bookId = bookId.toLong(),
-                        bookTitle = cursor.getString(8),
+                        bookTitle = cursor.getString(9),
                         parentId = cursor.getLongOrNull(1),
                         title = cursor.getString(2),
-                        page = cursor.getInt(3) - 1,
-                        level = cursor.getInt(4),
-                        bookmarkId = cursor.getIntOrNull(5),
-                        scale = cursor.getFloat(6),
-                        translate = cursor.getFloat(7),
-                        parentTitle = cursor.getStringOrNull(9)
+                        normalisedTitle = cursor.getString(3),
+                        page = cursor.getInt(4) - 1,
+                        level = cursor.getInt(5),
+                        bookmarkId = cursor.getIntOrNull(6),
+                        scale = cursor.getFloat(7),
+                        translate = cursor.getFloat(8),
+                        parentTitle = cursor.getStringOrNull(10)
                     )
                 )
             }
@@ -990,33 +998,45 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
         val bookIdStr = item.bookId?.toString() ?: "NULL"
         val uniqueKey = "$bookIdStr|${item.title}|${item.page}|${item.offset}|${item.tocId}"
         val isImage = if (item.isImage) 1L else 0L
+
         val insertSql = """
         INSERT OR IGNORE INTO bookmarks 
-        (book_id_fk, title, page, `offset`,  scale, translate, unique_key, is_image)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        (book_id_fk, title, normalised_title, page, `offset`, scale, translate, unique_key, is_image)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     """.trimIndent()
 
+        try {
+            db.compileStatement(insertSql).use { stmt ->
+                // Bind parameters safely
+                if (item.bookId != null) stmt.bindLong(1, item.bookId) else stmt.bindNull(1)
+                stmt.bindString(2, item.title)
+                stmt.bindString(3, item.normalisedTitle)
+                stmt.bindLong(4, item.page.toLong())
+                if (item.offset != null) stmt.bindLong(5, item.offset.toLong()) else stmt.bindNull(5) // <-- fixed
+                stmt.bindDouble(6, item.scale.toDouble())
+                stmt.bindDouble(7, item.translate.toDouble())
+                stmt.bindString(8, uniqueKey)
+                stmt.bindLong(9, isImage)
 
-        val rowId = db.compileStatement(insertSql).use { stmt ->
-            if (item.bookId != null) stmt.bindLong(1, item.bookId) else stmt.bindNull(1)
-            stmt.bindString(2, item.title)
-            stmt.bindLong(3, item.page.toLong())
-            if (item.offset != null) stmt.bindLong(4, item.offset.toLong()) else stmt.bindNull(4)
-            stmt.bindDouble(5, item.scale.toDouble())
-            stmt.bindDouble(6, item.translate.toDouble())
-            stmt.bindString(7, uniqueKey)
-            stmt.bindLong(8, isImage)
-
-            stmt.executeInsert()
-        }
-        val success = rowId != -1L
-        if (success) {
-            val values = ContentValues().apply {
-                put("bookmark_id", rowId)
+                val rowId = stmt.executeInsert()
+                if (rowId == -1L) {
+                    Log.w(LOG_TAG, "Insert ignored due to unique constraint: uniqueKey=$uniqueKey")
+                    return false
+                } else {
+                    // Update toc with new bookmark_id
+                    val values = ContentValues().apply { put("bookmark_id", rowId) }
+                    val updatedRows = db.update("toc", values, "id = ?", arrayOf(item.tocId.toString()))
+                    if (updatedRows == 0) {
+                        Log.w(LOG_TAG, "TOC row not updated, tocId=${item.tocId}")
+                    }
+                    Log.d(LOG_TAG, "Bookmark inserted successfully, rowId=$rowId")
+                    return true
+                }
             }
-            db.update("toc", values, "id = ?", arrayOf(item.tocId.toString()))
+        } catch (e: Exception) {
+            Log.e(LOG_TAG, "Failed to insert bookmark: ${e.message}", e)
+            return false
         }
-        return success
     }
 
     fun updateBookmark(item: BookmarkItem, currentCategory: String): List<BookmarkItem> {
@@ -1067,6 +1087,7 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
                 m.id AS bookmark_id,
                 m.book_id_fk AS book_id, 
                 m.title AS bookmark_title, 
+                m.normalised_title AS normalised_title, 
                 m.page AS bookmark_page, 
                 m.`offset` AS bookmark_offset, 
                 m.scale AS bookmark_scale, 
@@ -1091,14 +1112,15 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
                         tocId = null,
                         bookmarkId = cursor.getLongOrNull(0),
                         title = cursor.getString(2),
-                        bookTitle = cursor.getString(7),
+                        normalisedTitle = cursor.getString(3),
+                        bookTitle = cursor.getString(8),
                         bookId = cursor.getLongOrNull(1),
-                        page = cursor.getInt(3),
-                        offset = cursor.getIntOrNull(4),
-                        scale = cursor.getFloat(5),
-                        translate = cursor.getFloat(6),
-                        bookLocation = cursor.getStringOrNull(8),
-                        isImage = cursor.getIntOrNull(9) == 1,
+                        page = cursor.getInt(4),
+                        offset = cursor.getIntOrNull(5),
+                        scale = cursor.getFloat(6),
+                        translate = cursor.getFloat(7),
+                        bookLocation = cursor.getStringOrNull(9),
+                        isImage = cursor.getIntOrNull(10) == 1,
                     )
                 )
             }
@@ -1182,6 +1204,7 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
                 m.id AS bookmark_id,
                 m.book_id_fk AS book_id, 
                 m.title AS bookmark_title,
+                m.normalised_title AS normalised_title,
                 m.page AS bookmark_page, 
                 m.`offset` AS bookmark_offset, 
                 m.scale AS bookmark_scale, 
@@ -1203,13 +1226,14 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
                         tocId = null,
                         bookmarkId = cursor.getLongOrNull(0),
                         title = cursor.getString(2),
-                        bookTitle = cursor.getString(7),
+                        normalisedTitle = cursor.getStringOrNull(3) ?: "",
+                        bookTitle = cursor.getString(8),
                         bookId = cursor.getLongOrNull(1),
-                        page = cursor.getInt(3),
-                        offset = cursor.getIntOrNull(4),
-                        scale = cursor.getFloat(5),
-                        translate = cursor.getFloat(6),
-                        bookLocation = cursor.getStringOrNull(7),
+                        page = cursor.getInt(4),
+                        offset = cursor.getIntOrNull(5),
+                        scale = cursor.getFloat(6),
+                        translate = cursor.getFloat(7),
+                        bookLocation = cursor.getStringOrNull(8),
                     )
                 )
             }
@@ -1244,6 +1268,7 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
                 t.id AS toc_id,
                 t.parent_id AS parent_id,
                 t.title AS toc_title,
+                t.normalised_title AS normalised_title,
                 t.bookmark_id AS toc_bookmark_id,
                 t.page AS toc_page,
                 t.level AS toc_level,
@@ -1263,6 +1288,7 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
                     bookTitle = cursor.getStringOrNull(cursor.getColumnIndexOrThrow("book_name")),
                     parentId = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("parent_id")),
                     title = cursor.getString(cursor.getColumnIndexOrThrow("toc_title")),
+                    normalisedTitle = cursor.getString(cursor.getColumnIndexOrThrow("normalised_title")),
                     page = cursor.getInt(cursor.getColumnIndexOrThrow("toc_page")) - 1,
                     offset = null,
                     level = cursor.getInt(cursor.getColumnIndexOrThrow("toc_level")),
@@ -1342,7 +1368,7 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
             '⅞' to 0.875
         )
 
-        // Step 1: Replace unicode fractions with space-separated decimal value
+        // Step 1: Replace Unicode fractions with space-separated decimal value
         var qtyStr = trimmed
         var total = 0.0
 
@@ -1360,7 +1386,7 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
         val unicodeValue = qtyStr.mapNotNull { unicodeFractions[it] }.sum()
         total += unicodeValue
 
-        // Remove any unicode fraction characters from string
+        // Remove any Unicode fraction characters from string
         qtyStr = qtyStr.replace(Regex("[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]"), "").trim()
 
         // Step 3: Handle remaining numbers/fractions
@@ -1402,6 +1428,7 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
         val quantity = parseQuantity(volumeStr.trim())
         return Triple(quantity, volumeStr.trim(), ingredient.trim())
     }
+
     private fun convertGrams(gramsStr: String, originalCups: Float, targetCups: Double): String {
         return try {
             if ("to" in gramsStr) {
@@ -1421,13 +1448,6 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
             gramsStr // fallback if parsing fails
         }
     }
-    private fun normalizeQuotes(parsedIngredient: String?): String? {
-        return parsedIngredient
-            ?.replace("“", "\"")
-            ?.replace("”", "\"")
-            ?.replace("‘", "'")
-            ?.replace("’", "'")
-    }
 
     fun getChartConversion(searchedIngredient: String?): String {
         val db = readableDatabase
@@ -1440,7 +1460,7 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
         if (third != null) {
             parsedIngredient = third
         }
-        parsedIngredient = normalizeQuotes(parsedIngredient)
+        parsedIngredient = normalizeText(parsedIngredient ?: "")
         val first = parsedResult?.first
         val second = parsedResult?.second
         db.query(
@@ -1483,5 +1503,21 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
         }
 
         return result.toString().trim()
+    }
+
+    fun normalizeText(title: String): String {
+
+        // Remove diacritics
+        var normalized = Normalizer.normalize(title, Normalizer.Form.NFD)
+            .replace("\\p{InCombiningDiacriticalMarks}+".toRegex(), "")
+
+        // Replace curly quotes with straight quotes
+        normalized = normalized
+            .replace("’", "'")
+            .replace("‘", "'")
+            .replace("“", "\"")
+            .replace("”", "\"")
+
+        return normalized
     }
 }

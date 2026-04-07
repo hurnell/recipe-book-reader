@@ -22,7 +22,7 @@ data class SearchResult(
     val coordinates: Coordinates
 )
 
-class PdfSearchHelper(private val document: Document) {
+class PdfSearchHelper(private val document: Document,private val  repository: PdfRepository) {
 
     fun search(query: String, startPage: Int = 0): Flow<SearchResult> = flow {
         val pageCount = document.countPages()
@@ -30,7 +30,7 @@ class PdfSearchHelper(private val document: Document) {
         for (i in 0 until pageCount) {
             val currentIndex = (startPage + i) % pageCount
 
-            val result = processPage(currentIndex, query)
+            val result = processPage(currentIndex, query,)
 
             if (result != null) {
                 emit(result)
@@ -55,11 +55,8 @@ class PdfSearchHelper(private val document: Document) {
                         val lineBuilder = StringBuilder()
                         line.chars?.forEach { char -> lineBuilder.append(char.c.toChar()) }
                         val lineText = lineBuilder.toString().trim()
-                        val normalizedLine = lineText
-                            .replace("’", "'")
-                            .replace("‘", "'")
-                            .replace("“", "\"")
-                            .replace("”", "\"")
+                        val normalizedLine = repository.normalizeText( lineText)
+
                         if (normalizedLine.contains(query, ignoreCase = true)) {
                             matchingLines.add(lineText)
                             foundRectangles.add(line.bbox)

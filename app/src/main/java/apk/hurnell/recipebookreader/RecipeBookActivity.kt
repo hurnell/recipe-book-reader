@@ -696,6 +696,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                                     tocId = null,
                                     bookmarkId = null,
                                     title = "",
+                                    normalisedTitle = "",
                                     bookTitle = null,
                                     bookLocation,
                                     bookId = currentBookId,

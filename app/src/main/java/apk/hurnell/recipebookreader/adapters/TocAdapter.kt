@@ -46,12 +46,9 @@ class TocAdapter(
         } else {
             fun collectFiltered(items: List<TocItem>) {
                 for (item in items) {
-                    val normalizedTitle = item.title
-                        .replace("’", "'")
-                        .replace("‘", "'")
-                        .replace("“", "\"")
-                        .replace("”", "\"")
-                    if (normalizedTitle.contains(currentQuery, ignoreCase = true)) {
+                    val inTitle = item.title.contains(currentQuery, ignoreCase = true)
+                    val inNormalised = item.normalisedTitle.contains(currentQuery, ignoreCase = true)
+                    if (inTitle || inNormalised) {
                         visibleItems.add(item)
                     }
                     collectFiltered(item.children)

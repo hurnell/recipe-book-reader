@@ -58,7 +58,7 @@ class SearchActivity : AppCompatActivity() {
                 }
                 document = currentDocument
 
-                searchHelper = PdfSearchHelper(currentDocument)
+                searchHelper = PdfSearchHelper(currentDocument, repository)
             } catch (e: Exception) {
                 Log.e("NIGEL_HURNELL", "Error loading PDF", e)
                 finish()
