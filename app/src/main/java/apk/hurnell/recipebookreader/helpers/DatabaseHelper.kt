@@ -1,5 +1,6 @@
 package apk.hurnell.recipebookreader.helpers
 
+import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
@@ -344,7 +345,7 @@ class DatabaseHelper(private val context: Context) :
         val selectionArgs = if (currentCategory == "All") {
             arrayOf("%$currentText%", "%$currentText%")
         } else {
-            arrayOf("%$currentText%", "%$currentText%",  currentCategory)
+            arrayOf("%$currentText%", "%$currentText%", currentCategory)
         }
         val categoryFilter = if (currentCategory == "All") "" else "AND c.category = ?"
         val list = mutableListOf<TocItem>()
@@ -1012,7 +1013,10 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
                 stmt.bindString(2, item.title)
                 stmt.bindString(3, item.normalisedTitle)
                 stmt.bindLong(4, item.page.toLong())
-                if (item.offset != null) stmt.bindLong(5, item.offset.toLong()) else stmt.bindNull(5) // <-- fixed
+                if (item.offset != null) stmt.bindLong(
+                    5,
+                    item.offset.toLong()
+                ) else stmt.bindNull(5) // <-- fixed
                 stmt.bindDouble(6, item.scale.toDouble())
                 stmt.bindDouble(7, item.translate.toDouble())
                 stmt.bindString(8, uniqueKey)
@@ -1025,7 +1029,8 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
                 } else {
                     // Update toc with new bookmark_id
                     val values = ContentValues().apply { put("bookmark_id", rowId) }
-                    val updatedRows = db.update("toc", values, "id = ?", arrayOf(item.tocId.toString()))
+                    val updatedRows =
+                        db.update("toc", values, "id = ?", arrayOf(item.tocId.toString()))
                     if (updatedRows == 0) {
                         Log.w(LOG_TAG, "TOC row not updated, tocId=${item.tocId}")
                     }
@@ -1449,7 +1454,20 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
         }
     }
 
+    @SuppressLint("DefaultLocale")
     fun getChartConversion(searchedIngredient: String?): String {
+        if (searchedIngredient?.contains("°") == true) {
+            val parts = searchedIngredient.split("°")
+            val value = parts[0].toInt()
+            val unit = parts[1]
+            if (unit.lowercase() == "f") {
+                val celsius = (value - 32) * 5 / 9 * 1F
+                return "${celsius.toInt()}°C"
+            } else if (unit.lowercase() == "c") {
+                val fahrenheit = value * 9 / 5 + 32 * 1F
+                return "${fahrenheit.toInt()}°F"
+            }
+        }
         val db = readableDatabase
         val result = StringBuilder()
 
