@@ -144,7 +144,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         private const val LINK_STATE_LINKS_ON = 0
         private const val LINK_STATE_LINKS_OFF = 1
         private const val LINK_STATE_BOOKMARKS = 2
-        private const val COPY_TEXT_MAX = 7f
+        private const val COPY_TEXT_MAX = 12f
         private const val COPY_TEXT_MIN = 0f
     }
 
