@@ -36,5 +36,8 @@
 
     <style name="App.Dialog.Title.Text" parent="MaterialAlertDialog.Material3.Title.Text">
         <item name="android:textColor">@color/nav_text</item>
+        <item name="android:textAlignment">center</item>
+        <item name="android:gravity">center</item>
+        <item name="android:layout_width">match_parent</item>
     </style>
 </resources>
