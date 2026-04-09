@@ -5,7 +5,9 @@ import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.os.Environment
 import android.provider.Settings
+import android.util.Log
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.HorizontalScrollView
 import android.widget.ImageButton
@@ -27,6 +29,7 @@ import androidx.lifecycle.lifecycleScope
 import apk.hurnell.recipebookreader.databinding.ActivityFileBrowserBinding
 import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.model.BaseTracker
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
@@ -125,8 +128,8 @@ class FileBrowserActivity : BaseDrawerActivity() {
             if (parent != null) {
                 showFiles(parent)
             }
-        } else if(!fullyCloseFromFileBrowser){
-            handleBackPressLogic(true){
+        } else if (!fullyCloseFromFileBrowser) {
+            handleBackPressLogic(true) {
                 addToHistory = false
                 lifecycleScope.launch {
                     dataStoreManager.deleteCurrentFileDirectory(pdfOnly, deleteTracker, true)
@@ -183,45 +186,46 @@ class FileBrowserActivity : BaseDrawerActivity() {
     private fun showImageActionDialog(file: File) {
         val dialogView = layoutInflater.inflate(R.layout.cover_image_preview, null)
         val previewImage = dialogView.findViewById<ImageView>(R.id.previewImage)
-        val previewName = dialogView.findViewById<TextView>(R.id.previewBookName)
-        val btnAccept = dialogView.findViewById<Button>(R.id.btnAccept)
-        val btnCancel = dialogView.findViewById<Button>(R.id.btnCancel)
-        previewName.text = targetBookName
         val originalBitmap = BitmapFactory.decodeFile(file.absolutePath)
         previewImage.setImageBitmap(originalBitmap)
 
-        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+        val dialog = MaterialAlertDialogBuilder(this,
+            R.style.ThemeOverlay_App_MaterialAlertDialog)
+            .setTitle(targetBookName)
             .setView(dialogView)
-            .create()
+            .setNegativeButton("Cancel") { dialog, _ ->
+                originalBitmap.recycle()
+                dialog.dismiss()
+            }.setPositiveButton("Accept") { _, _ ->
+                val targetWidth = 200
+                val targetHeight = 300
 
-        btnCancel.setOnClickListener {
-            originalBitmap.recycle()
-            dialog.dismiss()
-        }
+                val scaledBitmap = originalBitmap.scale(targetWidth, targetHeight)
 
-        btnAccept.setOnClickListener {
-            val targetWidth = 200
-            val targetHeight = 300
-
-            val scaledBitmap = originalBitmap.scale(targetWidth, targetHeight)
-
-            val saveSha = targetSha ?: file.nameWithoutExtension
-            val success = saveBitmapAsCover(scaledBitmap, saveSha)
+                val saveSha = targetSha ?: file.nameWithoutExtension
+                val success = saveBitmapAsCover(scaledBitmap, saveSha)
 
 
-            originalBitmap.recycle()
-            scaledBitmap.recycle()
-            dialog.dismiss()
-            if (success) {
-                val resultIntent = Intent().apply {
-                    putExtra("updated_sha", saveSha)
+                originalBitmap.recycle()
+                scaledBitmap.recycle()
+                if (success) {
+                    val resultIntent = Intent().apply {
+                        putExtra("updated_sha", saveSha)
+                    }
+                    repository.updateIsAlternateCover(saveSha, 1)
+                    setResult(RESULT_OK, resultIntent)
+                    finish()
                 }
-                repository.updateIsAlternateCover(saveSha, 1)
-                setResult(RESULT_OK, resultIntent)
-                finish()
             }
-        }
-
+            .create()
+        dialog.window?.setLayout(
+            (resources.displayMetrics.widthPixels * 0.95).toInt(), // 95% of screen width
+            ViewGroup.LayoutParams.WRAP_CONTENT // height wraps content
+        )
+        dialog.window?.setSoftInputMode(
+            android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN
+        )
+        dialog.window?.setBackgroundDrawableResource(R.drawable.alert_background)
         dialog.show()
     }
 
@@ -368,7 +372,11 @@ class FileBrowserActivity : BaseDrawerActivity() {
                                 0
                             )
                             addToHistory = false
-                            dataStoreManager.deleteCurrentFileDirectory(pdfOnly,deleteTracker, true)
+                            dataStoreManager.deleteCurrentFileDirectory(
+                                pdfOnly,
+                                deleteTracker,
+                                true
+                            )
                             showFiles(file)
                         }
                     }
