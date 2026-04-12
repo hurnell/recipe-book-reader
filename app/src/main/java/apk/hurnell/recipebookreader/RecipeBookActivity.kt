@@ -231,7 +231,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
             }
 
             override fun onActionItemClicked(mode: ActionMode?, item: MenuItem?): Boolean {
-                return true
+                return false
             }
 
             override fun onDestroyActionMode(mode: ActionMode?) {
