@@ -2,6 +2,7 @@ package apk.hurnell.recipebookreader
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.SearchManager
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.res.ColorStateList
@@ -88,6 +89,8 @@ import apk.hurnell.recipebookreader.model.Book
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.google.gson.annotations.SerializedName
+import androidx.core.view.size
+import androidx.core.view.get
 
 data class RecipeBookTracker(
     @SerializedName("portrait") val portrait: Boolean?,
@@ -222,16 +225,43 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         }
         copyText?.customSelectionActionModeCallback = object : ActionMode.Callback {
             override fun onCreateActionMode(mode: ActionMode?, menu: Menu?): Boolean {
+                menu?.add(0, 1001, 0, "Internet Search")
                 btnShowMeasurement?.visibility = View.VISIBLE
                 return true
             }
 
             override fun onPrepareActionMode(mode: ActionMode?, menu: Menu?): Boolean {
+                menu?.let {
+                    for (i in it.size - 1 downTo 0) {
+                        val item = it[i]
+
+                        if (item.title in listOf("Translate", "Share", "Manage apps", "Writing toolkit")) {
+                            it.removeItem(item.itemId)
+                        }
+                    }
+                }
                 return false
             }
 
             override fun onActionItemClicked(mode: ActionMode?, item: MenuItem?): Boolean {
-                return false
+                return when (item?.itemId) {
+                    1001 -> {
+                        val start: Int? = copyText?.selectionStart
+                        val end: Int? = copyText?.selectionEnd
+                        if (start != null && end != null) {
+                            val selectedText = copyText?.text
+                                ?.substring(start, end)
+
+                            val intent = Intent(Intent.ACTION_WEB_SEARCH).apply {
+                                putExtra(SearchManager.QUERY, selectedText)
+                            }
+                            copyText?.context?.startActivity(intent)
+                        }
+                        mode?.finish()
+                        true
+                    }
+                    else -> false
+                }
             }
 
             override fun onDestroyActionMode(mode: ActionMode?) {
