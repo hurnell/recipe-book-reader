@@ -930,7 +930,7 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
             FROM books AS b 
             LEFT JOIN toc AS t ON b.id = t.book_id_fk 
             LEFT JOIN categories AS c ON b.category = c.id OR b.sub_category = c.id
-            WHERE t.title LIKE ? OR t.normalised_title LIKE ?
+            WHERE (t.title LIKE ? OR t.normalised_title LIKE ?)
             $categoryFilter
             GROUP BY t.id 
         )
