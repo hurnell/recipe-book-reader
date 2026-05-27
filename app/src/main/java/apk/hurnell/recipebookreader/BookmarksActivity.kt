@@ -14,6 +14,7 @@ import apk.hurnell.recipebookreader.databinding.DialogBookmarkBinding
 import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.model.BaseTracker
 import apk.hurnell.recipebookreader.model.BookmarkItem
+import apk.hurnell.recipebookreader.model.CategoryItem
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.flow.firstOrNull
@@ -52,7 +53,8 @@ class BookmarksActivity : BaseDrawerActivity() {
             override fun onItemSelected(
                 parent: AdapterView<*>, view: View?, position: Int, id: Long
             ) {
-                currentCategory = parent.getItemAtPosition(position) as String
+                val item = parent.getItemAtPosition(position) as CategoryItem
+                currentCategory = item.category
                 reloadBookmarks(true)
             }
 

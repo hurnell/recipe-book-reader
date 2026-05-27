@@ -8,6 +8,7 @@ import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.graphics.Typeface
 import android.os.Bundle
 import android.os.Environment
@@ -43,6 +44,7 @@ import apk.hurnell.recipebookreader.helpers.HistoryEntry
 import apk.hurnell.recipebookreader.helpers.PdfRepository
 import apk.hurnell.recipebookreader.model.BaseBookmarkTocItem
 import apk.hurnell.recipebookreader.model.Book
+import apk.hurnell.recipebookreader.model.CategoryItem
 import apk.hurnell.recipebookreader.ui.EditableCategoryView
 import apk.hurnell.recipebookreader.ui.EditableTextView
 import com.artifex.mupdf.fitz.Document
@@ -79,11 +81,12 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
 
     protected var pdfOnly: Boolean = false
     protected lateinit var repository: PdfRepository
-    protected var categories = mutableListOf("All")
+    protected var categories = mutableListOf<String>()
     protected var currentCategory = "All"
     protected lateinit var spinner: Spinner
     protected var closeAppConfirmed: Boolean = false
 
+    protected var currentSearchTerm: String = "" /// TOC SEARCH TERM
     protected lateinit var loadingOverlay: LinearLayout
 
     protected var overlayContainer: FrameLayout? = null
@@ -478,15 +481,45 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
     }
 
     protected fun refreshCategories() {
-        val usedCategories = repository.getUsedCategories(this::class.simpleName)
+        val activityName = this::class.simpleName
+        val usedCategories = repository.getUsedCategories(activityName, currentSearchTerm)
+        val list = mutableListOf<CategoryItem>()
+        list.add(CategoryItem("All", null))
 
-        val set = LinkedHashSet<String>()
-        set.add("All")
-        usedCategories.forEach { if (it.isNotBlank()) set.add(it) }
+        usedCategories.forEach { item ->
+            categories.add(item.category)
+        }
+        val activeColor = ContextCompat.getColor(this, R.color.nav_text)
+        val disabledColor = ContextCompat.getColor(this, R.color.disabled_nav)
 
-        categories = set.toMutableList()
+        val adapter = object : ArrayAdapter<CategoryItem>(
+            this,
+            android.R.layout.simple_spinner_item,
+            usedCategories
+        ) {
+            override fun isEnabled(position: Int): Boolean {
+                return getItem(position)?.count != 0
+            }
 
-        val adapter = ArrayAdapter(this, R.layout.list_item_spinner_item, categories)
+            override fun getDropDownView(
+                position: Int,
+                convertView: View?,
+                parent: ViewGroup
+            ): View {
+                val view = super.getDropDownView(position, convertView, parent)
+                val tv = view as TextView
+
+                val item = getItem(position)
+                val color = when (item?.count) {
+                    0 -> disabledColor
+                    else -> activeColor
+                }
+                tv.setTextColor(color)
+                tv.text = item?.category ?: ""
+
+                return view
+            }
+        }
         adapter.setDropDownViewResource(R.layout.list_item_spinner_item)
         spinner.adapter = adapter
     }

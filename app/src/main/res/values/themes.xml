@@ -10,7 +10,13 @@
         <item name="android:textColorSecondary">@color/dark_text</item>
         <item name="android:windowLightNavigationBar">true</item>
         <item name="android:textCursorDrawable">@null</item>
+        <item name="android:spinnerItemStyle">@style/mySpinnerItemSelectedStyle</item>
+
     </style>
+    <style name="mySpinnerItemSelectedStyle" parent="@android:style/Widget.Holo.TextView.SpinnerItem">
+        <item name="android:textColor">@color/nav_text</item>
+    </style>
+
     <style name="FileBrowserToolbarTheme" parent="ThemeOverlay.AppCompat.ActionBar">
         <item name="colorControlNormal">@color/nav_text</item>
         <item name="actionMenuTextColor">@color/nav_text</item>

@@ -7,6 +7,7 @@ import apk.hurnell.recipebookreader.model.BookHistoryItem
 import apk.hurnell.recipebookreader.model.BookInfo
 import apk.hurnell.recipebookreader.model.BookmarkItem
 import apk.hurnell.recipebookreader.model.Category
+import apk.hurnell.recipebookreader.model.CategoryItem
 import apk.hurnell.recipebookreader.model.FileItem
 import apk.hurnell.recipebookreader.model.RecentFile
 import apk.hurnell.recipebookreader.model.Row
@@ -94,8 +95,8 @@ class PdfRepository(
         return dbHelper.getBookInfoForItemPath(path)
     }
 
-    fun getUsedCategories(activityName: String?): Collection<String> {
-        return dbHelper.getUsedCategories(activityName)
+    fun getUsedCategories(activityName: String?, currentSearchTerm: String): List<CategoryItem> {
+        return dbHelper.getUsedCategories(activityName, currentSearchTerm)
     }
 
     fun getBookShelfBooks(category: String): List<FileItem> {

@@ -10,6 +10,7 @@ import apk.hurnell.recipebookreader.adapters.BookShelfAdapter
 import apk.hurnell.recipebookreader.databinding.ActivityBookShelfBinding
 import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.model.BaseTracker
+import apk.hurnell.recipebookreader.model.CategoryItem
 import apk.hurnell.recipebookreader.model.FileItem
 import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.flow.firstOrNull
@@ -47,7 +48,8 @@ class BookShelfActivity : BaseDrawerActivity() {
                 position: Int,
                 id: Long
             ) {
-                val selectedCategory = parent.getItemAtPosition(position) as String
+                val item = parent.getItemAtPosition(position) as CategoryItem
+                val selectedCategory = item.category
                 populateShelf(selectedCategory)
             }
 

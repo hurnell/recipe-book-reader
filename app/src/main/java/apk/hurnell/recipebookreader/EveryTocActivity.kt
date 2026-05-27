@@ -16,6 +16,7 @@ import androidx.lifecycle.lifecycleScope
 import apk.hurnell.recipebookreader.databinding.ActivityEveryTocBinding
 import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.model.BaseTracker
+import apk.hurnell.recipebookreader.model.CategoryItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -37,10 +38,10 @@ class EveryTocActivity : BaseDrawerActivity() {
     private var _binding: ActivityEveryTocBinding? = null
     private val binding get() = _binding!!
     private var searchJob: Job? = null
+    private var ignoreCategoryChange: Boolean = false
     private lateinit var adapter: EveryTocAdapter
     private var lastScrollPosition = 0
     private var lastScrollOffset = 0
-    private var currentSearchTerm: String = ""
     private var currentCount: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -59,8 +60,13 @@ class EveryTocActivity : BaseDrawerActivity() {
                 position: Int,
                 id: Long
             ) {
-                currentCategory = parent.getItemAtPosition(position) as String
-                applyChosenTextAndCategory()
+                val item = parent.getItemAtPosition(position) as CategoryItem
+                currentCategory = item.category
+                if (!ignoreCategoryChange) {
+                    applyChosenTextAndCategory()
+                    view?.hideKeyboard()
+                }
+                ignoreCategoryChange = false
             }
 
             override fun onNothingSelected(parent: AdapterView<*>) {
@@ -275,6 +281,11 @@ class EveryTocActivity : BaseDrawerActivity() {
                     } else {
                         currentCount = ""
                     }
+                    ignoreCategoryChange = true
+                    val position = categories.indexOf(currentCategory)
+
+                    refreshCategories()
+                    spinner.setSelection(position)
                     binding.resultCountTextView.text = currentCount
 
                 }

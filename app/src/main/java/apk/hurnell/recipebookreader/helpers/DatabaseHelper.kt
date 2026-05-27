@@ -32,6 +32,7 @@ import apk.hurnell.recipebookreader.model.FileItem
 import androidx.core.graphics.createBitmap
 import apk.hurnell.recipebookreader.model.BookHistoryItem
 import apk.hurnell.recipebookreader.model.BookmarkItem
+import apk.hurnell.recipebookreader.model.CategoryItem
 import apk.hurnell.recipebookreader.model.Row
 import apk.hurnell.recipebookreader.model.TocItem
 import kotlinx.coroutines.Dispatchers
@@ -645,9 +646,10 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
         return list
     }
 
-    fun getCategoriesForBookmarks(): List<String> {
+    fun getCategoriesForBookmarks(): List<CategoryItem> {
         val db = readableDatabase
-        val list = mutableListOf<String>()
+        val list = mutableListOf<CategoryItem>()
+        list.add(CategoryItem("All", null))
         val sql = """
             SELECT c.category  AS used_categories
             FROM books AS b
@@ -672,20 +674,77 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
         val cursor = db.rawQuery(
             sql, null
         )
-        cursor.use {
-            while (it.moveToNext()) {
-                list.add(it.getString(0))
+        cursor.use { cursor ->
+            while (cursor.moveToNext()) {
+                val item = CategoryItem(cursor.getString(0), null)
+                list.add(item)
             }
         }
         return list
     }
 
-    fun getUsedCategories(activityName: String?): List<String> {
+    fun getCategoriesForToc(currentSearchTerm: String): List<CategoryItem> {
+        val db = readableDatabase
+        val list = mutableListOf<CategoryItem>()
+        list.add(CategoryItem("All", null))
+        val selectionArgs = arrayOf("%$currentSearchTerm%", "%$currentSearchTerm%", "%$currentSearchTerm%", "%$currentSearchTerm%")
+        val sql = """
+            SELECT 
+                c.category AS used_category,
+                COUNT(toc.id) AS toc_count
+            FROM books b
+            LEFT JOIN categories c
+                ON c.id = b.category
+            LEFT JOIN toc
+                ON toc.book_id_fk = b.id
+               AND (
+                    toc.title LIKE  ?
+                    OR toc.normalised_title LIKE  ?
+               )
+            WHERE c.category IS NOT NULL
+            GROUP BY c.category
+            
+            UNION
+            
+            SELECT 
+                sc.category AS used_category,
+                COUNT(toc.id) AS toc_count
+            FROM books b
+            LEFT JOIN categories sc
+                ON sc.id = b.sub_category
+            LEFT JOIN toc
+                ON toc.book_id_fk = b.id
+               AND (
+                    toc.title LIKE  ?
+                    OR toc.normalised_title LIKE  ?
+               )
+            WHERE sc.category IS NOT NULL
+            GROUP BY sc.category
+            
+            ORDER BY used_category;
+        """.trimIndent()
+        val cursor = db.rawQuery(
+            sql, selectionArgs
+        )
+        cursor.use {cursor ->
+            while (cursor.moveToNext()) {
+                val item = CategoryItem(cursor.getString(0), cursor.getInt(1))
+                list.add(item)
+            }
+        }
+        return list
+    }
+
+    fun getUsedCategories(activityName: String?, currentSearchTerm: String): List<CategoryItem> {
         if (activityName == "BookmarksActivity") {
             return getCategoriesForBookmarks()
         }
+        if (activityName == "EveryTocActivity" && currentSearchTerm != "") {
+            return getCategoriesForToc(currentSearchTerm)
+        }
         val db = readableDatabase
-        val list = mutableListOf<String>()
+        val list = mutableListOf<CategoryItem>()
+        list.add(CategoryItem("All", null))
         val sql = """
             SELECT c.category AS used_categories
             FROM books AS b
@@ -706,9 +765,10 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
         val cursor = db.rawQuery(
             sql, null
         )
-        cursor.use {
-            while (it.moveToNext()) {
-                list.add(it.getString(0))
+        cursor.use {cursor ->
+            while (cursor.moveToNext()) {
+                val item = CategoryItem(cursor.getString(0), null)
+                list.add(item)
             }
         }
         return list
