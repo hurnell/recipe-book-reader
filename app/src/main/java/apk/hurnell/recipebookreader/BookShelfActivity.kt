@@ -145,7 +145,41 @@ class BookShelfActivity : BaseDrawerActivity() {
             it.bookInfo?.mainCategory ?: ""
         })
         val minSlots = filteredBooks.size.coerceAtLeast(15)
-
+        if (!fromSaved) {
+            var mainCategory = filteredBooks
+                .map { it.bookInfo?.mainCategory }
+                .distinct()
+                .singleOrNull()
+            val bookMessage = if (filteredBooks.size == 1 && mainCategory != "Cookbooks") {
+                " book"
+            } else if (mainCategory != "Cookbooks") {
+                " books"
+            } else {
+                ""
+            }
+            if (mainCategory == "Cookbooks" && filteredBooks.size == 1) {
+                mainCategory = "Cookbook"
+            }
+            if (mainCategory == null) {
+                mainCategory = ""
+            }
+            val forMessage = when (category) {
+                "All" -> {
+                    ""
+                }
+                "Cookbooks" if (mainCategory == "Cookbook" || mainCategory == "Cookbooks") -> {
+                    ""
+                }
+                mainCategory -> {
+                    ""
+                }
+                else -> {
+                    " $category"
+                }
+            }
+            val message = "Showing ${filteredBooks.size}$forMessage $mainCategory$bookMessage"
+            displaySnackBarMessage(message, binding.rootLayout)
+        }
         val totalSlotsNeeded = if (minSlots % 3 == 0) {
             minSlots
         } else {
