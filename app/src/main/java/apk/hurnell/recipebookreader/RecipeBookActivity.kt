@@ -562,6 +562,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     }
 
     private fun handleBaseBookmarkTocItemNavigation(item: BaseBookmarkTocItem) {
+        repository.addRecentRecipeItem(item)
         binding.bookRecyclerView.scrollToPosition(item.page)
         if (item is TocItem) {
             lastTocId = item.tocId
