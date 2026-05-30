@@ -104,7 +104,21 @@ ON t.book_id_fk = b.id;
         scale REAL
     );
 ```
-
+```sqldelight
+   DROP TABLE IF EXISTS recent_recipes;
+   CREATE TABLE recent_recipes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    book_id_fk INTEGER DEFAULT NULL,
+    title TEXT NOT NULL,
+    normalised_title TEXT DEFAULT NULL,
+    page INTEGER NOT NULL,
+    offset REAL DEFAULT NULL,
+    scale REAL NOT NULL,
+    translate REAL NOT NULL,
+    is_image INTEGER DEFAULT 0,
+    last_opened INTEGER DEFAULT NULL
+);
+```
 ### The conversion table
 ```sqldelight
     DROP TABLE IF EXISTS weight_chart;

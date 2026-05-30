@@ -30,9 +30,11 @@ import com.artifex.mupdf.fitz.android.AndroidDrawDevice
 import apk.hurnell.recipebookreader.model.BookInfo
 import apk.hurnell.recipebookreader.model.FileItem
 import androidx.core.graphics.createBitmap
+import apk.hurnell.recipebookreader.model.BaseBookmarkTocItem
 import apk.hurnell.recipebookreader.model.BookHistoryItem
 import apk.hurnell.recipebookreader.model.BookmarkItem
 import apk.hurnell.recipebookreader.model.CategoryItem
+import apk.hurnell.recipebookreader.model.RecentRecipeItem
 import apk.hurnell.recipebookreader.model.Row
 import apk.hurnell.recipebookreader.model.TocItem
 import kotlinx.coroutines.Dispatchers
@@ -687,7 +689,12 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
         val db = readableDatabase
         val list = mutableListOf<CategoryItem>()
         list.add(CategoryItem("All", null))
-        val selectionArgs = arrayOf("%$currentSearchTerm%", "%$currentSearchTerm%", "%$currentSearchTerm%", "%$currentSearchTerm%")
+        val selectionArgs = arrayOf(
+            "%$currentSearchTerm%",
+            "%$currentSearchTerm%",
+            "%$currentSearchTerm%",
+            "%$currentSearchTerm%"
+        )
         val sql = """
             SELECT 
                 c.category AS used_category,
@@ -726,7 +733,7 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
         val cursor = db.rawQuery(
             sql, selectionArgs
         )
-        cursor.use {cursor ->
+        cursor.use { cursor ->
             while (cursor.moveToNext()) {
                 val item = CategoryItem(cursor.getString(0), cursor.getInt(1))
                 list.add(item)
@@ -765,7 +772,7 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
         val cursor = db.rawQuery(
             sql, null
         )
-        cursor.use {cursor ->
+        cursor.use { cursor ->
             while (cursor.moveToNext()) {
                 val item = CategoryItem(cursor.getString(0), null)
                 list.add(item)
@@ -1597,5 +1604,134 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
             .replace("”", "\"")
 
         return normalized
+    }
+
+    fun addRecentRecipeItem(item: BaseBookmarkTocItem): Boolean {
+        deleteRecentRecipe(item)
+        cleanupRecentRecipes()
+        val db = writableDatabase
+        val insertSql = """
+        INSERT OR IGNORE INTO recent_recipes 
+        (book_id_fk, title, normalised_title, page, `offset`, scale, translate, last_opened)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """.trimIndent()
+
+        try {
+            db.compileStatement(insertSql).use { stmt ->
+                // Bind parameters safely
+                if (item.bookId != null) stmt.bindLong(1, item.bookId!!) else stmt.bindNull(1)
+                stmt.bindString(2, item.title)
+                stmt.bindString(3, item.normalisedTitle)
+                stmt.bindLong(4, item.page.toLong())
+                if (item.offset != null) stmt.bindLong(
+                    5,
+                    item.offset!!.toLong()
+                ) else stmt.bindNull(5) // <-- fixed
+                stmt.bindDouble(6, item.scale.toDouble())
+                stmt.bindDouble(7, item.translate.toDouble())
+                stmt.bindLong(8, System.currentTimeMillis())
+                val rowId = stmt.executeInsert()
+                if (rowId == -1L) {
+
+                    return false
+                } else {
+                    // Update toc with new bookmark_id
+                    val values = ContentValues().apply { put("bookmark_id", rowId) }
+                    val updatedRows =
+                        db.update("toc", values, "id = ?", arrayOf(item.tocId.toString()))
+                    if (updatedRows == 0) {
+                        Log.w(LOG_TAG, "Recent recipe row not updated, rowId=${item.tocId}")
+                    }
+                    Log.d(LOG_TAG, "Recent recipe inserted successfully, rowId=$rowId")
+                    return true
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(LOG_TAG, "Failed to insert Recent recipe: ${e.message}", e)
+            return false
+        }
+    }
+
+
+    fun getAllRecentRecipes(): List<RecentRecipeItem> {
+        val db = readableDatabase
+        val cursor = db.rawQuery(
+            """
+            SELECT 
+                m.id AS recent_recipe_id,
+                m.book_id_fk AS book_id, 
+                m.title AS recent_recipe_title, 
+                m.normalised_title AS normalised_title, 
+                m.page AS recent_recipe_page, 
+                m.`offset` AS recent_recipe_offset, 
+                m.scale AS recent_recipe_scale, 
+                m.translate AS recent_recipe_translate,
+                b.name AS book_tite,
+                b.location AS book_location,
+                m.is_image AS recent_recipe_is_image,
+                m.last_opened AS recent_recipe_last_opened
+            FROM recent_recipes AS m
+            LEFT JOIN books AS  b
+            ON m.book_id_fk = b.id
+            GROUP BY m.book_id_fk, m.title, m.page
+            ORDER BY m.last_opened DESC
+        """.trimIndent(), null
+        )
+        val recentRecipes = mutableListOf<RecentRecipeItem>()
+        cursor.use { cursor ->
+            while (cursor.moveToNext()) {
+                recentRecipes.add(
+                    RecentRecipeItem(
+                        tocId = null,
+                        recentRecipeId = cursor.getLongOrNull(0),
+                        title = cursor.getString(2),
+                        lastOpened = cursor.getLongOrNull(11),
+                        normalisedTitle = cursor.getString(3),
+                        bookTitle = cursor.getString(8),
+                        bookId = cursor.getLongOrNull(1),
+                        page = cursor.getInt(4),
+                        offset = cursor.getIntOrNull(5),
+                        scale = cursor.getFloat(6),
+                        translate = cursor.getFloat(7),
+                        bookLocation = cursor.getStringOrNull(9),
+                        isImage = cursor.getIntOrNull(10) == 1,
+                    )
+                )
+            }
+        }
+        return recentRecipes
+    }
+
+    fun deleteRecentRecipe(item: BaseBookmarkTocItem): Boolean {
+        val db = writableDatabase
+        db.beginTransaction()
+
+        return try {
+            db.delete(
+                "recent_recipes",
+                "book_id_fk = ? AND title = ? AND page = ?",
+                arrayOf(item.bookId.toString(), item.title, item.page.toString())
+            )
+
+            db.setTransactionSuccessful()
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        } finally {
+            db.endTransaction()
+        }
+    }
+
+    fun cleanupRecentRecipes() {
+        writableDatabase.execSQL("""
+        DELETE FROM recent_recipes
+        WHERE id NOT IN (
+            SELECT id
+            FROM recent_recipes
+            ORDER BY last_opened DESC
+            LIMIT 20
+        )
+    """.trimIndent())
     }
 }

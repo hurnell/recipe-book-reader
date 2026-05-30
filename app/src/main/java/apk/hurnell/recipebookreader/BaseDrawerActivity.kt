@@ -235,6 +235,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                 "apk.hurnell.recipebookreader.EveryTocActivity",
                 "apk.hurnell.recipebookreader.RecentBooksActivity",
                 "apk.hurnell.recipebookreader.FileBrowserActivity",
+                "apk.hurnell.recipebookreader.RecentRecipesActivity",
             )
 
             if (lastActivityName == "apk.hurnell.recipebookreader.RecipeBookActivity") {
@@ -529,6 +530,9 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         bookmarkTocItem: BaseBookmarkTocItem? = null,
         recipeBookState: RecipeBookTracker? = null
     ) {
+        if (bookmarkTocItem != null) {
+            repository.addRecentRecipeItem(bookmarkTocItem)
+        }
         loadingOverlay.visibility = View.VISIBLE
         lifecycleScope.launch(Dispatchers.IO) {
             try {

@@ -76,5 +76,7 @@
     <string name="also_delete_file">Also delete file</string>
     <string name="show_title_on_volume_press">Show Table of Contents Title</string>
     <string name="show_table_of_contents_title_on_volume_click">Show toc item title on volume click</string>
+    <string name="recent_recipes">Recent Recipes</string>
+    <string name="placeholder_recent_recipe_list_item_recent_recipes">Placeholder recent recipe list item recent recipes</string>
 
 </resources>

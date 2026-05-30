@@ -2,6 +2,7 @@ package apk.hurnell.recipebookreader.helpers
 
 import android.content.Context
 import android.util.Log
+import apk.hurnell.recipebookreader.model.BaseBookmarkTocItem
 import apk.hurnell.recipebookreader.model.Book
 import apk.hurnell.recipebookreader.model.BookHistoryItem
 import apk.hurnell.recipebookreader.model.BookInfo
@@ -10,6 +11,7 @@ import apk.hurnell.recipebookreader.model.Category
 import apk.hurnell.recipebookreader.model.CategoryItem
 import apk.hurnell.recipebookreader.model.FileItem
 import apk.hurnell.recipebookreader.model.RecentFile
+import apk.hurnell.recipebookreader.model.RecentRecipeItem
 import apk.hurnell.recipebookreader.model.Row
 import apk.hurnell.recipebookreader.model.TocItem
 import com.artifex.mupdf.fitz.Document
@@ -141,6 +143,10 @@ class PdfRepository(
         return dbHelper.getAllBookmarks(currentCategory)
     }
 
+    fun getAllRecentRecipes(): List<RecentRecipeItem> {
+        return dbHelper.getAllRecentRecipes()
+    }
+
 
     fun getBookHistory(bookId: Long): List<BookHistoryItem> {
         return dbHelper.getBookHistory(bookId)
@@ -215,5 +221,9 @@ class PdfRepository(
 
     fun normalizeText(title: String): String {
         return dbHelper.normalizeText(title)
+    }
+
+    fun addRecentRecipeItem(bookmarkTocItem: BaseBookmarkTocItem): Boolean {
+        return dbHelper.addRecentRecipeItem(bookmarkTocItem)
     }
 }

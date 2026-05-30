@@ -14,6 +14,7 @@ import apk.hurnell.recipebookreader.BookmarksActivity
 import apk.hurnell.recipebookreader.EveryTocActivity
 import apk.hurnell.recipebookreader.FileBrowserActivity
 import apk.hurnell.recipebookreader.RecentBooksActivity
+import apk.hurnell.recipebookreader.RecentRecipesActivity
 import apk.hurnell.recipebookreader.databinding.FragmentControlBinding
 
 class ControlFragment : Fragment() {
@@ -88,6 +89,13 @@ class ControlFragment : Fragment() {
         binding.btnBookmarks.setOnClickListener {
             if (getCurrentActivity() != "BookmarksActivity") {
                 navigateTo(BookmarksActivity::class.java)
+            } else {
+                closeDrawer()
+            }
+        }
+        binding.btnRecentRecipes.setOnClickListener {
+            if (getCurrentActivity() != "RecentRecipesActivity") {
+                navigateTo(RecentRecipesActivity::class.java)
             } else {
                 closeDrawer()
             }

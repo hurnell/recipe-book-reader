@@ -63,6 +63,12 @@
             android:exported="true">
         </activity>
         <activity
+            android:name=".RecentRecipesActivity"
+            android:enableOnBackInvokedCallback="false"
+            android:windowSoftInputMode="adjustResize"
+            android:exported="true">
+        </activity>
+        <activity
             android:name=".SearchActivity"
             android:enableOnBackInvokedCallback="false"
             android:windowSoftInputMode="adjustResize"
