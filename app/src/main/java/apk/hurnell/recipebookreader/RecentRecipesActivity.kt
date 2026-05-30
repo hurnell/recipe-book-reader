@@ -111,6 +111,11 @@ class RecentRecipesActivity : BaseDrawerActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        reloadRecentRecipes(true)
+    }
+
     override fun onPause() {
         super.onPause()
         saveRecentRecipesActivity()
