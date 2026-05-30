@@ -11,12 +11,17 @@ import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.adapters.RecentRecipesAdapter
 import apk.hurnell.recipebookreader.databinding.ActivityRecentRecipesBinding
 import apk.hurnell.recipebookreader.helpers.DataStoreManager
+import apk.hurnell.recipebookreader.model.BaseTracker
 import apk.hurnell.recipebookreader.model.CategoryItem
 import apk.hurnell.recipebookreader.model.RecentRecipeItem
+import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.io.File
 
+data class RecentRecipesTracker(
+    @SerializedName("offset") val offset: Int?
+) : BaseTracker()
 
 class RecentRecipesActivity : BaseDrawerActivity() {
 
@@ -73,7 +78,7 @@ class RecentRecipesActivity : BaseDrawerActivity() {
 
     fun populateAdapter() {
         lifecycleScope.launch {
-            val tracker = dataStoreManager.bookmarksState.firstOrNull()
+            val tracker = dataStoreManager.recentRecipeState.firstOrNull()
             if (tracker != null) {
                 val layoutManager =
                     binding.bookmarksRecyclerView.layoutManager as? LinearLayoutManager
@@ -94,7 +99,15 @@ class RecentRecipesActivity : BaseDrawerActivity() {
         lifecycleScope.launch {
             dataStoreManager.saveLastActivity(this@RecentRecipesActivity::class.java.name)
 
-
+            val currentTracker = RecentRecipesTracker(
+                offset = 0
+            )
+            dataStoreManager.saveTracker(
+                DataStoreManager.RECENT_RECIPES_KEY,
+                currentTracker,
+                saveCurrent = true,
+                addToHistory = true
+            )
         }
     }
 

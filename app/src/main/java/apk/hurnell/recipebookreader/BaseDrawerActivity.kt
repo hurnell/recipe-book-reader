@@ -440,6 +440,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
             "BookShelfActivity" -> "bookshelf_tracker"
             "EveryTocActivity" -> "every_toc_tracker"
             "RecentBooksActivity" -> "recent_books_tracker"
+            "RecentRecipesActivity" -> "recent_recipes_tracker"
             else -> null
         }
     }
@@ -453,6 +454,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
             "image_file_browser_tracker" -> "apk.hurnell.recipebookreader.FileBrowserActivity"
             "recent_books_tracker" -> "apk.hurnell.recipebookreader.RecentBooksActivity"
             "recipe_book_tracker" -> "apk.hurnell.recipebookreader.RecipeBookActivity"
+            "recent_recipes_tracker" -> "apk.hurnell.recipebookreader.RecentRecipesActivity"
             else -> fallback
         }
     }
@@ -993,6 +995,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
             }
             ?.start()
     }
+
     private fun closeKeyboard() {
         val view = this.currentFocus
         if (view != null) {

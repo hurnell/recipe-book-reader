@@ -12,6 +12,7 @@ import apk.hurnell.recipebookreader.BookmarksTracker
 import apk.hurnell.recipebookreader.EveryTocTracker
 import apk.hurnell.recipebookreader.FileBrowserTracker
 import apk.hurnell.recipebookreader.RecentBooksTracker
+import apk.hurnell.recipebookreader.RecentRecipesTracker
 import apk.hurnell.recipebookreader.RecipeBookTracker
 import apk.hurnell.recipebookreader.model.BaseTracker
 import com.google.gson.Gson
@@ -40,6 +41,7 @@ class DataStoreManager(private val context: Context) {
         val PDF_FILE_BROWSER_KEY = stringPreferencesKey("pdf_file_browser_tracker")
         val IMAGE_FILE_BROWSER_KEY = stringPreferencesKey("image_file_browser_tracker")
         val RECENT_BOOKS_KEY = stringPreferencesKey("recent_books_tracker")
+        val RECENT_RECIPES_KEY = stringPreferencesKey("recent_recipes_tracker")
         val RECIPE_BOOK_KEY = stringPreferencesKey("recipe_book_tracker")
         private const val LOG_TAG = "NIGEL_HURNELL"
     }
@@ -324,5 +326,6 @@ class DataStoreManager(private val context: Context) {
     val imageFileBrowserState = getTracker(IMAGE_FILE_BROWSER_KEY, FileBrowserTracker::class.java)
     val recentBooksState = getTracker(RECENT_BOOKS_KEY, RecentBooksTracker::class.java)
     val recipeBookState = getTracker(RECIPE_BOOK_KEY, RecipeBookTracker::class.java)
+    val recentRecipeState = getTracker(RECENT_RECIPES_KEY, RecentRecipesTracker::class.java)
 
 }
