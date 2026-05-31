@@ -3,17 +3,14 @@ package apk.hurnell.recipebookreader
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
-import android.view.WindowManager
-import android.widget.AdapterView
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.adapters.RecentRecipesAdapter
 import apk.hurnell.recipebookreader.databinding.ActivityRecentRecipesBinding
 import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.model.BaseTracker
-import apk.hurnell.recipebookreader.model.CategoryItem
 import apk.hurnell.recipebookreader.model.RecentRecipeItem
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
@@ -57,10 +54,39 @@ class RecentRecipesActivity : BaseDrawerActivity() {
                 val file = File(item.bookLocation)
                 processAndOpenBook(file, item)
             }
+        }, onDeleteClick = { item ->
+            val dialog = MaterialAlertDialogBuilder(
+                this,
+                R.style.ThemeOverlay_App_MaterialAlertDialog
+            )
+                .setTitle("Delete recent recipe item?")
+                .setMessage("Are you sure you want to delete the recent recipe item with title \"${item.title}\"?")
+                .setPositiveButton("Delete") { dialog, _ ->
+                    val success = repository.deleteRecentRecipe(item)
+                    if (success) {
+                        val message = "❌ Recent recipe with title \"${item.title}\" deleted"
+                        displaySnackBarMessage(message, binding.rootLayout)
+                    }
+                    this@RecentRecipesActivity.reloadRecentRecipes(true)
+                    dialog.dismiss()
+                }
+                .setNegativeButton("Cancel") { dialog, _ ->
+                    dialog.dismiss()
+                }
+                .create()
+
+            dialog.window?.setLayout(
+                (resources.displayMetrics.widthPixels * 0.9).toInt(), // 90% of screen width
+                ViewGroup.LayoutParams.WRAP_CONTENT // height wraps content
+            )
+            dialog.window?.setSoftInputMode(
+                android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN
+            )
+            dialog.window?.setBackgroundDrawableResource(R.drawable.alert_background)
+            dialog.show()
         }, onLongClick = { item ->
             displaySnackBarMessage(item.title, binding.rootLayout)
-        }
-        )
+        })
         binding.bookmarksRecyclerView.adapter = recentRecipesAdapter
 
         populateAdapter()
