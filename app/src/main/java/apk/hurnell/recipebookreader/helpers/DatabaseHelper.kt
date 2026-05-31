@@ -1378,6 +1378,7 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
                 val bookIdString = currentBookId.toString()
                 delete("toc", "book_id_fk = ?", arrayOf(bookIdString))
                 delete("bookmarks", "book_id_fk = ?", arrayOf(bookIdString))
+                delete("recent_recipes", "book_id_fk = ?", arrayOf(bookIdString))
                 delete("history", "book_id_fk = ?", arrayOf(bookIdString))
                 delete("books", "id = ?", arrayOf(bookIdString))
                 true
@@ -1734,4 +1735,5 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
         )
     """.trimIndent())
     }
+
 }
