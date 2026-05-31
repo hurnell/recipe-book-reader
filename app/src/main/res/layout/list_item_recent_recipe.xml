@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.google.android.material.card.MaterialCardView
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_marginHorizontal="12dp"
     android:layout_marginVertical="6dp"
     app:strokeColor="@color/pastel_blue"
@@ -49,6 +49,17 @@
             android:textColor="@color/dark_text"
             android:textSize="16sp" />
 
+        <ImageButton
+            android:id="@+id/deleteRecentRecipe"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_margin="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/delete_recent_recipe"
+            android:padding="12dp"
+            android:src="@drawable/ic_close_basic"
+            app:tint="@color/icon_tint"
+            tools:ignore="TouchTargetSizeCheck,ImageContrastCheck" />
 
 
     </LinearLayout>
