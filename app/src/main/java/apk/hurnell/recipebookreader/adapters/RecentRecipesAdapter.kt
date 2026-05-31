@@ -12,6 +12,7 @@ import apk.hurnell.recipebookreader.model.RecentRecipeItem
 
 class RecentRecipesAdapter(
     private val onClick: (RecentRecipeItem) -> Unit,
+    private val onDeleteClick: (RecentRecipeItem) -> Unit,
     private val onLongClick: (RecentRecipeItem) -> Unit
 ) : ListAdapter<RecentRecipeItem, RecentRecipesAdapter.RecentRecipeViewHolder>(AllBookmarksDiffCallback) {
 
@@ -32,6 +33,7 @@ class RecentRecipesAdapter(
         holder.binding.bookmarkPage.text = item.page.toString()
         holder.binding.bookmarkBookTitle.text = item.bookTitle
         holder.binding.bookmarkTitle.setOnClickListener { onClick(item) }
+        holder.binding.deleteRecentRecipe.setOnClickListener { onDeleteClick(item) }
 
         holder.binding.bookmarkTitle.setOnLongClickListener {
             onLongClick.invoke(item)
