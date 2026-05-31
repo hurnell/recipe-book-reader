@@ -226,4 +226,8 @@ class PdfRepository(
     fun addRecentRecipeItem(bookmarkTocItem: BaseBookmarkTocItem): Boolean {
         return dbHelper.addRecentRecipeItem(bookmarkTocItem)
     }
+
+    fun deleteRecentRecipe(item: RecentRecipeItem): Boolean {
+        return dbHelper.deleteRecentRecipe(item)
+    }
 }
