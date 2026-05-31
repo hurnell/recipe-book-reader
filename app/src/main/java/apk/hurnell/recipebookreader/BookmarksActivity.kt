@@ -146,7 +146,7 @@ class BookmarksActivity : BaseDrawerActivity() {
             R.style.ThemeOverlay_App_MaterialAlertDialog
         ).setTitle(
             "Delete Bookmark?"
-        ).setMessage("Are you sure you want to delete this bookmark")
+        ).setMessage("Are you sure you want to delete bookmark \"${item.title}\"")
             .setPositiveButton("Delete") { dialog, _ ->
                 val success = repository.deleteBookmark(item)
                 if (success) {
