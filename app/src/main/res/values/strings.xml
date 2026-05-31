@@ -78,5 +78,6 @@
     <string name="show_table_of_contents_title_on_volume_click">Show toc item title on volume click</string>
     <string name="recent_recipes">Recent Recipes</string>
     <string name="placeholder_recent_recipe_list_item_recent_recipes">Placeholder recent recipe list item recent recipes</string>
+    <string name="delete_recent_recipe">Delete recent recipe</string>
 
 </resources>
