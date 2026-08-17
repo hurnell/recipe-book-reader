@@ -11,11 +11,24 @@
         last_opened INTEGER DEFAULT NULL,
         toc_created INTEGER,
         toc_unavailable INTEGER DEFAULT 0,
-        category INTEGER DEFAULT NULL,
-        sub_category INTEGER DEFAULT NULL,
         alternate_cover INTEGER DEFAULT 0,
         volume_title INTEGER DEFAULT 0
     );
+```
+
+### book <-> category assignments (one main category, N sub-categories)
+```sqldelight
+    DROP TABLE IF EXISTS book_category_map;
+    CREATE TABLE book_category_map (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        book_id_fk INTEGER NOT NULL,
+        category_id_fk INTEGER NOT NULL,
+        is_main INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE UNIQUE INDEX idx_book_category_unique ON book_category_map(book_id_fk, category_id_fk);
+    CREATE UNIQUE INDEX idx_book_category_one_main ON book_category_map(book_id_fk) WHERE is_main = 1;
+    CREATE INDEX idx_book_category_book ON book_category_map(book_id_fk);
+    CREATE INDEX idx_book_category_category ON book_category_map(category_id_fk);
 ```
 ```sqldelight
     DROP TABLE IF EXISTS configuration;
@@ -42,6 +55,9 @@
     INSERT INTO categories (category, root_location) VALUES ('Indonesian', '/storage/emulated/0/Documents/moon/moon/indonesian/');
     INSERT INTO categories (category, root_location) VALUES ('Italian', '/storage/emulated/0/Documents/moon/moon/italian/');
     INSERT INTO categories (category, root_location) VALUES ('Japanese', '/storage/emulated/0/Documents/moon/moon/japanese/');
+    INSERT INTO categories (category, root_location) VALUES ('Portuguese', '/storage/emulated/0/Documents/moon/moon/portuguese/');
+    INSERT INTO categories (category, root_location) VALUES ('Greek', '/storage/emulated/0/Documents/moon/moon/greek/');
+    INSERT INTO categories (category, root_location) VALUES ('Turkish', '/storage/emulated/0/Documents/moon/moon/turkish/');
     INSERT INTO categories (category, root_location) VALUES ('Korean', '/storage/emulated/0/Documents/moon/moon/korean/');
     INSERT INTO categories (category, root_location) VALUES ('Malaysian', '/storage/emulated/0/Documents/moon/moon/malaysian/');
     INSERT INTO categories (category, root_location) VALUES ('Mexican', '/storage/emulated/0/Documents/moon/moon/mexican/');
@@ -453,35 +469,30 @@ ON t.book_id_fk = b.id;
 ```
 
 ```sqldelight
-SELECT b.name, c.category AS main_category, sc.category AS sub_category
-FROM  books AS b
-LEFT JOIN  categories AS c
-ON c.id = b.category
-
-LEFT JOIN  categories AS sc
-ON sc.id = b.sub_category
-
+SELECT b.name, c.category AS main_category, GROUP_CONCAT(sc.category, '||') AS sub_categories
+FROM books AS b
+LEFT JOIN book_category_map AS mc ON mc.book_id_fk = b.id AND mc.is_main = 1
+LEFT JOIN categories AS c ON c.id = mc.category_id_fk
+LEFT JOIN book_category_map AS ms ON ms.book_id_fk = b.id AND ms.is_main = 0
+LEFT JOIN categories AS sc ON sc.id = ms.category_id_fk
 WHERE b.id IS NOT NULL AND c.category = 'Cookbooks'
-ORDER BY (b.sub_category IS NULL) ASC, b.sub_category ASC, (b.category  IS NULL) ASC, b.category  ASC;
+GROUP BY b.id
+ORDER BY (mc.category_id_fk IS NULL) ASC, mc.category_id_fk ASC;
 
 
 ```
 
-## get a list of categories is use
+## get a list of categories in use
 
 ```sqldelight
-SELECT c.category AS used_categories
+SELECT DISTINCT c.category AS used_categories
 FROM books AS b
-LEFT JOIN categories AS c
-ON c.id = b.category
+JOIN book_category_map AS m
+ON m.book_id_fk = b.id
+JOIN categories AS c
+ON c.id = m.category_id_fk
 WHERE c.category IS NOT NULL
-UNION
-SELECT sc.category
-FROM books AS b
-LEFT JOIN categories AS sc
-ON sc.id = b.sub_category
-WHERE sc.category IS NOT NULL
-ORDER BY category;
+ORDER BY used_categories;
 
 ```
 ## OPEN ASSETS DATABASE
