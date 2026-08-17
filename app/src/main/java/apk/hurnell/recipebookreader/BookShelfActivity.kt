@@ -1,6 +1,7 @@
 package apk.hurnell.recipebookreader
 
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.AdapterView
 import androidx.lifecycle.lifecycleScope
@@ -130,20 +131,35 @@ class BookShelfActivity : BaseDrawerActivity() {
         currentCategory = category
         val allBooks: List<FileItem> = getBookShelfBooks(category)
 
-        val filteredBooks = if (category == "All") {
+        var filteredBooks = if (category == "All") {
             allBooks
         } else {
             allBooks.filter {
                 it.bookInfo?.mainCategory == category ||
-                        it.bookInfo?.subCategory == category
+                        it.bookInfo?.subCategories?.contains(category) == true
             }
-        }.sortedWith(compareBy<FileItem> {
-            it.bookInfo?.subCategory.isNullOrEmpty()
-        }.thenBy {
-            it.bookInfo?.subCategory ?: ""
-        }.thenBy {
-            it.bookInfo?.mainCategory ?: ""
-        })
+        }
+        filteredBooks = if (category in listOf("All", "Cookbooks")) {
+            filteredBooks.sortedWith(compareBy<FileItem> {
+                //Log.e("NIGEL_HURNELL", it.bookInfo?.subCategories.toString())
+                it.bookInfo?.subCategories.isNullOrEmpty()
+            }.thenBy {
+                it.bookInfo?.subCategories?.minOrNull() ?: ""
+            }.thenBy {
+                it.bookInfo?.mainCategory ?: ""
+            })
+        }else {
+            filteredBooks.sortedWith(compareBy<FileItem> {
+                it.bookInfo?.author.isNullOrEmpty()
+            }.thenBy {
+                it.bookInfo?.author ?: ""
+            }.thenBy {
+                it.bookInfo?.name.isNullOrEmpty()
+            }.thenBy {
+                it.bookInfo?.name ?: ""
+            })
+        }
+
         val minSlots = filteredBooks.size.coerceAtLeast(15)
         if (!fromSaved) {
             var mainCategory = filteredBooks
@@ -187,7 +203,7 @@ class BookShelfActivity : BaseDrawerActivity() {
         }
 
         val displayList = filteredBooks.toMutableList<FileItem?>()
-
+        Log.e("NIGEL_HURNELL", displayList.toString())
         repeat(totalSlotsNeeded - displayList.size) {
             displayList.add(null)
         }

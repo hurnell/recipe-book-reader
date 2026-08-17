@@ -168,6 +168,45 @@
                 app:bold="false"
                 app:textSize="16sp" />
 
+            <LinearLayout
+                android:id="@+id/subCategoriesHeader"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="10dp"
+                android:layout_marginEnd="16dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/sub_categories_label"
+                    android:textColor="@color/nav_text"
+                    android:textSize="12sp"
+                    android:textStyle="italic" />
+
+                <ImageButton
+                    android:id="@+id/btnAddSubCategory"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/button_to_add_sub_category"
+                    android:padding="2dp"
+                    android:src="@drawable/ic_simple_add"
+                    app:tint="@color/pastel_blue" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/subCategoryListContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
+                android:orientation="vertical" />
+
             <apk.hurnell.recipebookreader.ui.EditableCategoryView
                 android:id="@+id/bookSubCategory"
                 android:layout_width="match_parent"

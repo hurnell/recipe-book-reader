@@ -27,6 +27,9 @@
     <string name="toggle_toc_list_expanded">Toggle TOC list expanded</string>
     <string name="lowercase_chars">abcdefghijklmnopqrstuvwxyz</string>
     <string name="choose_or_type_new_category">Choose or type new category</string>
+    <string name="sub_categories_label">Sub Categories</string>
+    <string name="button_to_add_sub_category">Add sub category</string>
+    <string name="button_to_delete_sub_category">Delete sub category</string>
     <string name="toggle_links_button">Toggle links button</string>
     <string name="the_image_of_the_book_cover_on_the_book_shelf">The image of the book cover on the book shelf</string>
     <string name="warning_that_the_categories_are_not_set_for_this_book">Warning that the categories are not set for this book</string>

@@ -62,8 +62,24 @@ class PdfRepository(
         return dbHelper.createCategory(name)
     }
 
-    fun updateBookCategory(bookId: Long, bookColumn: String, categoryId: Long) {
-        return dbHelper.updateBookCategory(bookId, bookColumn, categoryId)
+    fun setMainCategory(bookId: Long, categoryId: Long) {
+        dbHelper.setMainCategory(bookId, categoryId)
+    }
+
+    fun addSubCategory(bookId: Long, categoryId: Long) {
+        dbHelper.addSubCategory(bookId, categoryId)
+    }
+
+    fun removeSubCategory(bookId: Long, categoryId: Long) {
+        dbHelper.removeSubCategory(bookId, categoryId)
+    }
+
+    fun getSubCategories(bookId: Long): List<Category> {
+        return dbHelper.getSubCategories(bookId)
+    }
+
+    fun getMainCategory(bookId: Long): Category? {
+        return dbHelper.getMainCategory(bookId)
     }
 
     suspend fun getOrCreateBook(file: File, path: String, document: Document) =

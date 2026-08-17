@@ -53,7 +53,7 @@ class BookShelfAdapter(
             val bitmap = BitmapFactory.decodeFile(thumbnailFile.absolutePath)
 
             binding.bookCover.setImageBitmap(bitmap)
-            if (item.bookInfo?.mainCategory == null || item.bookInfo.subCategory == null) {
+            if (item.bookInfo?.mainCategory == null || item.bookInfo.subCategories.isEmpty()) {
                 warningView.visibility = View.VISIBLE
             } else {
                 warningView.visibility = View.INVISIBLE

@@ -13,7 +13,7 @@ data class Book(
     val tocCreated: Long?,
     val tocUnavailable: Int?,
     val category: Int? = null,
-    val subCategory: Int? = null,
+    val subCategories: List<Int> = emptyList(),
     val alternateCover: Boolean,
     val volumeTitle: Boolean
 )

@@ -44,7 +44,7 @@ import okhttp3.Request
 import java.text.Normalizer
 
 class DatabaseHelper(private val context: Context) :
-    SQLiteOpenHelper(context.applicationContext, DB_NAME, null, 1) {
+    SQLiteOpenHelper(context.applicationContext, DB_NAME, null, 2) {
 
     companion object {
         private const val DB_NAME = "recipe-reader.db"
@@ -56,7 +56,48 @@ class DatabaseHelper(private val context: Context) :
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        // Handle migrations later if needed
+        if (oldVersion < 2) migrateToVersion2(db)
+    }
+
+    private fun migrateToVersion2(db: SQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS book_category_map (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                book_id_fk INTEGER NOT NULL,
+                category_id_fk INTEGER NOT NULL,
+                is_main INTEGER NOT NULL DEFAULT 0
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS idx_book_category_unique ON book_category_map(book_id_fk, category_id_fk)")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS idx_book_category_one_main ON book_category_map(book_id_fk) WHERE is_main = 1")
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_book_category_book ON book_category_map(book_id_fk)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_book_category_category ON book_category_map(category_id_fk)")
+
+        try {
+            db.execSQL(
+                """
+                INSERT OR IGNORE INTO book_category_map (book_id_fk, category_id_fk, is_main)
+                SELECT id, category, 1 FROM books WHERE category IS NOT NULL
+                """.trimIndent()
+            )
+            db.execSQL(
+                """
+                INSERT OR IGNORE INTO book_category_map (book_id_fk, category_id_fk, is_main)
+                SELECT id, sub_category, 0 FROM books WHERE sub_category IS NOT NULL
+                """.trimIndent()
+            )
+        } catch (e: Exception) {
+            Log.e(LOG_TAG, "Failed to backfill legacy category columns (already migrated?): ${e.message}", e)
+        }
+
+        try {
+            db.execSQL("ALTER TABLE books DROP COLUMN category")
+            db.execSQL("ALTER TABLE books DROP COLUMN sub_category")
+        } catch (e: Exception) {
+            Log.e(LOG_TAG, "Failed to drop legacy category columns: ${e.message}", e)
+        }
     }
 
     override fun getWritableDatabase(): SQLiteDatabase {
@@ -107,15 +148,15 @@ class DatabaseHelper(private val context: Context) :
                 "last_opened",
                 "toc_created",
                 "toc_unavailable",
-                "category",
-                "sub_category",
                 "alternate_cover",
                 "volume_title"
             ), "id = ?", arrayOf(bookId.toString()), null, null, null
         ).use { cursor ->
             if (cursor.moveToFirst()) {
+                val id = cursor.getLong(cursor.getColumnIndexOrThrow("id"))
+                val (mainCategoryId, subCategoryIds) = getCategoryAssignments(id)
                 Book(
-                    id = cursor.getLong(cursor.getColumnIndexOrThrow("id")),
+                    id = id,
                     sha = cursor.getString(cursor.getColumnIndexOrThrow("sha")),
                     name = cursor.getString(cursor.getColumnIndexOrThrow("name")),
                     location = cursor.getString(cursor.getColumnIndexOrThrow("location")),
@@ -125,8 +166,8 @@ class DatabaseHelper(private val context: Context) :
                     lastOpened = cursor.getLongOrNull(cursor.getColumnIndexOrThrow("last_opened")),
                     tocCreated = cursor.getLongOrNull(cursor.getColumnIndexOrThrow("toc_created")),
                     tocUnavailable = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("toc_unavailable")),
-                    category = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("category")),
-                    subCategory = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("sub_category")),
+                    category = mainCategoryId,
+                    subCategories = subCategoryIds,
                     alternateCover = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("alternate_cover")) == 1,
                     volumeTitle = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("volume_title")) == 1
                 )
@@ -242,11 +283,21 @@ class DatabaseHelper(private val context: Context) :
         }
     }
 
-    fun getKeywordCategories(keywords: String?): Pair<Int?, Int?> {
+    private fun resolveOrCreateCategoryId(db: SQLiteDatabase, value: String): Int {
+        db.rawQuery("SELECT id FROM categories WHERE category=?", arrayOf(value)).use { cursor ->
+            if (cursor.moveToFirst()) {
+                return cursor.getInt(0)
+            }
+        }
+        val values = ContentValues().apply { put("category", value) }
+        return db.insert("categories", null, values).toInt()
+    }
+
+    fun getKeywordCategories(keywords: String?): Pair<Int?, List<Int>> {
 
         val db = writableDatabase
         var mainCategoryId: Int? = null
-        var subCategoryId: Int? = null
+        val subCategoryIds = mutableListOf<Int>()
 
         if (!keywords.isNullOrBlank()) {
             val pairs = keywords.split(",")
@@ -255,40 +306,17 @@ class DatabaseHelper(private val context: Context) :
                 if (keyValue.size == 2) {
                     val key = keyValue[0]
                     val value = keyValue[1]
-                    val query = "SELECT id FROM categories WHERE category=?"
 
-                    when (key) {
-                        "main_category" -> {
-                            db.rawQuery(query, arrayOf(value)).use { cursor ->
-                                if (cursor.moveToFirst()) {
-                                    mainCategoryId = cursor.getInt(0)
-                                } else {
-                                    val values = ContentValues().apply {
-                                        put("category", value)
-                                    }
-                                    mainCategoryId = db.insert("categories", null, values).toInt()
-                                }
-                            }
-                        }
-
-                        "sub_category" -> {
-                            db.rawQuery(query, arrayOf(value)).use { cursor ->
-                                if (cursor.moveToFirst()) {
-                                    subCategoryId = cursor.getInt(0)
-                                } else {
-                                    val values = ContentValues().apply {
-                                        put("category", value)
-                                    }
-                                    subCategoryId = db.insert("categories", null, values).toInt()
-                                }
-                            }
-                        }
+                    if (key == "main_category") {
+                        mainCategoryId = resolveOrCreateCategoryId(db, value)
+                    } else if (key.contains("category", ignoreCase = true)) {
+                        subCategoryIds.add(resolveOrCreateCategoryId(db, value))
                     }
                 }
             }
         }
 
-        return Pair(mainCategoryId, subCategoryId)
+        return Pair(mainCategoryId, subCategoryIds)
     }
 
 
@@ -315,19 +343,16 @@ class DatabaseHelper(private val context: Context) :
                     val values = ContentValues().apply {
                         bookTitle = document.getMetaData(Document.META_INFO_TITLE)
                         bookAuthor = document.getMetaData(Document.META_INFO_AUTHOR)
-                        val keywords = document.getMetaData(Document.META_INFO_KEYWORDS)
-
-                        val (mainId, subId) = getKeywordCategories(keywords)
-
                         put("name", bookTitle ?: file.name)
-                        put("category", mainId)
-                        put("sub_category", subId)
                         put("location", path)
                         put("sha", sha)
                         put("author", bookAuthor ?: "Unknown")
                         put("last_opened", System.currentTimeMillis())
                         put("toc_created", 0)
                     }
+
+                    val keywords = document.getMetaData(Document.META_INFO_KEYWORDS)
+                    val (mainId, subIds) = getKeywordCategories(keywords)
 
                     val newId = db.insert("books", null, values)
 
@@ -336,6 +361,8 @@ class DatabaseHelper(private val context: Context) :
                             LOG_TAG, "Failed to insert book! Check for column name mismatches."
                         )
                     } else {
+                        if (mainId != null) setMainCategory(newId, mainId.toLong())
+                        subIds.forEach { addSubCategory(newId, it.toLong()) }
                         generateBookCoverThumbnail(sha, document, bookTitle, bookAuthor)
                     }
                     newId
@@ -390,10 +417,11 @@ SELECT
     t.level AS toc_level,
     t.scale AS toc_scale,
     t.translate AS toc_translate
-FROM books AS b 
-LEFT JOIN toc AS t ON b.id = t.book_id_fk 
+FROM books AS b
+LEFT JOIN toc AS t ON b.id = t.book_id_fk
 LEFT JOIN toc_hierarchy h ON t.id = h.id
-LEFT JOIN categories AS c ON b.category = c.id OR b.sub_category = c.id
+LEFT JOIN book_category_map AS m ON m.book_id_fk = b.id
+LEFT JOIN categories AS c ON c.id = m.category_id_fk
 WHERE (t.title LIKE ? OR t.normalised_title LIKE ?)
 $categoryFilter
 GROUP BY t.id
@@ -621,12 +649,111 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
         return rowId
     }
 
-    fun updateBookCategory(bookId: Long, bookColumn: String, categoryId: Long) {
+    fun setMainCategory(bookId: Long, categoryId: Long) {
+        val db = writableDatabase
+        db.delete(
+            "book_category_map",
+            "book_id_fk = ? AND is_main = 1",
+            arrayOf(bookId.toString())
+        )
+        db.delete(
+            "book_category_map",
+            "book_id_fk = ? AND category_id_fk = ?",
+            arrayOf(bookId.toString(), categoryId.toString())
+        )
+        val values = ContentValues().apply {
+            put("book_id_fk", bookId)
+            put("category_id_fk", categoryId)
+            put("is_main", 1)
+        }
+        db.insert("book_category_map", null, values)
+    }
+
+    fun addSubCategory(bookId: Long, categoryId: Long) {
         val db = writableDatabase
         val values = ContentValues().apply {
-            put(bookColumn, categoryId)
+            put("book_id_fk", bookId)
+            put("category_id_fk", categoryId)
+            put("is_main", 0)
         }
-        db.update("books", values, "id = ?", arrayOf(bookId.toString()))
+        db.insertWithOnConflict(
+            "book_category_map", null, values, SQLiteDatabase.CONFLICT_IGNORE
+        )
+    }
+
+    fun removeSubCategory(bookId: Long, categoryId: Long) {
+        val db = writableDatabase
+        db.delete(
+            "book_category_map",
+            "book_id_fk = ? AND category_id_fk = ? AND is_main = 0",
+            arrayOf(bookId.toString(), categoryId.toString())
+        )
+        deleteCategoryIfUnused(db, categoryId)
+    }
+
+    private fun deleteCategoryIfUnused(db: SQLiteDatabase, categoryId: Long) {
+        val stillUsed = db.rawQuery(
+            "SELECT 1 FROM book_category_map WHERE category_id_fk = ? LIMIT 1",
+            arrayOf(categoryId.toString())
+        ).use { it.moveToFirst() }
+        if (!stillUsed) {
+            db.delete("categories", "id = ?", arrayOf(categoryId.toString()))
+        }
+    }
+
+    fun getSubCategories(bookId: Long): List<Category> {
+        val db = readableDatabase
+        val list = mutableListOf<Category>()
+        db.rawQuery(
+            """
+            SELECT c.id, c.category
+            FROM book_category_map m
+            JOIN categories c ON c.id = m.category_id_fk
+            WHERE m.book_id_fk = ? AND m.is_main = 0
+            ORDER BY c.category
+            """.trimIndent(), arrayOf(bookId.toString())
+        ).use { cursor ->
+            while (cursor.moveToNext()) {
+                list.add(Category(id = cursor.getLong(0), category = cursor.getString(1)))
+            }
+        }
+        return list
+    }
+
+    fun getMainCategory(bookId: Long): Category? {
+        val db = readableDatabase
+        return db.rawQuery(
+            """
+            SELECT c.id, c.category
+            FROM book_category_map m
+            JOIN categories c ON c.id = m.category_id_fk
+            WHERE m.book_id_fk = ? AND m.is_main = 1
+            """.trimIndent(), arrayOf(bookId.toString())
+        ).use { cursor ->
+            if (cursor.moveToFirst()) {
+                Category(id = cursor.getLong(0), category = cursor.getString(1))
+            } else null
+        }
+    }
+
+    private fun getCategoryAssignments(bookId: Long): Pair<Int?, List<Int>> {
+        val db = readableDatabase
+        var mainCategoryId: Int? = null
+        val subCategoryIds = mutableListOf<Int>()
+        db.rawQuery(
+            "SELECT category_id_fk, is_main FROM book_category_map WHERE book_id_fk = ?",
+            arrayOf(bookId.toString())
+        ).use { cursor ->
+            while (cursor.moveToNext()) {
+                val categoryId = cursor.getInt(0)
+                if (cursor.getInt(1) == 1) {
+                    mainCategoryId = categoryId
+                } else {
+                    subCategoryIds.add(categoryId)
+                }
+            }
+        }
+        return Pair(mainCategoryId, subCategoryIds)
     }
 
     fun getRecentFiles(): List<RecentFile> {
@@ -653,24 +780,15 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
         val list = mutableListOf<CategoryItem>()
         list.add(CategoryItem("All", null))
         val sql = """
-            SELECT c.category  AS used_categories
+            SELECT DISTINCT c.category AS used_categories
             FROM books AS b
-            LEFT JOIN categories AS c
-              ON c.id = b.category
-			  LEFT JOIN bookmarks AS m
-			  ON m.book_id_fk = b.id
-            WHERE c.category IS NOT NULL  AND m.id IS NOT NULL
-            
-            UNION
-            
-            SELECT sc.category
-            FROM books AS b
-            LEFT JOIN categories AS sc
-              ON sc.id = b.sub_category
-			  LEFT JOIN bookmarks AS sm
-			  ON sm.book_id_fk = b.id
-            WHERE sc.category IS NOT NULL AND sm.id IS NOT NULL
-            
+            JOIN book_category_map AS m
+              ON m.book_id_fk = b.id
+            JOIN categories AS c
+              ON c.id = m.category_id_fk
+            JOIN bookmarks AS bm
+              ON bm.book_id_fk = b.id
+            WHERE c.category IS NOT NULL
             ORDER BY used_categories
         """.trimIndent()
         val cursor = db.rawQuery(
@@ -691,17 +809,17 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
         list.add(CategoryItem("All", null))
         val selectionArgs = arrayOf(
             "%$currentSearchTerm%",
-            "%$currentSearchTerm%",
-            "%$currentSearchTerm%",
             "%$currentSearchTerm%"
         )
         val sql = """
-            SELECT 
+            SELECT
                 c.category AS used_category,
                 COUNT(toc.id) AS toc_count
             FROM books b
-            LEFT JOIN categories c
-                ON c.id = b.category
+            JOIN book_category_map m
+                ON m.book_id_fk = b.id
+            JOIN categories c
+                ON c.id = m.category_id_fk
             LEFT JOIN toc
                 ON toc.book_id_fk = b.id
                AND (
@@ -710,24 +828,6 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
                )
             WHERE c.category IS NOT NULL
             GROUP BY c.category
-            
-            UNION
-            
-            SELECT 
-                sc.category AS used_category,
-                COUNT(toc.id) AS toc_count
-            FROM books b
-            LEFT JOIN categories sc
-                ON sc.id = b.sub_category
-            LEFT JOIN toc
-                ON toc.book_id_fk = b.id
-               AND (
-                    toc.title LIKE  ?
-                    OR toc.normalised_title LIKE  ?
-               )
-            WHERE sc.category IS NOT NULL
-            GROUP BY sc.category
-            
             ORDER BY used_category;
         """.trimIndent()
         val cursor = db.rawQuery(
@@ -753,20 +853,13 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
         val list = mutableListOf<CategoryItem>()
         list.add(CategoryItem("All", null))
         val sql = """
-            SELECT c.category AS used_categories
+            SELECT DISTINCT c.category AS used_categories
             FROM books AS b
-            LEFT JOIN categories AS c
-              ON c.id = b.category
+            JOIN book_category_map AS m
+              ON m.book_id_fk = b.id
+            JOIN categories AS c
+              ON c.id = m.category_id_fk
             WHERE c.category IS NOT NULL
-            
-            UNION
-            
-            SELECT sc.category
-            FROM books AS b
-            LEFT JOIN categories AS sc
-              ON sc.id = b.sub_category
-            WHERE sc.category IS NOT NULL
-            
             ORDER BY used_categories
         """.trimIndent()
         val cursor = db.rawQuery(
@@ -803,19 +896,27 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
         val selectionArgs = if (currentCategory == "All") {
             null
         } else {
-            arrayOf(currentCategory, currentCategory)
+            arrayOf(currentCategory)
         }
-        val categoryFilter =
-            if (currentCategory == "All") "" else "WHERE c.category = ? OR sc.category = ?"
+        val categoryFilter = if (currentCategory == "All") "" else """
+            WHERE EXISTS (
+                SELECT 1 FROM book_category_map fm
+                JOIN categories fc ON fc.id = fm.category_id_fk
+                WHERE fm.book_id_fk = b.id AND fc.category = ?
+            )
+        """.trimIndent()
         val sql = """
-            SELECT DISTINCT b.sha AS book_sha, b.name AS book_name, c.category AS main_category, sc.category AS sub_category , b.location as book_location, b.author as author_name
-            FROM  books AS b
-            LEFT JOIN  categories AS c
-            ON c.id = b.category
-            LEFT JOIN  categories AS sc
-            ON sc.id = b.sub_category
+            SELECT b.sha AS book_sha, b.name AS book_name, c.category AS main_category,
+                   GROUP_CONCAT(sc.category, '||') AS sub_categories,
+                   b.location AS book_location, b.author AS author_name
+            FROM books AS b
+            LEFT JOIN book_category_map AS mc ON mc.book_id_fk = b.id AND mc.is_main = 1
+            LEFT JOIN categories AS c ON c.id = mc.category_id_fk
+            LEFT JOIN book_category_map AS ms ON ms.book_id_fk = b.id AND ms.is_main = 0
+            LEFT JOIN categories AS sc ON sc.id = ms.category_id_fk
             $categoryFilter
-            ORDER BY (b.sub_category IS NULL) ASC, b.sub_category ASC, (b.category  IS NULL) ASC, b.category  ASC, b.author;
+            GROUP BY b.id
+            ORDER BY (mc.category_id_fk IS NULL) ASC, mc.category_id_fk ASC, b.author;
         """.trimIndent()
         val cursor = db.rawQuery(
             sql, selectionArgs
@@ -825,11 +926,15 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
                 val sha = cursor.getString(cursor.getColumnIndexOrThrow("book_sha"))
                 val name = cursor.getString(cursor.getColumnIndexOrThrow("book_name"))
                 val mainCategory = cursor.getString(cursor.getColumnIndexOrThrow("main_category"))
-                val subCategory = cursor.getString(cursor.getColumnIndexOrThrow("sub_category"))
+                val subCategories = cursor.getString(cursor.getColumnIndexOrThrow("sub_categories"))
+                    ?.split("||")
+                    ?.filter { it.isNotEmpty() }
+                    ?: emptyList()
                 val location = cursor.getString(cursor.getColumnIndexOrThrow("book_location"))
                 val author = cursor.getString(cursor.getColumnIndexOrThrow("author_name"))
                 val file = File(location)
-                val bookInfo = BookInfo(sha, name, mainCategory, subCategory, author)
+                Log.e("NIGEL_HURNELL" , subCategories.toString())
+                val bookInfo = BookInfo(sha, name, mainCategory, subCategories, author)
                 list.add(FileItem(file, file.name, bookInfo, System.currentTimeMillis()))
             }
         }
@@ -940,15 +1045,15 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
                 "last_opened",
                 "toc_created",
                 "toc_unavailable",
-                "category",
-                "sub_category",
                 "alternate_cover",
                 "volume_title"
             ), "location = ?", arrayOf(location), null, null, null
         ).use { cursor ->
             if (cursor.moveToFirst()) {
+                val id = cursor.getLong(cursor.getColumnIndexOrThrow("id"))
+                val (mainCategoryId, subCategoryIds) = getCategoryAssignments(id)
                 Book(
-                    id = cursor.getLong(cursor.getColumnIndexOrThrow("id")),
+                    id = id,
                     sha = cursor.getString(cursor.getColumnIndexOrThrow("sha")),
                     name = cursor.getString(cursor.getColumnIndexOrThrow("name")),
                     location = cursor.getString(cursor.getColumnIndexOrThrow("location")),
@@ -958,8 +1063,8 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
                     lastOpened = cursor.getLongOrNull(cursor.getColumnIndexOrThrow("last_opened")),
                     tocCreated = cursor.getLongOrNull(cursor.getColumnIndexOrThrow("toc_created")),
                     tocUnavailable = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("toc_unavailable")),
-                    category = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("category")),
-                    subCategory = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("sub_category")),
+                    category = mainCategoryId,
+                    subCategories = subCategoryIds,
                     alternateCover = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("alternate_cover")) == 1,
                     volumeTitle = cursor.getIntOrNull(cursor.getColumnIndexOrThrow("volume_title")) == 1
                 )
@@ -994,9 +1099,10 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
                 SELECT t.id, t.parent_id FROM toc t JOIN toc_hierarchy th ON t.parent_id = th.id
             )
             SELECT t.id
-            FROM books AS b 
-            LEFT JOIN toc AS t ON b.id = t.book_id_fk 
-            LEFT JOIN categories AS c ON b.category = c.id OR b.sub_category = c.id
+            FROM books AS b
+            LEFT JOIN toc AS t ON b.id = t.book_id_fk
+            LEFT JOIN book_category_map AS m ON m.book_id_fk = b.id
+            LEFT JOIN categories AS c ON c.id = m.category_id_fk
             WHERE (t.title LIKE ? OR t.normalised_title LIKE ?)
             $categoryFilter
             GROUP BY t.id 
@@ -1170,7 +1276,8 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
             FROM bookmarks AS m
             LEFT JOIN books AS  b
             ON m.book_id_fk = b.id
-            LEFT JOIN categories AS c ON b.category = c.id OR b.sub_category = c.id
+            LEFT JOIN book_category_map AS bcm ON bcm.book_id_fk = b.id
+            LEFT JOIN categories AS c ON c.id = bcm.category_id_fk
             $categoryFilter
             GROUP BY m.id
             ORDER BY LOWER(b.name), m.page

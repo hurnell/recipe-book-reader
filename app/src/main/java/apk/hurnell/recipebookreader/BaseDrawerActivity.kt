@@ -38,6 +38,7 @@ import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
 import apk.hurnell.recipebookreader.adapters.CoverPickerAdapter
+import apk.hurnell.recipebookreader.databinding.ListItemSubCategoryBinding
 import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.helpers.GetCoverUrlHelper
 import apk.hurnell.recipebookreader.helpers.HistoryEntry
@@ -95,6 +96,8 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
     protected var bookAuthor: EditableTextView? = null
     protected var bookCategory: EditableCategoryView? = null
     protected var bookSubCategory: EditableCategoryView? = null
+    protected var subCategoryListContainer: LinearLayout? = null
+    protected var btnAddSubCategory: ImageButton? = null
     protected var bookPreviewImage: ImageView? = null
     protected var bookPreviewWrapper: FrameLayout? = null
     protected var isbnNumber: EditableTextView? = null
@@ -486,9 +489,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
     protected fun refreshCategories() {
         val activityName = this::class.simpleName
         val usedCategories = repository.getUsedCategories(activityName, currentSearchTerm)
-        val list = mutableListOf<CategoryItem>()
-        list.add(CategoryItem("All", null))
-
+        categories.clear()
         usedCategories.forEach { item ->
             categories.add(item.category)
         }
@@ -571,6 +572,8 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         bookAuthor = findViewById(R.id.bookAuthor)
         bookCategory = findViewById(R.id.bookCategory)
         bookSubCategory = findViewById(R.id.bookSubCategory)
+        subCategoryListContainer = findViewById(R.id.subCategoryListContainer)
+        btnAddSubCategory = findViewById(R.id.btnAddSubCategory)
 
         overlayContainer?.setOnClickListener { hideBookInfoOverlay() }
 
@@ -738,6 +741,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         btnSearchCovers?.visibility = if (show) View.VISIBLE else View.GONE
         btnPickCover?.visibility = if (show) View.VISIBLE else View.GONE
         btnRevertCover?.visibility = if (show && showRevertCover) View.VISIBLE else View.GONE
+        btnAddSubCategory?.visibility = if (show) View.VISIBLE else View.GONE
         val buttons = listOf(bookTitle, bookAuthor, isbnNumber, bookCategory, bookSubCategory)
         buttons.forEach { btn ->
             if (btn != activeView) {
@@ -791,28 +795,45 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                     bookCategory?.onAccept { currentBookId, name, categoryId ->
                         if (currentBookId == book.id) {
                             if (categoryId != null) {
-                                repository.updateBookCategory(book.id, "category", categoryId)
+                                repository.setMainCategory(book.id, categoryId)
                             } else if (name.isNotBlank()) {
                                 val newId = repository.createCategory(name)
-                                repository.updateBookCategory(book.id, "category", newId)
+                                repository.setMainCategory(book.id, newId)
                                 bookCategory?.setNewCategoryId(newId.toInt())
                             }
                         }
                     }
-                    bookSubCategory?.setParams(
-                        book.id,
-                        repository,
-                        book.subCategory,
-                        "Sub Category"
-                    )
+                    fun refreshSubCategoryChips() {
+                        subCategoryListContainer?.removeAllViews()
+                        repository.getSubCategories(book.id).forEach { subCategory ->
+                            val rowBinding = ListItemSubCategoryBinding.inflate(
+                                layoutInflater, subCategoryListContainer, false
+                            )
+                            rowBinding.subCategoryRowText.text = subCategory.category
+                            rowBinding.subCategoryRowDelete.setOnClickListener {
+                                repository.removeSubCategory(book.id, subCategory.id)
+                                refreshSubCategoryChips()
+                            }
+                            subCategoryListContainer?.addView(rowBinding.root)
+                        }
+                    }
+                    refreshSubCategoryChips()
+                    bookSubCategory?.setParams(book.id, repository, null, null)
+                    bookSubCategory?.setAddOnlyMode(true)
+                    btnAddSubCategory?.setOnClickListener {
+                        bookSubCategory?.beginEditing()
+                    }
                     bookSubCategory?.onAccept { currentBookId, name, categoryId ->
                         if (currentBookId == book.id) {
-                            if (categoryId != null) {
-                                repository.updateBookCategory(book.id, "sub_category", categoryId)
-                            } else if (name.isNotBlank()) {
-                                val newId = repository.createCategory(name)
-                                repository.updateBookCategory(book.id, "sub_category", newId)
-                                bookSubCategory?.setNewCategoryId(newId.toInt())
+                            val resolvedId = categoryId ?: if (name.isNotBlank()) {
+                                repository.createCategory(name)
+                            } else {
+                                null
+                            }
+                            if (resolvedId != null) {
+                                repository.addSubCategory(book.id, resolvedId)
+                                bookSubCategory?.setText("")
+                                refreshSubCategoryChips()
                             }
                         }
                     }
@@ -991,6 +1012,9 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                 btnCloseGallery?.visibility = View.GONE
                 btnSearchCovers?.visibility = View.VISIBLE
                 toggleOtherButtons(null, true)
+                if (::spinner.isInitialized) {
+                    refreshCategories()
+                }
                 this.refreshFilesAndUI(true)
             }
             ?.start()

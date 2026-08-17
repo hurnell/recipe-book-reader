@@ -428,7 +428,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         val page = binding.pageSeekBar.progress + 1
         val tocItem = repository.getSubsequentTocItem(page, lastTocId, up, currentBookId)
         if (tocItem != null) {
-            handleBaseBookmarkTocItemNavigation(tocItem)
+            handleBaseBookmarkTocItemNavigation(tocItem, false)
             if (currentBook?.volumeTitle == true) {
                 displaySnackBarMessage(tocItem.title, binding.root, Snackbar.LENGTH_SHORT)
             }
@@ -561,8 +561,10 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         )
     }
 
-    private fun handleBaseBookmarkTocItemNavigation(item: BaseBookmarkTocItem) {
-        repository.addRecentRecipeItem(item)
+    private fun handleBaseBookmarkTocItemNavigation(item: BaseBookmarkTocItem, notFromVolume: Boolean = true) {
+        if(notFromVolume && item.title != "Images") {
+            repository.addRecentRecipeItem(item)
+        }
         binding.bookRecyclerView.scrollToPosition(item.page)
         if (item is TocItem) {
             lastTocId = item.tocId

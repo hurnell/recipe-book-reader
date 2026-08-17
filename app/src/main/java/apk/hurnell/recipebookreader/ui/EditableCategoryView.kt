@@ -33,6 +33,7 @@ class EditableCategoryView @JvmOverloads constructor(
     private var currentBookId: Long = -1L
 
     private var isEditing = false
+    private var isAddOnlyMode = false
     var onAccept: ((Long, String, Long?) -> Unit)? = null
 
     init {
@@ -111,6 +112,7 @@ class EditableCategoryView @JvmOverloads constructor(
             binding.editableCategoryViewText.visibility = VISIBLE
             binding.categoryChooserWrapper.visibility = GONE
             binding.categoryEditButton.setImageResource(R.drawable.ic_edit)
+            toggleEditButton(true)
             binding.categoryCancelButton.visibility = GONE
             val newText = binding.categoryChooser.text.toString()
             if (newText != originalText && !forceClosed) {
@@ -123,7 +125,6 @@ class EditableCategoryView @JvmOverloads constructor(
                     onAccept?.invoke(currentBookId, newText, null)
                 }
             }
-            binding.editableCategoryViewText.text = newText
 
             val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
             imm.hideSoftInputFromWindow(binding.categoryChooser.windowToken, 0)
@@ -137,6 +138,7 @@ class EditableCategoryView @JvmOverloads constructor(
                 binding.editableCategoryViewLabel.visibility = VISIBLE
             }
             binding.categoryEditButton.setImageResource(R.drawable.ic_save)
+            toggleEditButton(true)
             binding.categoryCancelButton.visibility = VISIBLE
             binding.categoryChooser.requestFocus()
             val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
@@ -157,6 +159,7 @@ class EditableCategoryView @JvmOverloads constructor(
             binding.editableCategoryViewText.visibility = VISIBLE
         }
         binding.categoryEditButton.setImageResource(R.drawable.ic_edit)
+        toggleEditButton(true)
         binding.categoryCancelButton.visibility = GONE
         val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         imm.hideSoftInputFromWindow(binding.categoryChooser.windowToken, 0)
@@ -206,6 +209,18 @@ class EditableCategoryView @JvmOverloads constructor(
     }
 
     override fun toggleEditButton(show: Boolean) {
-        binding.categoryEditButton.visibility = if (show) VISIBLE else GONE
+        val visible = show && (!isAddOnlyMode || isEditing)
+        binding.categoryEditButton.visibility = if (visible) VISIBLE else GONE
+    }
+
+    fun setAddOnlyMode(enabled: Boolean) {
+        isAddOnlyMode = enabled
+        toggleEditButton(true)
+    }
+
+    fun beginEditing() {
+        if (!isEditing) {
+            toggleEditMode()
+        }
     }
 }
