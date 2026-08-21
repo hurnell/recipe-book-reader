@@ -139,12 +139,10 @@ class BookShelfActivity : BaseDrawerActivity() {
                         it.bookInfo?.subCategories?.contains(category) == true
             }
         }
-        filteredBooks = if (category in listOf("All", "Cookbooks")) {
+        val mainCategories = repository.getMainCategoryNames()
+        filteredBooks = if (category == "All" || category in mainCategories) {
             filteredBooks.sortedWith(compareBy<FileItem> {
-                //Log.e("NIGEL_HURNELL", it.bookInfo?.subCategories.toString())
-                it.bookInfo?.subCategories.isNullOrEmpty()
-            }.thenBy {
-                it.bookInfo?.subCategories?.minOrNull() ?: ""
+                it.bookInfo?.subCategories?.firstOrNull() ?: ""
             }.thenBy {
                 it.bookInfo?.mainCategory ?: ""
             })
