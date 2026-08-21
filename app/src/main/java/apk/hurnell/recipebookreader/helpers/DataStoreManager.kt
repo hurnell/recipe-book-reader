@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import apk.hurnell.recipebookreader.BookAuthorOrNameTracker
 import apk.hurnell.recipebookreader.BookShelfTracker
 import apk.hurnell.recipebookreader.BookmarksTracker
 import apk.hurnell.recipebookreader.EveryTocTracker
@@ -43,6 +44,7 @@ class DataStoreManager(private val context: Context) {
         val RECENT_BOOKS_KEY = stringPreferencesKey("recent_books_tracker")
         val RECENT_RECIPES_KEY = stringPreferencesKey("recent_recipes_tracker")
         val RECIPE_BOOK_KEY = stringPreferencesKey("recipe_book_tracker")
+        val BOOK_AUTHOR_OR_NAME_KEY = stringPreferencesKey("book_author_or_name_tracker")
         private const val LOG_TAG = "NIGEL_HURNELL"
     }
 
@@ -186,6 +188,8 @@ class DataStoreManager(private val context: Context) {
         logOne(recentBooksTracker, "recentBooksTracker")
         val recipeBookTracker = recipeBookState.firstOrNull()
         logOne(recipeBookTracker, "recipeBookTracker")
+        val bookAuthorOrNameTracker = bookAuthorOrNameState.firstOrNull()
+        logOne(bookAuthorOrNameTracker, "bookAuthorOrNameTracker")
     }
 
     suspend fun findTrackerInHistoryByDirectory(
@@ -327,5 +331,7 @@ class DataStoreManager(private val context: Context) {
     val recentBooksState = getTracker(RECENT_BOOKS_KEY, RecentBooksTracker::class.java)
     val recipeBookState = getTracker(RECIPE_BOOK_KEY, RecipeBookTracker::class.java)
     val recentRecipeState = getTracker(RECENT_RECIPES_KEY, RecentRecipesTracker::class.java)
+    val bookAuthorOrNameState =
+        getTracker(BOOK_AUTHOR_OR_NAME_KEY, BookAuthorOrNameTracker::class.java)
 
 }

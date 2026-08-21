@@ -121,6 +121,26 @@ class PdfRepository(
         return dbHelper.getBookShelfBooks(category)
     }
 
+    fun getMainCategoryNames(): List<String> {
+        return dbHelper.getMainCategoryNames()
+    }
+
+    fun getDistinctBookNames(term: String): List<String> {
+        return dbHelper.getDistinctBookNames(term)
+    }
+
+    fun getDistinctBookAuthors(term: String): List<String> {
+        return dbHelper.getDistinctBookAuthors(term)
+    }
+
+    fun getBooksByExactName(name: String): List<FileItem> {
+        return dbHelper.getBooksByExactName(name)
+    }
+
+    fun getBooksByExactAuthor(author: String): List<FileItem> {
+        return dbHelper.getBooksByExactAuthor(author)
+    }
+
     fun getFilteredEveryToc(currentText: String, currentCategory: String): MutableList<TocItem> {
         return dbHelper.getFilteredEveryToc(currentText, currentCategory)
     }

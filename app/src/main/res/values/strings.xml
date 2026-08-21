@@ -82,5 +82,11 @@
     <string name="recent_recipes">Recent Recipes</string>
     <string name="placeholder_recent_recipe_list_item_recent_recipes">Placeholder recent recipe list item recent recipes</string>
     <string name="delete_recent_recipe">Delete recent recipe</string>
+    <string name="book_author_or_name">Book Author or Name</string>
+    <string name="book_author_or_name_description">Search books by author or name</string>
+    <string name="hint_search_by_title">Search by title</string>
+    <string name="hint_search_by_author">Search by author</string>
+    <string name="toggle_search_mode_to_author">Switch to search by author</string>
+    <string name="toggle_search_mode_to_title">Switch to search by title</string>
 
 </resources>

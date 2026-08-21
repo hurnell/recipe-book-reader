@@ -9,6 +9,7 @@ import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
 import apk.hurnell.recipebookreader.BaseDrawerActivity
+import apk.hurnell.recipebookreader.BookAuthorOrNameActivity
 import apk.hurnell.recipebookreader.BookShelfActivity
 import apk.hurnell.recipebookreader.BookmarksActivity
 import apk.hurnell.recipebookreader.EveryTocActivity
@@ -44,6 +45,14 @@ class ControlFragment : Fragment() {
         binding.btnBookShelf.setOnClickListener {
             if (getCurrentActivity() != "BookShelfActivity") {
                 navigateTo(BookShelfActivity::class.java)
+            } else {
+                closeDrawer()
+            }
+        }
+
+        binding.btnBookAuthorOrName.setOnClickListener {
+            if (getCurrentActivity() != "BookAuthorOrNameActivity") {
+                navigateTo(BookAuthorOrNameActivity::class.java)
             } else {
                 closeDrawer()
             }

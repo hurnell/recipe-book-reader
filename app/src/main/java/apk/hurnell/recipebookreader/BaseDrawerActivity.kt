@@ -239,6 +239,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                 "apk.hurnell.recipebookreader.RecentBooksActivity",
                 "apk.hurnell.recipebookreader.FileBrowserActivity",
                 "apk.hurnell.recipebookreader.RecentRecipesActivity",
+                "apk.hurnell.recipebookreader.BookAuthorOrNameActivity",
             )
 
             if (lastActivityName == "apk.hurnell.recipebookreader.RecipeBookActivity") {
@@ -444,6 +445,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
             "EveryTocActivity" -> "every_toc_tracker"
             "RecentBooksActivity" -> "recent_books_tracker"
             "RecentRecipesActivity" -> "recent_recipes_tracker"
+            "BookAuthorOrNameActivity" -> "book_author_or_name_tracker"
             else -> null
         }
     }
@@ -458,6 +460,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
             "recent_books_tracker" -> "apk.hurnell.recipebookreader.RecentBooksActivity"
             "recipe_book_tracker" -> "apk.hurnell.recipebookreader.RecipeBookActivity"
             "recent_recipes_tracker" -> "apk.hurnell.recipebookreader.RecentRecipesActivity"
+            "book_author_or_name_tracker" -> "apk.hurnell.recipebookreader.BookAuthorOrNameActivity"
             else -> fallback
         }
     }

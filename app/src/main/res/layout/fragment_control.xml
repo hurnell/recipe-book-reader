@@ -127,6 +127,36 @@
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:layout_marginEnd="16dp"
+                android:contentDescription="@string/book_author_or_name_description"
+                android:src="@drawable/ic_person_author"
+                app:tint="@color/icon_tint" />
+
+            <Button
+                android:id="@+id/btnBookAuthorOrName"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="start|center_vertical"
+                android:text="@string/book_author_or_name"
+                android:textAllCaps="false"
+                android:textColor="@color/dark_text" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginVertical="8dp"
+            android:background="#EEEEEE" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_marginEnd="16dp"
                 android:contentDescription="@string/open_file_browser"
                 android:src="@drawable/ic_book_browser"
                 app:tint="@color/icon_tint" />

@@ -874,6 +874,24 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
         return list
     }
 
+    fun getMainCategoryNames(): List<String> {
+        val db = readableDatabase
+        val list = mutableListOf<String>()
+        val sql = """
+            SELECT DISTINCT c.category AS main_category
+            FROM book_category_map AS m
+            JOIN categories AS c
+              ON c.id = m.category_id_fk
+            WHERE m.is_main = 1
+        """.trimIndent()
+        db.rawQuery(sql, null).use { cursor ->
+            while (cursor.moveToNext()) {
+                list.add(cursor.getString(0))
+            }
+        }
+        return list
+    }
+
     fun getBookInfoForItemPath(location: String): BookInfo? {
         val db = readableDatabase
         return db.query(
@@ -889,9 +907,47 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
         }
     }
 
+    private val bookWithCategoriesSelect = """
+        SELECT b.sha AS book_sha, b.name AS book_name, c.category AS main_category,
+               sub.sub_categories AS sub_categories,
+               b.location AS book_location, b.author AS author_name
+        FROM books AS b
+        LEFT JOIN book_category_map AS mc ON mc.book_id_fk = b.id AND mc.is_main = 1
+        LEFT JOIN categories AS c ON c.id = mc.category_id_fk
+        LEFT JOIN (
+            SELECT book_id_fk, GROUP_CONCAT(category, '||') AS sub_categories
+            FROM (
+                SELECT ms.book_id_fk AS book_id_fk, sc.category AS category
+                FROM book_category_map AS ms
+                JOIN categories AS sc ON sc.id = ms.category_id_fk
+                WHERE ms.is_main = 0
+                ORDER BY ms.id
+            )
+            GROUP BY book_id_fk
+        ) AS sub ON sub.book_id_fk = b.id
+    """.trimIndent()
+
+    private fun readBookFileItems(cursor: android.database.Cursor): List<FileItem> {
+        val list = mutableListOf<FileItem>()
+        while (cursor.moveToNext()) {
+            val sha = cursor.getString(cursor.getColumnIndexOrThrow("book_sha"))
+            val name = cursor.getString(cursor.getColumnIndexOrThrow("book_name"))
+            val mainCategory = cursor.getString(cursor.getColumnIndexOrThrow("main_category"))
+            val subCategories = cursor.getString(cursor.getColumnIndexOrThrow("sub_categories"))
+                ?.split("||")
+                ?.filter { it.isNotEmpty() }
+                ?: emptyList()
+            val location = cursor.getString(cursor.getColumnIndexOrThrow("book_location"))
+            val author = cursor.getString(cursor.getColumnIndexOrThrow("author_name"))
+            val file = File(location)
+            val bookInfo = BookInfo(sha, name, mainCategory, subCategories, author)
+            list.add(FileItem(file, file.name, bookInfo, System.currentTimeMillis()))
+        }
+        return list
+    }
+
     fun getBookShelfBooks(currentCategory: String): List<FileItem> {
         val db = readableDatabase
-        val list = mutableListOf<FileItem>()
 
         val selectionArgs = if (currentCategory == "All") {
             null
@@ -906,39 +962,58 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
             )
         """.trimIndent()
         val sql = """
-            SELECT b.sha AS book_sha, b.name AS book_name, c.category AS main_category,
-                   GROUP_CONCAT(sc.category, '||') AS sub_categories,
-                   b.location AS book_location, b.author AS author_name
-            FROM books AS b
-            LEFT JOIN book_category_map AS mc ON mc.book_id_fk = b.id AND mc.is_main = 1
-            LEFT JOIN categories AS c ON c.id = mc.category_id_fk
-            LEFT JOIN book_category_map AS ms ON ms.book_id_fk = b.id AND ms.is_main = 0
-            LEFT JOIN categories AS sc ON sc.id = ms.category_id_fk
+            $bookWithCategoriesSelect
             $categoryFilter
-            GROUP BY b.id
             ORDER BY (mc.category_id_fk IS NULL) ASC, mc.category_id_fk ASC, b.author;
         """.trimIndent()
-        val cursor = db.rawQuery(
-            sql, selectionArgs
-        )
-        cursor.use { cursor ->
-            while (cursor.moveToNext()) {
-                val sha = cursor.getString(cursor.getColumnIndexOrThrow("book_sha"))
-                val name = cursor.getString(cursor.getColumnIndexOrThrow("book_name"))
-                val mainCategory = cursor.getString(cursor.getColumnIndexOrThrow("main_category"))
-                val subCategories = cursor.getString(cursor.getColumnIndexOrThrow("sub_categories"))
-                    ?.split("||")
-                    ?.filter { it.isNotEmpty() }
-                    ?: emptyList()
-                val location = cursor.getString(cursor.getColumnIndexOrThrow("book_location"))
-                val author = cursor.getString(cursor.getColumnIndexOrThrow("author_name"))
-                val file = File(location)
-                Log.e("NIGEL_HURNELL" , subCategories.toString())
-                val bookInfo = BookInfo(sha, name, mainCategory, subCategories, author)
-                list.add(FileItem(file, file.name, bookInfo, System.currentTimeMillis()))
-            }
+        return db.rawQuery(sql, selectionArgs).use { cursor -> readBookFileItems(cursor) }
+    }
+
+    fun getDistinctBookNames(term: String): List<String> {
+        val db = readableDatabase
+        val list = mutableListOf<String>()
+        db.rawQuery(
+            "SELECT DISTINCT name FROM books WHERE name LIKE ? ORDER BY name COLLATE NOCASE LIMIT 20",
+            arrayOf("%$term%")
+        ).use { cursor ->
+            while (cursor.moveToNext()) list.add(cursor.getString(0))
         }
         return list
+    }
+
+    fun getDistinctBookAuthors(term: String): List<String> {
+        val db = readableDatabase
+        val list = mutableListOf<String>()
+        db.rawQuery(
+            "SELECT DISTINCT author FROM books WHERE author IS NOT NULL AND author LIKE ? ORDER BY author COLLATE NOCASE LIMIT 20",
+            arrayOf("%$term%")
+        ).use { cursor ->
+            while (cursor.moveToNext()) list.add(cursor.getString(0))
+        }
+        return list
+    }
+
+    fun getBooksByExactName(name: String): List<FileItem> {
+        val db = readableDatabase
+        val sql = """
+            $bookWithCategoriesSelect
+            WHERE b.name = ?
+            ORDER BY b.name COLLATE NOCASE;
+        """.trimIndent()
+        return db.rawQuery(sql, arrayOf(name)).use { cursor -> readBookFileItems(cursor) }
+    }
+
+    fun getBooksByExactAuthor(author: String): List<FileItem> {
+        val db = readableDatabase
+        val sql = """
+            $bookWithCategoriesSelect
+            WHERE b.author = ?
+               OR b.author LIKE ? || ' & %'
+               OR b.author LIKE '% & ' || ?
+               OR b.author LIKE '% & ' || ? || ' & %'
+            ORDER BY b.name COLLATE NOCASE;
+        """.trimIndent()
+        return db.rawQuery(sql, arrayOf(author, author, author, author)).use { cursor -> readBookFileItems(cursor) }
     }
 
     fun generateToc(
