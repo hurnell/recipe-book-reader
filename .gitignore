@@ -62,3 +62,8 @@ obj/
 
 # JetBrains Kotlin / IntelliJ plugin cache
 *.kotlin_module
+
+# === Release signing secrets ===
+keystore.properties
+app/keystore/*.jks
+app/keystore/*.keystore
