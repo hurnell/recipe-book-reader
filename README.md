@@ -8,8 +8,8 @@ It's built on [**MuPDF**](https://mupdf.com/) (the `com.artifex.mupdf:fitz` libr
 rendering engine used by Artifex's
 own [mupdf-android-viewer](https://github.com/ArtifexSoftware/mupdf-android-viewer). On top of that
 core PDF renderer it adds a bookshelf, a browsable/searchable table of contents (including images),
-bookmarks, in-document text search, and reading history — the things you actually need when your PDF
-library is a few hundred pages long and you want to find your way back to a page later.
+bookmarks, in-document text search, and reading history; the things you actually need when your PDF
+library is a few hundred pages long, and you want to find your way back to a page later.
 
 ## Features
 
@@ -32,65 +32,67 @@ the [Releases page](https://github.com/hurnell/recipe-book-reader/releases/lates
 
 ### Recent Books
 
-- Simple list of books ordered by last opened
+- Simple list of books ordered by last opened. 
 - Long click on book cover to open popup to edit book name, cover image, author, categories, whether
-  text shows on volume up and down and to delete book from app and/or device
-- Short click opens book
+  text shows on volume up and down and to delete book from app and/or device.
+- Short click opens book.
 
 ### Book Shelf
 
-- Filter by category (dropdown on top right)
-- Long click on book cover supported
-- Short click opens book
+- Filter by category (dropdown on top right).
+- Long click on book cover supported.
+- Short click opens book.
 
 ### Book Author or Name
 
-- Search by author or book name (toggle icon)
-- Long click on book cover supported
-- Short click opens book
+- Search by author or book name (toggle icon).
+- Long click on book cover supported.
+- Short click opens book.
 
 ### Browse Files
 
 - This is the starting point!
-- Click on file and wait for table of contents to be read
-- Long click on book cover supported
-- Short click opens book
+- Click on file and wait for table of contents to be read.
+- Long click on book cover supported.
+- Short click opens book.
 
 ### Search Table of Contents
 
 - Enter search term in text field and click on search icon.
-- Filter by category (dropdown on top right) also available
-- Long click on title shows full title
-- Short click opens book at chosen recipe
+- Filter by category (dropdown on top right) also available.
+- Long click on title shows full title.
+- Short click opens book at chosen recipe.
 
 ### Bookmarks
 
-- Complete list of bookmarks
-- Filter by category (dropdown on top right) also available
-- Long click on title shows full bookmark text
-- Short click opens book at bookmark
+- Complete list of bookmarks.
+- Filter by category (dropdown on top right) also available.
+- Long click on title shows full bookmark text.
+- Short click opens book at bookmark.
 
 ### Recent Recipes
 
-- List of recently viewed recipes
-- Entries can be deleted with x icon
-- Long click on title shows full recipe text
-- Short click opens book at chosen recipe
+- List of recently viewed recipes.
+- Entries can be deleted with x icon.
+- Long click on title shows full recipe text.
+- Short click opens book at chosen recipe.
 
 ### Single book view
 
 - Click on volume up or down to navigate to previous/next toc entry. If configured (see long click
   on book cover) then the toc title will show.
+- From Table of Contents list long click on entry adds (or removes) entry to bookmarks. Short click goes to page.
+- From Bookmarks list short click goes to bookmarked page. Click on bookmark icon shows option to remove bookmark.
 - Usage:
 
 | Icon                                                                  | What it does                                                                                                         |
 |-----------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
-| <img src="help/expand_icon.png" width="30" alt="expand icon">         | Shows/hides the top and bottom navigation bars                                                                       |
+| <img src="help/expand_icon.png" width="30" alt="expand icon">         | Shows/hides the top and bottom navigation bars.                                                                      |
 | <img src="help/link_icon.png" width="30" alt="link icon">             | Toggles links and popups — when red prevents unwanted pop-ups and links - when bookmark single click can create one. |
 | <img src="help/toc_icon.png" width="30" alt="table of contents icon"> | Shows the table of contents for the book.                                                                            |
-| <img src="help/bookmarks_icon.png" width="30" alt="bookmarks icon">   | Shows any bookmarks you've made in the book (only shown if you have some)                                            |
-| <img src="help/back_icon.png" width="30" alt="back icon">             | Returns to the previous screen                                                                                       |
-| <img src="help/search_icon.png" width="30" alt="search icon">         | Opens a screen to search for text inside the PDF                                                                     |
+| <img src="help/bookmarks_icon.png" width="30" alt="bookmarks icon">   | Shows any bookmarks you've made in the book (only shown if you have some).                                           |
+| <img src="help/back_icon.png" width="30" alt="back icon">             | Returns to the previous screen.                                                                                      |
+| <img src="help/search_icon.png" width="30" alt="search icon">         | Opens a screen to search for text inside the PDF.                                                                    |
 
 ## Preparing PDFs (optional)
 
@@ -103,21 +105,15 @@ has scripts to prepare a PDF's table of contents and metadata before loading it 
 
 ### Inspect the on-device sqlite database
 
+### preload sqlite executable
 ```shell
 adb shell chmod 777 /data/local/tmp
 adb shell mkdir /data/local/tmp/tools
 adb shell chmod 777 /data/local/tmp/tools
 adb push tools/sqlite3 /data/local/tmp/tools/sqlite3
-
-adb shell
-run-as apk.hurnell.recipebookreader
-
-cp /data/local/tmp/tools/sqlite3 ./files/sqlite3
 ```
-
+### Commands to enter database
 ```shell
-adb shell ime reset
-
 adb shell #then
 run-as apk.hurnell.recipebookreader
 
