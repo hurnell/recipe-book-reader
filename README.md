@@ -28,9 +28,60 @@ library is a few hundred pages long and you want to find your way back to a page
 Grab the latest APK from
 the [Releases page](https://github.com/hurnell/recipe-book-reader/releases/latest).
 
-## Usage
+## Available views (left side navigation screen):
 
-Once you're on the single book view, these icons control reading:
+### Recent Books
+
+- Simple list of books ordered by last opened
+- Long click on book cover to open popup to edit book name, cover image, author, categories, whether
+  text shows on volume up and down and to delete book from app and/or device
+- Short click opens book
+
+### Book Shelf
+
+- Filter by category (dropdown on top right)
+- Long click on book cover supported
+- Short click opens book
+
+### Book Author or Name
+
+- Search by author or book name (toggle icon)
+- Long click on book cover supported
+- Short click opens book
+
+### Browse Files
+
+- This is the starting point!
+- Click on file and wait for table of contents to be read
+- Long click on book cover supported
+- Short click opens book
+
+### Search Table of Contents
+
+- Enter search term in text field and click on search icon.
+- Filter by category (dropdown on top right) also available
+- Long click on title shows full title
+- Short click opens book at chosen recipe
+
+### Bookmarks
+
+- Complete list of bookmarks
+- Filter by category (dropdown on top right) also available
+- Long click on title shows full bookmark text
+- Short click opens book at bookmark
+
+### Recent Recipes
+
+- List of recently viewed recipes
+- Entries can be deleted with x icon
+- Long click on title shows full recipe text
+- Short click opens book at chosen recipe
+
+### Single book view
+
+- Click on volume up or down to navigate to previous/next toc entry. If configured (see long click
+  on book cover) then the toc title will show.
+- Usage:
 
 | Icon                                                                  | What it does                                                                                                         |
 |-----------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
