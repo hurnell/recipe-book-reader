@@ -106,6 +106,32 @@
                     android:visibility="gone"
                     app:tint="@color/pastel_blue" />
 
+                <ImageButton
+                    android:id="@+id/btnFindReplace"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginStart="16dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/find_replacement_cover"
+                    android:src="@drawable/ic_find_replace"
+                    android:visibility="gone"
+                    app:layout_constraintBottom_toBottomOf="@id/bookPreviewWrapper"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:tint="@color/pastel_blue" />
+
+                <ImageButton
+                    android:id="@+id/btnRedo"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginEnd="16dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/redo_cover_from_first_page"
+                    android:src="@drawable/ic_redo"
+                    android:visibility="gone"
+                    app:layout_constraintBottom_toBottomOf="@id/bookPreviewWrapper"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:tint="@color/pastel_blue" />
+
                 <LinearLayout
                     android:id="@+id/buttonContainer"
                     android:layout_width="wrap_content"

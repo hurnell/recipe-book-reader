@@ -8,6 +8,7 @@ import android.widget.FrameLayout
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import apk.hurnell.recipebookreader.R
 import apk.hurnell.recipebookreader.model.FileItem
 import apk.hurnell.recipebookreader.databinding.ListItemBookShelfRowBinding
 import apk.hurnell.recipebookreader.databinding.ListItemBookShelfItemBinding
@@ -49,10 +50,18 @@ class BookShelfAdapter(
             thumbnailFile = File(imageView.context.filesDir, "${item.bookInfo.sha}.png")
         }
 
-        if (item != null && thumbnailFile != null && thumbnailFile.exists()) {
-            val bitmap = BitmapFactory.decodeFile(thumbnailFile.absolutePath)
+        if (item != null && thumbnailFile != null) {
+            val bitmap = if (thumbnailFile.exists()) {
+                BitmapFactory.decodeFile(thumbnailFile.absolutePath)
+            } else {
+                null
+            }
 
-            binding.bookCover.setImageBitmap(bitmap)
+            if (bitmap != null) {
+                binding.bookCover.setImageBitmap(bitmap)
+            } else {
+                binding.bookCover.setImageResource(R.drawable.book_placeholder)
+            }
             if (item.bookInfo?.mainCategory == null || item.bookInfo.subCategories.isEmpty()) {
                 warningView.visibility = View.VISIBLE
             } else {

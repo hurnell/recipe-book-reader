@@ -47,6 +47,7 @@ class FileBrowserActivity : BaseDrawerActivity() {
     private val binding get() = _binding!!
     private var targetSha: String? = null
     private var targetBookName: String? = null
+    private var orphanedCoversOnly: Boolean = false
     private lateinit var adapter: FileAdapter
     private var lastScrollPosition: Int = 0
     private var lastScrollOffset: Int = 0
@@ -55,6 +56,7 @@ class FileBrowserActivity : BaseDrawerActivity() {
         const val EXTRA_PDF_ONLY = "extra_pdf_only"
         const val EXTRA_TARGET_SHA = "extra_target_sha"
         const val EXTRA_TARGET_BOOK_NAME = "extra_target_book_name"
+        const val EXTRA_ORPHANED_COVERS_ONLY = "extra_orphaned_covers_only"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -64,6 +66,10 @@ class FileBrowserActivity : BaseDrawerActivity() {
 
         setContentView(binding.root)
         pdfOnly = intent.getBooleanExtra(EXTRA_PDF_ONLY, true)
+        orphanedCoversOnly = intent.getBooleanExtra(EXTRA_ORPHANED_COVERS_ONLY, false)
+        if (orphanedCoversOnly) {
+            pdfOnly = false
+        }
         targetSha = intent.getStringExtra(EXTRA_TARGET_SHA)
         targetBookName = intent.getStringExtra(EXTRA_TARGET_BOOK_NAME)
         val stopAddToHistory = intent.getBooleanExtra("STOP_ADD_TO_HISTORY", false)
@@ -81,7 +87,8 @@ class FileBrowserActivity : BaseDrawerActivity() {
             onClick = { file -> onFileClick(file) },
             onLongClick = { file -> browserShowBookInfoOverlay(file) },
             repository,
-            pdfOnly
+            pdfOnly,
+            showRawImageThumbnails = orphanedCoversOnly
         )
         binding.fileRecyclerView.adapter = adapter
         binding.fileRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
@@ -90,8 +97,12 @@ class FileBrowserActivity : BaseDrawerActivity() {
                 trackRecyclerViewOffset()
             }
         })
-        requestStoragePermission()
-        applySavedTracker(pdfOnly)
+        if (orphanedCoversOnly) {
+            showOrphanedCovers()
+        } else {
+            requestStoragePermission()
+            applySavedTracker(pdfOnly)
+        }
 
         val backCallback = object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -232,7 +243,11 @@ class FileBrowserActivity : BaseDrawerActivity() {
     override fun onResume() {
         super.onResume()
         addToHistory = false
-        refreshFilesAndUI(currentDir.absolutePath != initialDir.absolutePath)
+        if (orphanedCoversOnly) {
+            showOrphanedCovers()
+        } else {
+            refreshFilesAndUI(currentDir.absolutePath != initialDir.absolutePath)
+        }
     }
 
     override fun refreshFilesAndUI(reloadAdapter: Boolean) {
@@ -240,8 +255,31 @@ class FileBrowserActivity : BaseDrawerActivity() {
             drawerLayout.closeDrawer(GravityCompat.START, false)
         }
         if (reloadAdapter) {
-            showFiles(currentDir)
+            if (orphanedCoversOnly) {
+                showOrphanedCovers()
+            } else {
+                showFiles(currentDir)
+            }
         }
+    }
+
+    private fun showOrphanedCovers() {
+        val usedShas = repository.getAllBookShas()
+        val items = filesDir.listFiles()
+            ?.filter {
+                it.isFile && it.extension.equals("png", true) && it.nameWithoutExtension !in usedShas
+            }
+            ?.sortedBy { it.name.lowercase() }
+            ?.map { file -> FileItem(file, file.name, null, System.currentTimeMillis()) }
+            ?: emptyList()
+        adapter.submitList(items)
+        binding.breadcrumbLayout.removeAllViews()
+        val label = TextView(this).apply {
+            text = "Orphaned Covers"
+            setPadding(16, 8, 16, 8)
+            setTextColor(ContextCompat.getColor(this@FileBrowserActivity, R.color.dark_text))
+        }
+        binding.breadcrumbLayout.addView(label)
     }
 
     private fun requestStoragePermission() {

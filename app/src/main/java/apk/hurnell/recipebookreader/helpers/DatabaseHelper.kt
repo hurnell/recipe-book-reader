@@ -531,26 +531,34 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
         }
     }
 
+    private fun renderFirstPageBitmap(
+        document: Document, targetWidth: Int, targetHeight: Int
+    ): Bitmap {
+        val page = document.loadPage(0)
+        val bounds = page.bounds
+        val pageWidth = bounds.x1 - bounds.x0
+        val pageHeight = bounds.y1 - bounds.y0
+
+        val scaleX = targetWidth / pageWidth
+        val scaleY = targetHeight / pageHeight
+
+        val bitmap = createBitmap(200, 300)
+
+        val device = AndroidDrawDevice(bitmap, 0, 0)
+        page.run(device, Matrix(scaleX, scaleY), null)
+
+        device.close()
+        device.destroy()
+        page.destroy()
+
+        return bitmap
+    }
+
     private fun generateBookCoverFromFirstPage(
         sha: String, thumbnailFile: File, document: Document, targetWidth: Int, targetHeight: Int
     ): Boolean {
         return try {
-            val page = document.loadPage(0)
-            val bounds = page.bounds
-            val pageWidth = bounds.x1 - bounds.x0
-            val pageHeight = bounds.y1 - bounds.y0
-
-            val scaleX = targetWidth / pageWidth
-            val scaleY = targetHeight / pageHeight
-
-            val bitmap = createBitmap(200, 300)
-
-            val device = AndroidDrawDevice(bitmap, 0, 0)
-            page.run(device, Matrix(scaleX, scaleY), null)
-
-            device.close()
-            device.destroy()
-            page.destroy()
+            val bitmap = renderFirstPageBitmap(document, targetWidth, targetHeight)
 
             FileOutputStream(thumbnailFile).use { out ->
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
@@ -560,6 +568,17 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
         } catch (e: Exception) {
             e.printStackTrace()
             false
+        }
+    }
+
+    fun renderFirstPageCoverPreview(
+        document: Document, targetWidth: Int = 200, targetHeight: Int = 300
+    ): Bitmap? {
+        return try {
+            renderFirstPageBitmap(document, targetWidth, targetHeight)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
     }
 
@@ -607,6 +626,18 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
             }
         }
         return digest.digest().joinToString("") { "%02x".format(it) }
+    }
+
+    fun getAllBookShas(): Set<String> {
+        val db = readableDatabase
+        val shas = mutableSetOf<String>()
+        db.query("books", arrayOf("sha"), null, null, null, null, null).use { cursor ->
+            val index = cursor.getColumnIndexOrThrow("sha")
+            while (cursor.moveToNext()) {
+                cursor.getString(index)?.let { shas.add(it) }
+            }
+        }
+        return shas
     }
 
     fun updateIsAlternateCover(sha: String, isAlternateCover: Int) {

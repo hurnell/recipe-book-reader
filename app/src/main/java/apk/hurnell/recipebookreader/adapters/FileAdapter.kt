@@ -20,7 +20,8 @@ class FileAdapter(
     private val onClick: (File) -> Unit,
     private val onLongClick: ((File) -> Unit)? = null,
     private val repository: PdfRepository,
-    private val pdfOnly: Boolean = true
+    private val pdfOnly: Boolean = true,
+    private val showRawImageThumbnails: Boolean = false
 ) : ListAdapter<FileItem, FileAdapter.FileViewHolder>(DiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FileViewHolder {
@@ -29,7 +30,7 @@ class FileAdapter(
     }
 
     override fun onBindViewHolder(holder: FileViewHolder, position: Int) {
-        holder.bind(getItem(position), onClick, onLongClick, repository, pdfOnly)
+        holder.bind(getItem(position), onClick, onLongClick, repository, pdfOnly, showRawImageThumbnails)
     }
 
     class FileViewHolder(val binding: ListItemFileBinding) : RecyclerView.ViewHolder(binding.root) {
@@ -76,7 +77,8 @@ class FileAdapter(
             onClick: (File) -> Unit,
             onLongClick: ((File) -> Unit)?,
             repository: PdfRepository,
-            pdfOnly: Boolean
+            pdfOnly: Boolean,
+            showRawImageThumbnails: Boolean = false
         ) {
             binding.fileName.text = item.displayName
 
@@ -91,12 +93,21 @@ class FileAdapter(
             }
             var bookInfo: BookInfo? = null
             binding.innerCount.text = countText
-            if (!item.file.isDirectory) {
+            if (!item.file.isDirectory && !showRawImageThumbnails) {
                 bookInfo = repository.getBookInfoForItemPath(item.file.path)
             }
             if (item.file.isDirectory) {
                 updateIconLayout(binding.fileIcon, false)
                 binding.fileIcon.setImageResource(R.drawable.ic_folder)
+            } else if (showRawImageThumbnails) {
+                val bitmap = BitmapFactory.decodeFile(item.file.absolutePath)
+                if (bitmap != null) {
+                    binding.fileIcon.setImageBitmap(bitmap)
+                    updateIconLayout(binding.fileIcon, true)
+                } else {
+                    updateIconLayout(binding.fileIcon, false)
+                    binding.fileIcon.setImageResource(getIconResource(item.file))
+                }
             } else if (bookInfo == null) {
                 updateIconLayout(binding.fileIcon, false)
 

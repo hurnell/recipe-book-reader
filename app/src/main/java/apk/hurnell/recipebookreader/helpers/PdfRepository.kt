@@ -1,6 +1,7 @@
 package apk.hurnell.recipebookreader.helpers
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.util.Log
 import apk.hurnell.recipebookreader.model.BaseBookmarkTocItem
 import apk.hurnell.recipebookreader.model.Book
@@ -50,6 +51,10 @@ class PdfRepository(
     }
 
     fun loadCategories(): List<Category> = dbHelper.loadCategories()
+
+    fun getAllBookShas(): Set<String> {
+        return dbHelper.getAllBookShas()
+    }
 
     fun updateIsAlternateCover(sha: String, isAlternateCover: Int) {
         dbHelper.updateIsAlternateCover(sha, isAlternateCover)
@@ -223,6 +228,16 @@ class PdfRepository(
                 targetHeight,
                 overwrite
             )
+        }
+    }
+
+    suspend fun renderFirstPageCoverPreview(
+        document: Document,
+        targetWidth: Int = 200,
+        targetHeight: Int = 300
+    ): Bitmap? {
+        return withContext(Dispatchers.IO) {
+            DatabaseHelper(context).renderFirstPageCoverPreview(document, targetWidth, targetHeight)
         }
     }
 

@@ -201,7 +201,11 @@ class BookShelfActivity : BaseDrawerActivity() {
         }
 
         val displayList = filteredBooks.toMutableList<FileItem?>()
-        Log.e("NIGEL_HURNELL", displayList.toString())
+
+        displayList.forEach { item ->
+            Log.e("NIGEL_HURNELL", item.toString())
+        }
+
         repeat(totalSlotsNeeded - displayList.size) {
             displayList.add(null)
         }
@@ -214,6 +218,8 @@ class BookShelfActivity : BaseDrawerActivity() {
                 layoutManager?.scrollToPositionWithOffset(lastScrollPosition, lastScrollOffset)
             }
         } else {
+
+            Log.e("NIGEL_HURNELL", chunkedList.toString())
             bookRowAdapter.submitList(chunkedList) {
                 binding.shelfRecyclerView.scrollToPosition(0)
             }

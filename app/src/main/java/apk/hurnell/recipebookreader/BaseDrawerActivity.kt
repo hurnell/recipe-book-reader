@@ -104,6 +104,8 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
     protected var btnSearchCovers: ImageButton? = null
     protected var btnPickCover: ImageButton? = null
     protected var btnRevertCover: ImageButton? = null
+    protected var btnFindReplace: ImageButton? = null
+    protected var btnRedo: ImageButton? = null
     protected var addToHistory: Boolean = true
     protected var fullyCloseFromFileBrowser: Boolean = false
     protected val rootDir: File = Environment.getExternalStorageDirectory()
@@ -619,7 +621,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                     }
                 }
 
-                toggleOtherButtons(null, show = true, showRevertCover = false)
+                toggleOtherButtons(null, show = true, showRevertCover = false, sha = book.sha)
                 btnSearchCovers?.visibility = View.VISIBLE
                 btnPickCover?.visibility = View.VISIBLE
             } catch (e: Exception) {
@@ -650,6 +652,63 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         fileBrowserLauncher.launch(intent)
     }
 
+    fun searchOrphanedCoversForBook(book: Book) {
+        val intent = Intent(this@BaseDrawerActivity, FileBrowserActivity::class.java).apply {
+            putExtra(FileBrowserActivity.EXTRA_ORPHANED_COVERS_ONLY, true)
+            putExtra(FileBrowserActivity.EXTRA_TARGET_SHA, book.sha)
+            putExtra(FileBrowserActivity.EXTRA_TARGET_BOOK_NAME, book.name)
+        }
+        fileBrowserLauncher.launch(intent)
+    }
+
+    private fun showRedoCoverConfirmation(book: Book) {
+        val sha = book.sha ?: return
+        lifecycleScope.launch {
+            val bitmap = try {
+                val file = File(book.location!!)
+                val document = repository.openPdfFast(file)
+                val rendered = repository.renderFirstPageCoverPreview(document)
+                document.destroy()
+                rendered
+            } catch (e: Exception) {
+                Log.e(LOG_TAG, "Error rendering first page preview: ${e.message}", e)
+                null
+            }
+
+            if (bitmap == null) {
+                displaySnackBarMessage("Could not generate a cover from the first page ❌", drawerLayout)
+                return@launch
+            }
+
+            val dialogView = layoutInflater.inflate(R.layout.dialog_confirm_cover, null)
+            val previewImageView = dialogView.findViewById<ImageView>(R.id.coverPreviewImage)
+            previewImageView.setImageBitmap(bitmap)
+
+            val dialog = MaterialAlertDialogBuilder(
+                this@BaseDrawerActivity,
+                R.style.ThemeOverlay_App_MaterialAlertDialog
+            )
+                .setTitle("Use this cover?")
+                .setMessage("Replace the missing cover with the first page of the PDF?")
+                .setView(dialogView)
+                .setNegativeButton("Reject") { dialog, _ ->
+                    dialog.dismiss()
+                }
+                .setPositiveButton("Accept") { _, _ ->
+                    saveBitmapAsCover(bitmap, sha)
+                    repository.updateIsAlternateCover(sha, 0)
+                    bookPreviewImage?.let { setResetPreviewImage(sha, it) }
+                }
+                .create()
+            dialog.window?.setLayout(
+                (resources.displayMetrics.widthPixels * 0.9).toInt(),
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+            dialog.window?.setBackgroundDrawableResource(R.drawable.alert_background)
+            dialog.show()
+        }
+    }
+
     fun showPossibleBookCovers(book: Book) {
         btnSearchCovers?.visibility = View.GONE
         toggleOtherButtons(null, false)
@@ -675,7 +734,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                         bookPreviewWrapper?.visibility = View.VISIBLE
                         btnCloseGallery?.visibility = View.GONE
                         btnSearchCovers?.visibility = View.VISIBLE
-                        toggleOtherButtons(null, show = true, showRevertCover = true)
+                        toggleOtherButtons(null, show = true, showRevertCover = true, sha = book.sha)
                         btnPickCover?.visibility = View.VISIBLE
                         repository.updateIsAlternateCover(book.sha!!, 1)
                         btnRevertCover?.visibility = View.VISIBLE
@@ -697,7 +756,7 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                     if (book.alternateCover) {
                         btnRevertCover?.visibility = View.VISIBLE
                     }
-                    toggleOtherButtons(null, true)
+                    toggleOtherButtons(null, true, sha = book.sha)
                     displaySnackBarMessage("No thumbnail images found online ❌", drawerLayout)
                 }
             }
@@ -736,15 +795,29 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         }
     }
 
+    private fun updateCoverMissingButtonsVisibility(sha: String) {
+        val exists = File(filesDir, "${sha}.png").exists()
+        val visibility = if (exists) View.GONE else View.VISIBLE
+        btnFindReplace?.visibility = visibility
+        btnRedo?.visibility = visibility
+    }
+
     private fun toggleOtherButtons(
         activeView: Any?,
         show: Boolean,
-        showRevertCover: Boolean = false
+        showRevertCover: Boolean = false,
+        sha: String? = null
     ) {
         btnSearchCovers?.visibility = if (show) View.VISIBLE else View.GONE
         btnPickCover?.visibility = if (show) View.VISIBLE else View.GONE
         btnRevertCover?.visibility = if (show && showRevertCover) View.VISIBLE else View.GONE
         btnAddSubCategory?.visibility = if (show) View.VISIBLE else View.GONE
+        if (show && sha != null) {
+            updateCoverMissingButtonsVisibility(sha)
+        } else {
+            btnFindReplace?.visibility = View.GONE
+            btnRedo?.visibility = View.GONE
+        }
         val buttons = listOf(bookTitle, bookAuthor, isbnNumber, bookCategory, bookSubCategory)
         buttons.forEach { btn ->
             if (btn != activeView) {
@@ -774,6 +847,8 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
 
 
                 btnRevertCover = findViewById(R.id.btnRevertCover)
+                btnFindReplace = findViewById(R.id.btnFindReplace)
+                btnRedo = findViewById(R.id.btnRedo)
 
                 withContext(Dispatchers.Main) {
                     bookTitle?.setParams(book.id, book.name ?: pdfFile.name, "Title", Typeface.BOLD)
@@ -841,19 +916,19 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                         }
                     }
                     bookTitle?.onEditingChanged = { view, isEditing ->
-                        toggleOtherButtons(view, !isEditing)
+                        toggleOtherButtons(view, !isEditing, sha = book.sha)
                     }
                     bookAuthor?.onEditingChanged = { view, isEditing ->
-                        toggleOtherButtons(view, !isEditing)
+                        toggleOtherButtons(view, !isEditing, sha = book.sha)
                     }
                     isbnNumber?.onEditingChanged = { view, isEditing ->
-                        toggleOtherButtons(view, !isEditing)
+                        toggleOtherButtons(view, !isEditing, sha = book.sha)
                     }
                     bookCategory?.onEditingChanged = { view, isEditing ->
-                        toggleOtherButtons(view, !isEditing)
+                        toggleOtherButtons(view, !isEditing, sha = book.sha)
                     }
                     bookSubCategory?.onEditingChanged = { view, isEditing ->
-                        toggleOtherButtons(view, !isEditing)
+                        toggleOtherButtons(view, !isEditing, sha = book.sha)
                     }
                     setResetPreviewImage(book.sha!!, previewImage)
                     overlayContainer?.visibility = View.VISIBLE
@@ -886,13 +961,19 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
                 btnRevertCover?.setOnClickListener {
                     revertCoverFromDocument(book)
                 }
+                btnFindReplace?.setOnClickListener {
+                    searchOrphanedCoversForBook(book)
+                }
+                btnRedo?.setOnClickListener {
+                    showRedoCoverConfirmation(book)
+                }
                 btnCloseGallery?.setOnClickListener {
                     coverOptionsRecycler?.visibility = View.GONE
                     btnCloseGallery?.visibility = View.GONE
                     bookPreviewImage?.visibility = View.VISIBLE
                     bookPreviewWrapper?.visibility = View.VISIBLE
                     btnSearchCovers?.visibility = View.VISIBLE
-                    toggleOtherButtons(null, true)
+                    toggleOtherButtons(null, true, sha = book.sha)
                     btnPickCover?.visibility = View.VISIBLE
                 }
                 btnDeleteBook?.setOnClickListener {
@@ -992,8 +1073,14 @@ abstract class BaseDrawerActivity : AppCompatActivity() {
         )
         val bitmap = BitmapFactory.decodeFile(thumbnailFile.absolutePath)
 
-        previewImage.setImageBitmap(bitmap)
-        bookPreviewImage?.setImageBitmap(bitmap)
+        if (bitmap != null) {
+            previewImage.setImageBitmap(bitmap)
+            bookPreviewImage?.setImageBitmap(bitmap)
+        } else {
+            previewImage.setImageResource(R.drawable.book_placeholder)
+            bookPreviewImage?.setImageResource(R.drawable.book_placeholder)
+        }
+        updateCoverMissingButtonsVisibility(sha)
         if (isAlternateCover) {
             btnRevertCover?.visibility = View.VISIBLE
         }
