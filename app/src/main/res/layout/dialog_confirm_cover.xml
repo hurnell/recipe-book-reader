@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingHorizontal="24dp"
+    android:paddingVertical="8dp">
+
+    <ImageView
+        android:id="@+id/coverPreviewImage"
+        android:layout_width="160dp"
+        android:layout_height="240dp"
+        android:layout_gravity="center"
+        android:contentDescription="@string/pdf_preview"
+        android:scaleType="fitCenter" />
+
+</FrameLayout>
