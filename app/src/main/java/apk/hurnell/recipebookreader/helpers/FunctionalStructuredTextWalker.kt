@@ -17,7 +17,7 @@ data class PageCoordinates(
     var width: Float = 0.0f,
     var height: Float = 0.0f,
     var leftOffset: Float = 0.0f,
-    var targetScale: Float = 0.0f,
+    var targetScale: Float = 1.0f,
     var translatingPercentage: Float = 0.0f,
     var found: Boolean = false,
     var hasImages: Boolean = false,
