@@ -87,16 +87,16 @@ the [Releases page](https://github.com/hurnell/recipe-book-reader/releases/lates
 
 | Icon                                                                     | Action                                                                         |
 |--------------------------------------------------------------------------|--------------------------------------------------------------------------------|
-| <img src="help/edit_icon.png" width="30" alt="table of contents icon">   | (Start) editing name, author, ISBN, category and sub category.                 |
-| <img src="help/save_icon.png" width="30" alt="table of contents icon">   | Save/(Complete editing name, author, ISBN, category and sub category.)         |
-| <img src="help/cancel_icon.png" width="30" alt="table of contents icon"> | Cancel editing name, author, ISBN, category and sub category.)                 |
-| <img src="help/plus_icon.png" width="30" alt="back icon">                | Add sub category.                                                              |
-| <img src="help/cover_search_icon.png" width="30" alt="expand icon">      | Search for book cover on device.                                               |
-| <img src="help/internet_search_icon.png" width="30" alt="expand icon">   | Search for book cover over internet.                                           |
-| <img src="help/return_to_saved_icon.png" width="30" alt="expand icon">   | Return to saved book cover after replacing with local or internet book cover*. |
-| <img src="help/reload_cover_icon.png" width="30" alt="expand icon">      | Reload book cover from first page of book**.                                   |
-| <img src="help/search_lost_icon.png" width="30" alt="expand icon">       | Search for lost book cover from saved local covers**.                          |
-| <img src="help/delete_icon.png" width="30" alt="link icon">              | Delete book or sub category.                                                   |
+| <img src="help/edit_icon.png" width="30" style="border:1px solid #000;" alt="table of contents icon">   | (Start) editing name, author, ISBN, category and sub category.                 |
+| <img src="help/save_icon.png" width="30" style="border:1px solid #000;" alt="table of contents icon">   | Save/(Complete editing name, author, ISBN, category and sub category.)         |
+| <img src="help/cancel_icon.png" width="30" style="border:1px solid #000;" alt="table of contents icon"> | Cancel editing name, author, ISBN, category and sub category.)                 |
+| <img src="help/plus_icon.png" width="30" style="border:1px solid #000;" alt="back icon">                | Add sub category.                                                              |
+| <img src="help/cover_search_icon.png" width="30" style="border:1px solid #000;" alt="expand icon">      | Search for book cover on device.                                               |
+| <img src="help/internet_search_icon.png" width="30" style="border:1px solid #000;" alt="expand icon">   | Search for book cover over internet.                                           |
+| <img src="help/return_to_saved_icon.png" width="30" style="border:1px solid #000;" alt="expand icon">   | Return to saved book cover after replacing with local or internet book cover*. |
+| <img src="help/reload_cover_icon.png" width="30" style="border:1px solid #000;" alt="expand icon">      | Reload book cover from first page of book**.                                   |
+| <img src="help/search_lost_icon.png" width="30" style="border:1px solid #000;" alt="expand icon">       | Search for lost book cover from saved local covers**.                          |
+| <img src="help/delete_icon.png" width="30" style="border:1px solid #000;" alt="link icon">              | Delete book or sub category.                                                   |
 
 - Note* - only available if you have substituted book cover for local image or internet image.
 - Note** - only available if you have changed the sha for a book in the local database (edge case).
@@ -112,12 +112,12 @@ the [Releases page](https://github.com/hurnell/recipe-book-reader/releases/lates
 
 | Icon                                                                  | Action                                                                                                               |
 |-----------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
-| <img src="help/expand_icon.png" width="30" alt="expand icon">         | Shows/hides the top and bottom navigation bars.                                                                      |
-| <img src="help/link_icon.png" width="30" alt="link icon">             | Toggles links and popups — when red prevents unwanted pop-ups and links - when bookmark single click can create one. |
-| <img src="help/toc_icon.png" width="30" alt="table of contents icon"> | Shows the table of contents for the book.                                                                            |
-| <img src="help/bookmarks_icon.png" width="30" alt="bookmarks icon">   | Shows any bookmarks you've made in the book (only shown if you have some).                                           |
-| <img src="help/back_icon.png" width="30" alt="back icon">             | Returns to the previous screen.                                                                                      |
-| <img src="help/search_icon.png" width="30" alt="search icon">         | Opens a screen to search for text inside the PDF.                                                                    |
+| <img src="help/expand_icon.png" width="30" style="border:1px solid #000;" alt="expand icon">         | Shows/hides the top and bottom navigation bars.                                                                      |
+| <img src="help/link_icon.png" width="30" style="border:1px solid #000;" alt="link icon">             | Toggles links and popups — when red prevents unwanted pop-ups and links - when bookmark single click can create one. |
+| <img src="help/toc_icon.png" width="30" style="border:1px solid #000;" alt="table of contents icon"> | Shows the table of contents for the book.                                                                            |
+| <img src="help/bookmarks_icon.png" width="30" style="border:1px solid #000;" alt="bookmarks icon">   | Shows any bookmarks you've made in the book (only shown if you have some).                                           |
+| <img src="help/back_icon.png" width="30" style="border:1px solid #000;" alt="back icon">             | Returns to the previous screen.                                                                                      |
+| <img src="help/search_icon.png" width="30" style="border:1px solid #000;" alt="search icon">         | Opens a screen to search for text inside the PDF.                                                                    |
 
 ## Preparing PDFs (optional)
 
