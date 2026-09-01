@@ -73,15 +73,15 @@ class PinchRecyclerView @JvmOverloads constructor(
     fun getScaleFactor(): Float = scaleFactor
 
     fun setScaleFactor(sf: Float, pageNumber: Int, translatingPercentage: Float): BookHistoryItem {
-        scaleFactor = sf
+        scaleFactor = if (sf.isNaN() || sf <= 0f) 1f else sf
         invalidate()
-        translationX = (width * (1 - sf)) * translatingPercentage
+        translationX = (width * (1 - scaleFactor)) * translatingPercentage
         (layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(pageNumber, 0)
         invalidate()
         return BookHistoryItem(
             page = pageNumber,
             translationX = translationX,
-            scale = sf
+            scale = scaleFactor
         )
     }
 
