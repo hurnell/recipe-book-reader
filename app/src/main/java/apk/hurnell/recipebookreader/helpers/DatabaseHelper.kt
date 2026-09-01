@@ -44,7 +44,7 @@ import okhttp3.Request
 import java.text.Normalizer
 
 class DatabaseHelper(private val context: Context) :
-    SQLiteOpenHelper(context.applicationContext, DB_NAME, null, 2) {
+    SQLiteOpenHelper(context.applicationContext, DB_NAME, null, 3) {
 
     companion object {
         private const val DB_NAME = "recipe-reader.db"
@@ -57,6 +57,20 @@ class DatabaseHelper(private val context: Context) :
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         if (oldVersion < 2) migrateToVersion2(db)
+        if (oldVersion < 3) migrateToVersion3(db)
+    }
+
+    private fun migrateToVersion3(db: SQLiteDatabase) {
+        // Pages where no text/image bbox was found got persisted with scale=0/translate=0
+        // (see FunctionalStructuredTextWalker.PageCoordinates), which collapses the page
+        // draw matrix to a point at render time. Backfill those rows to the "unset" default.
+        try {
+            db.execSQL("UPDATE toc SET scale = 1.0, translate = 0.0 WHERE scale <= 0")
+            db.execSQL("UPDATE bookmarks SET scale = 1.0, translate = 0.0 WHERE scale <= 0")
+            db.execSQL("UPDATE recent_recipes SET scale = 1.0, translate = 0.0 WHERE scale <= 0")
+        } catch (e: Exception) {
+            Log.e(LOG_TAG, "Failed to backfill degenerate scale=0 rows: ${e.message}", e)
+        }
     }
 
     private fun migrateToVersion2(db: SQLiteDatabase) {
