@@ -85,18 +85,18 @@ the [Releases page](https://github.com/hurnell/recipe-book-reader/releases/lates
   navigate to the
   previous/next entry.
 
-| Icon                                                                     | Action                                                                 |
-|--------------------------------------------------------------------------|------------------------------------------------------------------------|
-| <img src="help/edit_icon.png" width="30" alt="table of contents icon">   | (Start) editing name, author, ISBN, category and sub category.         |
-| <img src="help/save_icon.png" width="30" alt="table of contents icon">   | Save/(Complete editing name, author, ISBN, category and sub category.) |
-| <img src="help/cancel_icon.png" width="30" alt="table of contents icon"> | Cancel editing name, author, ISBN, category and sub category.)         |
-| <img src="help/plus_icon.png" width="30" alt="back icon">                | Add sub category.                                                      |
-| <img src="help/cover_search_icon.png" width="30" alt="expand icon">      | Search for book cover on device.                                       |
-| <img src="help/internet_search_icon.png" width="30" alt="expand icon">   | Search for book cover over internet.                                   |
-| <img src="help/return_to_saved_icon.png" width="30" alt="expand icon">   | Return to saved icon after replacing with local or internet icon*.     |
-| <img src="help/reload_cover_icon.png" width="30" alt="expand icon">      | Reload book cover from first page of book**.                           |
-| <img src="help/search_lost_icon.png" width="30" alt="expand icon">       | Search for lost book cover from saved local covers**.                  |
-| <img src="help/delete_icon.png" width="30" alt="link icon">              | Delete book or sub category.                                           |
+| Icon                                                                     | Action                                                                         |
+|--------------------------------------------------------------------------|--------------------------------------------------------------------------------|
+| <img src="help/edit_icon.png" width="30" alt="table of contents icon">   | (Start) editing name, author, ISBN, category and sub category.                 |
+| <img src="help/save_icon.png" width="30" alt="table of contents icon">   | Save/(Complete editing name, author, ISBN, category and sub category.)         |
+| <img src="help/cancel_icon.png" width="30" alt="table of contents icon"> | Cancel editing name, author, ISBN, category and sub category.)                 |
+| <img src="help/plus_icon.png" width="30" alt="back icon">                | Add sub category.                                                              |
+| <img src="help/cover_search_icon.png" width="30" alt="expand icon">      | Search for book cover on device.                                               |
+| <img src="help/internet_search_icon.png" width="30" alt="expand icon">   | Search for book cover over internet.                                           |
+| <img src="help/return_to_saved_icon.png" width="30" alt="expand icon">   | Return to saved book cover after replacing with local or internet book cover*. |
+| <img src="help/reload_cover_icon.png" width="30" alt="expand icon">      | Reload book cover from first page of book**.                                   |
+| <img src="help/search_lost_icon.png" width="30" alt="expand icon">       | Search for lost book cover from saved local covers**.                          |
+| <img src="help/delete_icon.png" width="30" alt="link icon">              | Delete book or sub category.                                                   |
 
 - Note* - only available if you have substituted book cover for local image or internet image.
 - Note** - only available if you have changed the sha for a book in the local database (edge case).
