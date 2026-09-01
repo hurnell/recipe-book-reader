@@ -145,7 +145,7 @@ adb push tools/sqlite3 /data/local/tmp/tools/sqlite3
 adb shell #then
 run-as apk.hurnell.recipebookreader
 
-./files/sqlite3 ./databases/recipe-reader.db
+  ./files/sqlite3 ./databases/recipe-reader.db
 ```
 
 ### Get copy of current database locally***:
