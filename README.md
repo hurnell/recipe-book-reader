@@ -13,15 +13,15 @@ library is a few hundred pages long, and you want to find your way back to a pag
 
 ## Features
 
-- Fast PDF rendering via MuPDF (`fitz`)
-- Bookshelf / recent books, browsable by author or book name
-- Full table of contents navigation, including TOC entries generated from images
-- Bookmarks per book
-- Full-text search inside a PDF
-- Reading history — return to your last position in any book
-- Category and metadata management (e.g. filed by cookbook/subject category)
+- Fast PDF rendering via MuPDF (`fitz`).
+- Bookshelf / recent books, browsable by author or book name.
+- Full table of contents navigation, including TOC entries generated for images (see [recipe-book-reader-companion](https://github.com/hurnell/recipe-book-reader-companion)).
+- Bookmarks per book (as well as for all books).
+- Full-text search inside a PDF.
+- Reading history — return to your last position in any book.
+- Category and metadata management (e.g. filed by cookbook/subject category).
 - Weight and temperature unit conversion for selected text (handy for recipes, but works on any
-  numeric text)
+  numeric text).
 
 ## Download
 
@@ -33,27 +33,26 @@ the [Releases page](https://github.com/hurnell/recipe-book-reader/releases/lates
 ### Recent Books
 
 - Simple list of books ordered by last opened.
-- Long click on book cover to open [Edit Book Overlay](#edit-book-overlay)
-  text shows on volume up and down and to delete book from app and/or device.
+- Long click on book cover to open [Edit Book Overlay](#edit-book-overlay).
 - Short click opens book.
 
 ### Book Shelf
 
 - Filter by category (dropdown on top right).
-- Long click on book cover to open [Edit Book Overlay](#edit-book-overlay)
+- Long click on book cover to open [Edit Book Overlay](#edit-book-overlay).
 - Short click opens book.
 
 ### Book Author or Name
 
 - Search by author or book name (toggle icon).
-- Long click on book cover to open [Edit Book Overlay](#edit-book-overlay)
+- Long click on book cover to open [Edit Book Overlay](#edit-book-overlay).
 - Short click opens book.
 
 ### Browse Files
 
 - This is the starting point!
 - Click on file and wait for table of contents to be read.
-- Long click on book cover to open [Edit Book Overlay](#edit-book-overlay)
+- Long click on book cover to open [Edit Book Overlay](#edit-book-overlay).
 - Short click opens book.
 
 ### Search Table of Contents
@@ -79,11 +78,12 @@ the [Releases page](https://github.com/hurnell/recipe-book-reader/releases/lates
 
 ### Edit Book Overlay
 
-- Edit book name, author, ISBN, category and sub category
-- Edit book cover
-- Delete book from library (optionally delete from device)
-- Toggle whether to show popup of table of contents text when pressing volume to go the
-  next/previous entry.
+- Edit book name, author, ISBN, category and sub category.
+- Edit book cover.
+- Delete book from library (and optionally delete from device).
+- Toggle whether to show popup of table of contents text when pressing volume up and down to
+  navigate to the
+  previous/next entry.
 
 | Icon                                                                     | Action                                                                 |
 |--------------------------------------------------------------------------|------------------------------------------------------------------------|
@@ -98,18 +98,17 @@ the [Releases page](https://github.com/hurnell/recipe-book-reader/releases/lates
 | <img src="help/search_lost_icon.png" width="30" alt="expand icon">       | Search for lost book cover from saved local covers**.                  |
 | <img src="help/delete_icon.png" width="30" alt="link icon">              | Delete book or sub category.                                           |
 
-- Note* Only available if you have substituted book cover for local image or internet image.
-- Note** Only available if you have changed the sha for a book in the local database (edge case).
+- Note* - only available if you have substituted book cover for local image or internet image.
+- Note** - only available if you have changed the sha for a book in the local database (edge case).
 
 ### Single book view
 
-- Click on volume up or down to navigate to previous/next toc entry. If configured (see long click
-  on book cover) then the toc title will show.
-- From Table of Contents list long click on entry adds (or removes) entry to bookmarks. Short click
-  goes to page.
+- Click on volume up or down to navigate to previous/next toc entry. If
+  configured (see [Edit Book Overlay](#edit-book-overlay)) then the toc title will pop up.
+- From Table of Contents list long click on entry adds (or offers option to removes) entry to
+  bookmarks. Short click goes to page.
 - From Bookmarks list short click goes to bookmarked page. Click on bookmark icon shows option to
   remove bookmark.
-- Usage:
 
 | Icon                                                                  | Action                                                                                                               |
 |-----------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
@@ -131,7 +130,7 @@ has scripts to prepare a PDF's table of contents and metadata before loading it 
 
 ### Inspect the on-device sqlite database
 
-### preload sqlite executable
+### preload sqlite executable***
 
 ```shell
 adb shell chmod 777 /data/local/tmp
@@ -140,7 +139,7 @@ adb shell chmod 777 /data/local/tmp/tools
 adb push tools/sqlite3 /data/local/tmp/tools/sqlite3
 ```
 
-### Commands to enter database
+### Commands to enter database***
 
 ```shell
 adb shell #then
@@ -148,6 +147,15 @@ run-as apk.hurnell.recipebookreader
 
 ./files/sqlite3 ./databases/recipe-reader.db
 ```
+
+### Get copy of current database locally***:
+```shell
+# ensure app is stopped
+adb shell am force-stop apk.hurnell.recipebookreader
+# get copy of database 
+adb exec-out run-as apk.hurnell.recipebookreader cat databases/recipe-reader.db > recipe-reader.db
+```
+Note*** these adb commands will only be available if you install the app yourself (not via released apk)
 
 ### Updating PDF metadata locally
 
