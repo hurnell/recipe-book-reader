@@ -17,12 +17,29 @@ import androidx.core.graphics.createBitmap
 import com.artifex.mupdf.fitz.Rect
 import androidx.core.graphics.toColorInt
 import apk.hurnell.recipebookreader.R
+import apk.hurnell.recipebookreader.model.NoteItem
 
 class BookAdapter(
     private val document: Document,
     private var usableWidth: Int
 ) : RecyclerView.Adapter<BookAdapter.PageViewHolder>() {
     private var highlightedPage: Int = -1
+
+    private val noteStarOutlinePaint = Paint().apply {
+        isAntiAlias = true
+        style = Paint.Style.STROKE
+        strokeWidth = 3f
+        color = Color.BLACK
+        textSize = 30f
+        textAlign = Paint.Align.CENTER
+    }
+    private val noteStarFillPaint = Paint().apply {
+        isAntiAlias = true
+        style = Paint.Style.FILL
+        color = "#FF00FF".toColorInt()
+        textSize = 30f
+        textAlign = Paint.Align.CENTER
+    }
 
     class PageViewHolder(
         container: View,
@@ -114,6 +131,13 @@ class BookAdapter(
 
             canvas.drawRect(left, top, right, bottom, highlightPaint)
         }
+
+        notesByPage[position]?.forEach { note ->
+            val cx = note.x * scale
+            val cy = note.y * scale
+            canvas.drawText("★", cx, cy, noteStarOutlinePaint)
+            canvas.drawText("★", cx, cy, noteStarFillPaint)
+        }
         canvas.save()
         canvas.restore()
 
@@ -142,6 +166,13 @@ class BookAdapter(
             searchHighlights[pageIndex] = rectangles
         }
         highlightedPage = pageIndex
+        notifyDataSetChanged()
+    }
+
+    private var notesByPage: Map<Int, List<NoteItem>> = emptyMap()
+
+    fun setNotes(notes: Map<Int, List<NoteItem>>) {
+        notesByPage = notes
         notifyDataSetChanged()
     }
 }

@@ -50,6 +50,7 @@ import androidx.work.WorkManager
 import apk.hurnell.recipebookreader.adapters.BookAdapter
 import apk.hurnell.recipebookreader.databinding.ActivityRecipeBookBinding
 import apk.hurnell.recipebookreader.databinding.DialogBookmarkBinding
+import apk.hurnell.recipebookreader.databinding.DialogNoteBinding
 import apk.hurnell.recipebookreader.helpers.Coordinates
 import apk.hurnell.recipebookreader.helpers.DataStoreManager
 import apk.hurnell.recipebookreader.helpers.FunctionalStructuredTextWalker
@@ -58,6 +59,7 @@ import apk.hurnell.recipebookreader.model.BaseBookmarkTocItem
 import apk.hurnell.recipebookreader.model.BaseTracker
 import apk.hurnell.recipebookreader.model.BookHistoryItem
 import apk.hurnell.recipebookreader.model.BookmarkItem
+import apk.hurnell.recipebookreader.model.NoteItem
 import apk.hurnell.recipebookreader.model.TocItem
 import apk.hurnell.recipebookreader.ui.PinchRecyclerView
 import apk.hurnell.recipebookreader.ui.TocFragment
@@ -82,6 +84,7 @@ import java.nio.ByteBuffer
 import java.util.concurrent.TimeUnit
 import kotlin.math.abs
 import kotlin.math.floor
+import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
 import androidx.core.net.toUri
@@ -127,6 +130,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     private var isbnScanJob: Job? = null
     private var lastTocId: Long? = null
     private var ingredient: String? = null
+    private var notesForBook: List<NoteItem> = emptyList()
 
     private var copyTextContainer: ConstraintLayout? = null
     private var horizontalScrollView: HorizontalScrollView? = null
@@ -147,6 +151,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         private const val LINK_STATE_LINKS_ON = 0
         private const val LINK_STATE_LINKS_OFF = 1
         private const val LINK_STATE_BOOKMARKS = 2
+        private const val LINK_STATE_NOTES = 3
         private const val COPY_TEXT_MAX = 12f
         private const val COPY_TEXT_MIN = 0f
     }
@@ -313,6 +318,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                 binding.recipeBookToolbar.menu.findItem(R.id.action_search)?.isVisible =
                     !book.scanned
                 loadBookHistory(bookId)
+                reloadNotes()
                 if (!book.name.isNullOrEmpty()) {
                     binding.recipeBookToolbar.title = book.name
                 }
@@ -675,6 +681,102 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
         onBookmarkDataReloaded(false)
     }
 
+    private fun reloadNotes() {
+        if (currentBookId == -1L) return
+        notesForBook = repository.getNotesForBook(currentBookId)
+        (binding.bookRecyclerView.adapter as? BookAdapter)?.setNotes(
+            notesForBook.groupBy { it.page }
+        )
+    }
+
+    private fun findNoteNear(page: Int, x: Float, y: Float): NoteItem? {
+        val hitRadius = 20f
+        return notesForBook
+            .filter { it.page == page }
+            .minByOrNull { hypot((it.x - x).toDouble(), (it.y - y).toDouble()) }
+            ?.takeIf { hypot((it.x - x).toDouble(), (it.y - y).toDouble()) <= hitRadius }
+    }
+
+    private fun showNoteDialog(
+        title: String,
+        existingText: String?,
+        positiveButtonText: String,
+        showDeleteButton: Boolean,
+        onPositive: (String) -> Unit,
+        onDelete: () -> Unit
+    ) {
+        val dialogBinding = DialogNoteBinding.inflate(layoutInflater)
+        if (existingText != null) {
+            dialogBinding.enterNoteText.setText(existingText)
+        }
+        val builder = MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_App_MaterialAlertDialog)
+            .setTitle(title)
+            .setView(dialogBinding.root)
+            .setPositiveButton(positiveButtonText) { _, _ ->
+                val noteText = dialogBinding.enterNoteText.text.toString()
+                if (noteText.isNotBlank()) {
+                    onPositive(noteText)
+                } else {
+                    displaySnackBarMessage("❌ Note cannot be empty", binding.root)
+                }
+            }.setNegativeButton("Cancel") { dialog, _ -> dialog.dismiss() }
+
+        if (showDeleteButton) {
+            builder.setNeutralButton("Delete") { _, _ -> onDelete() }
+        }
+
+        val dialog = builder.create()
+        dialog.show()
+        dialog.window?.setLayout(
+            (resources.displayMetrics.widthPixels * 0.9).toInt(),
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        dialog.window?.setBackgroundDrawableResource(R.drawable.alert_background)
+        dialog.window?.setSoftInputMode(
+            android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN
+        )
+    }
+
+    private fun showCreateNoteDialog(pagePosition: Int, x: Float, y: Float) {
+        showNoteDialog(
+            title = "Create Note",
+            existingText = null,
+            positiveButtonText = "Create",
+            showDeleteButton = false,
+            onPositive = { noteText ->
+                repository.createNote(
+                    NoteItem(
+                        bookId = currentBookId,
+                        bookLocation = bookLocation,
+                        page = pagePosition,
+                        x = x,
+                        y = y,
+                        noteText = noteText
+                    )
+                )
+                reloadNotes()
+            },
+            onDelete = {}
+        )
+    }
+
+    private fun showUpdateOrDeleteNoteDialog(note: NoteItem) {
+        showNoteDialog(
+            title = "Update Note",
+            existingText = note.noteText,
+            positiveButtonText = "Update",
+            showDeleteButton = true,
+            onPositive = { noteText ->
+                repository.updateNote(note.copy(noteText = noteText))
+                reloadNotes()
+            },
+            onDelete = {
+                repository.deleteNote(note)
+                reloadNotes()
+            }
+        )
+    }
+
     private fun setupRecyclerViewTouchListener() {
         binding.bookRecyclerView.addOnItemTouchListener(object : RecyclerView.OnItemTouchListener {
             override fun onInterceptTouchEvent(rv: RecyclerView, e: MotionEvent): Boolean {
@@ -782,6 +884,20 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                                 dialog.window?.setSoftInputMode(
                                     android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN
                                 )
+                            } else if (linkState == LINK_STATE_NOTES && touchContext.isReleased) {
+                                if (currentBookId == -1L) {
+                                    displaySnackBarMessage(
+                                        "⏳ Still loading book, please try again in a moment",
+                                        binding.root
+                                    )
+                                    return@launch
+                                }
+                                val existingNote = findNoteNear(pagePosition, px, py)
+                                if (existingNote != null) {
+                                    showUpdateOrDeleteNoteDialog(existingNote)
+                                } else {
+                                    showCreateNoteDialog(pagePosition, px, py)
+                                }
                             } else if (linkState != LINK_STATE_LINKS_OFF && !touchContext.isReleased) {
                                 val text = getTextNearClickPoint(
                                     document, pagePosition, px, py, false
@@ -797,9 +913,14 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                                     currentDoc, pinchRv, px, py, pageWidth, pagePosition
                                 )
                             ) {
-                                checkFollowLinks(
-                                    pinchRv, px, py, pageWidth, currentDoc, pagePosition
-                                )
+                                val tappedNote = findNoteNear(pagePosition, px, py)
+                                if (tappedNote != null && linkState == LINK_STATE_LINKS_ON) {
+                                    displaySnackBarMessage(tappedNote.noteText, binding.root)
+                                } else {
+                                    checkFollowLinks(
+                                        pinchRv, px, py, pageWidth, currentDoc, pagePosition
+                                    )
+                                }
                             }
                         }
                     }
@@ -1346,7 +1467,7 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
     }
 
     private fun toggleLinks() {
-        linkState = (linkState + 1) % 3
+        linkState = (linkState + 1) % 4
         val color = getLinkColor()
         when (linkState) {
             LINK_STATE_LINKS_ON -> {
@@ -1359,9 +1480,14 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
                 binding.stopLinks.setImageResource(R.drawable.ic_link_off)
             }
 
-            else -> {
+            LINK_STATE_BOOKMARKS -> {
                 binding.stopLinks.imageTintList = ColorStateList.valueOf(color)
                 binding.stopLinks.setImageResource(R.drawable.ic_bookmark_closed)
+            }
+
+            else -> {
+                binding.stopLinks.imageTintList = ColorStateList.valueOf(color)
+                binding.stopLinks.setImageResource(R.drawable.ic_star)
             }
         }
 
