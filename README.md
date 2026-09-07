@@ -123,12 +123,12 @@ the [Releases page](https://github.com/hurnell/recipe-book-reader/releases/lates
 
 #### Links and popups
 
-| Icon                                                                       | Action                                                                                              |
-|----------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------|
-| <img src="help/link_icon.png" width="30" alt="link icon">                  | Normal working, links, notes etc are active!                                                        |
-| <img src="help/link_icon_off.png" width="30" alt="link icon off">          | All links are off - prevents unwanted popups.                                                       |
-| <img src="help/toc_icon_bookmark.png" width="30" alt="link icon bookmark"> | Short click on page allows user to add custom bookmark.                                             |
-| <img src="help/toc_icon_star.png" width="30" alt="link icon note">         | Short click on page allows user to add custom note. If already a note user can update or delete it. |
+| Icon                                                                     | Action                                                                                              |
+|--------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------|
+| <img src="help/link_icon.png" width="30" alt="link icon">                | Normal working, links, notes etc are active!                                                        |
+| <img src="help/link_icon_off.png" width="30" alt="link icon off">        | All links are off - prevents unwanted popups.                                                       |
+| <img src="help/link_icon_bookmark.png" width="30" alt="link icon bookmark"> | Short click on page allows user to add custom bookmark.                                             |
+| <img src="help/link_icon_star.png" width="30" alt="link icon note">        | Short click on page allows user to add custom note. If already a note user can update or delete it. |
 
 ## Preparing PDFs (optional)
 
