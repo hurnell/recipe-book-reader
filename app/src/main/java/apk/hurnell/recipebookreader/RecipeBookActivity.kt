@@ -720,6 +720,13 @@ class RecipeBookActivity : AppCompatActivity(), TocFragmentListener {
 
                         if (!hasMoved && touchContext != null) {
                             if (linkState == LINK_STATE_BOOKMARKS && touchContext.isReleased) {
+                                if (currentBookId == -1L) {
+                                    displaySnackBarMessage(
+                                        "⏳ Still loading book, please try again in a moment",
+                                        binding.root
+                                    )
+                                    return@launch
+                                }
                                 val text = getTextNearClickPoint(
                                     document, pagePosition, px, py, true
                                 )
