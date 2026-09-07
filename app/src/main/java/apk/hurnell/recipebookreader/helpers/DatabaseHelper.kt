@@ -34,6 +34,7 @@ import apk.hurnell.recipebookreader.model.BaseBookmarkTocItem
 import apk.hurnell.recipebookreader.model.BookHistoryItem
 import apk.hurnell.recipebookreader.model.BookmarkItem
 import apk.hurnell.recipebookreader.model.CategoryItem
+import apk.hurnell.recipebookreader.model.NoteItem
 import apk.hurnell.recipebookreader.model.RecentRecipeItem
 import apk.hurnell.recipebookreader.model.Row
 import apk.hurnell.recipebookreader.model.TocItem
@@ -44,7 +45,7 @@ import okhttp3.Request
 import java.text.Normalizer
 
 class DatabaseHelper(private val context: Context) :
-    SQLiteOpenHelper(context.applicationContext, DB_NAME, null, 4) {
+    SQLiteOpenHelper(context.applicationContext, DB_NAME, null, 5) {
 
     companion object {
         private const val DB_NAME = "recipe-reader.db"
@@ -59,6 +60,26 @@ class DatabaseHelper(private val context: Context) :
         if (oldVersion < 2) migrateToVersion2(db)
         if (oldVersion < 3) migrateToVersion3(db)
         if (oldVersion < 4) migrateToVersion4(db)
+        if (oldVersion < 5) migrateToVersion5(db)
+    }
+
+    private fun migrateToVersion5(db: SQLiteDatabase) {
+        try {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS notes (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    book_id_fk INTEGER DEFAULT NULL,
+                    page INTEGER NOT NULL,
+                    x REAL NOT NULL,
+                    y REAL NOT NULL,
+                    note_text TEXT NOT NULL
+                )
+                """.trimIndent()
+            )
+        } catch (e: Exception) {
+            Log.e(LOG_TAG, "Failed to create notes table: ${e.message}", e)
+        }
     }
 
     private fun migrateToVersion4(db: SQLiteDatabase) {
@@ -1552,6 +1573,77 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
         return bookmarks
     }
 
+    fun createNote(item: NoteItem): Boolean {
+        val db = writableDatabase
+        val insertSql = """
+        INSERT INTO notes (book_id_fk, page, x, y, note_text)
+        VALUES (?, ?, ?, ?, ?)
+    """.trimIndent()
+
+        return try {
+            db.compileStatement(insertSql).use { stmt ->
+                if (item.bookId != null) stmt.bindLong(1, item.bookId) else stmt.bindNull(1)
+                stmt.bindLong(2, item.page.toLong())
+                stmt.bindDouble(3, item.x.toDouble())
+                stmt.bindDouble(4, item.y.toDouble())
+                stmt.bindString(5, item.noteText)
+
+                val rowId = stmt.executeInsert()
+                rowId != -1L
+            }
+        } catch (e: Exception) {
+            Log.e(LOG_TAG, "Failed to insert note: ${e.message}", e)
+            false
+        }
+    }
+
+    fun updateNote(item: NoteItem): Boolean {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put("note_text", item.noteText)
+        }
+        val updatedRows = db.update("notes", values, "id = ?", arrayOf(item.noteId.toString()))
+        return updatedRows > 0
+    }
+
+    fun deleteNote(item: NoteItem): Boolean {
+        val db = writableDatabase
+        return try {
+            db.delete("notes", "id = ?", arrayOf(item.noteId.toString())) > 0
+        } catch (e: Exception) {
+            Log.e(LOG_TAG, "Failed to delete note: ${e.message}", e)
+            false
+        }
+    }
+
+    fun getNotesForBook(bookId: Long): List<NoteItem> {
+        val db = readableDatabase
+        val cursor = db.rawQuery(
+            """
+            SELECT id, book_id_fk, page, x, y, note_text
+            FROM notes
+            WHERE book_id_fk = ?
+            ORDER BY page
+        """.trimIndent(), arrayOf(bookId.toString())
+        )
+        val notes = mutableListOf<NoteItem>()
+        cursor.use { cursor ->
+            while (cursor.moveToNext()) {
+                notes.add(
+                    NoteItem(
+                        noteId = cursor.getLongOrNull(0),
+                        bookId = cursor.getLongOrNull(1),
+                        page = cursor.getInt(2),
+                        x = cursor.getFloat(3),
+                        y = cursor.getFloat(4),
+                        noteText = cursor.getString(5)
+                    )
+                )
+            }
+        }
+        return notes
+    }
+
     fun clearBookHistory(bookId: Long) {
         val db = writableDatabase
         db.delete(
@@ -1618,6 +1710,7 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
                 delete("toc", "book_id_fk = ?", arrayOf(bookIdString))
                 delete("bookmarks", "book_id_fk = ?", arrayOf(bookIdString))
                 delete("recent_recipes", "book_id_fk = ?", arrayOf(bookIdString))
+                delete("notes", "book_id_fk = ?", arrayOf(bookIdString))
                 delete("history", "book_id_fk = ?", arrayOf(bookIdString))
                 delete("books", "id = ?", arrayOf(bookIdString))
                 true

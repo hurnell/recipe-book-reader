@@ -11,6 +11,7 @@ import apk.hurnell.recipebookreader.model.BookmarkItem
 import apk.hurnell.recipebookreader.model.Category
 import apk.hurnell.recipebookreader.model.CategoryItem
 import apk.hurnell.recipebookreader.model.FileItem
+import apk.hurnell.recipebookreader.model.NoteItem
 import apk.hurnell.recipebookreader.model.RecentFile
 import apk.hurnell.recipebookreader.model.RecentRecipeItem
 import apk.hurnell.recipebookreader.model.Row
@@ -186,6 +187,22 @@ class PdfRepository(
 
     fun getAllRecentRecipes(): List<RecentRecipeItem> {
         return dbHelper.getAllRecentRecipes()
+    }
+
+    fun createNote(item: NoteItem): Boolean {
+        return dbHelper.createNote(item)
+    }
+
+    fun updateNote(item: NoteItem): Boolean {
+        return dbHelper.updateNote(item)
+    }
+
+    fun deleteNote(item: NoteItem): Boolean {
+        return dbHelper.deleteNote(item)
+    }
+
+    fun getNotesForBook(bookId: Long): List<NoteItem> {
+        return dbHelper.getNotesForBook(bookId)
     }
 
 
