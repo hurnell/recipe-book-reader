@@ -44,7 +44,7 @@ import okhttp3.Request
 import java.text.Normalizer
 
 class DatabaseHelper(private val context: Context) :
-    SQLiteOpenHelper(context.applicationContext, DB_NAME, null, 3) {
+    SQLiteOpenHelper(context.applicationContext, DB_NAME, null, 4) {
 
     companion object {
         private const val DB_NAME = "recipe-reader.db"
@@ -58,6 +58,18 @@ class DatabaseHelper(private val context: Context) :
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         if (oldVersion < 2) migrateToVersion2(db)
         if (oldVersion < 3) migrateToVersion3(db)
+        if (oldVersion < 4) migrateToVersion4(db)
+    }
+
+    private fun migrateToVersion4(db: SQLiteDatabase) {
+        // A prior bug in addRecentRecipeItem() wrote the recent_recipes row id into
+        // toc.bookmark_id whenever a recipe was opened, mislabeling unbookmarked toc
+        // entries as bookmarked. Clear any bookmark_id that doesn't reference a real bookmark.
+        try {
+            db.execSQL("UPDATE toc SET bookmark_id = NULL WHERE bookmark_id IS NOT NULL AND bookmark_id NOT IN (SELECT id FROM bookmarks)")
+        } catch (e: Exception) {
+            Log.e(LOG_TAG, "Failed to clear orphaned toc.bookmark_id values: ${e.message}", e)
+        }
     }
 
     private fun migrateToVersion3(db: SQLiteDatabase) {
@@ -1532,7 +1544,7 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
                         offset = cursor.getIntOrNull(5),
                         scale = cursor.getFloat(6),
                         translate = cursor.getFloat(7),
-                        bookLocation = cursor.getStringOrNull(8),
+                        bookLocation = cursor.getStringOrNull(9),
                     )
                 )
             }
@@ -1863,13 +1875,6 @@ ORDER BY b.name COLLATE NOCASE, CAST(t.page AS INTEGER)
 
                     return false
                 } else {
-                    // Update toc with new bookmark_id
-                    val values = ContentValues().apply { put("bookmark_id", rowId) }
-                    val updatedRows =
-                        db.update("toc", values, "id = ?", arrayOf(item.tocId.toString()))
-                    if (updatedRows == 0) {
-                        Log.w(LOG_TAG, "Recent recipe row not updated, rowId=${item.tocId}")
-                    }
                     Log.d(LOG_TAG, "Recent recipe inserted successfully, rowId=$rowId")
                     return true
                 }
