@@ -86,6 +86,8 @@ class RecentRecipesActivity : BaseDrawerActivity() {
             dialog.show()
         }, onLongClick = { item ->
             displaySnackBarMessage(item.title, binding.rootLayout)
+        }, onBookTitleLongClick = { item ->
+            displaySnackBarMessage(item.bookTitle ?: "", binding.rootLayout)
         })
         binding.bookmarksRecyclerView.adapter = recentRecipesAdapter
 
