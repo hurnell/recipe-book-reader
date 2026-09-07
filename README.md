@@ -18,6 +18,7 @@ library is a few hundred pages long, and you want to find your way back to a pag
 - Full table of contents navigation, including TOC entries generated for images (
   see [recipe-book-reader-companion](https://github.com/hurnell/recipe-book-reader-companion)).
 - Bookmarks per book (as well as for all books).
+- Add notes on page at point.
 - Full-text search inside a PDF.
 - Reading history — return to your last position in any book.
 - Category and metadata management (e.g. filed by cookbook/subject category).
@@ -111,14 +112,23 @@ the [Releases page](https://github.com/hurnell/recipe-book-reader/releases/lates
 - From Bookmarks list short click goes to bookmarked page. Click on bookmark icon shows option to
   remove bookmark.
 
-| Icon                                                                  | Action                                                                                                               |
-|-----------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
-| <img src="help/expand_icon.png" width="30" alt="expand icon">         | Shows/hides the top and bottom navigation bars.                                                                      |
-| <img src="help/link_icon.png" width="30" alt="link icon">             | Toggles links and popups — when red prevents unwanted pop-ups and links - when bookmark single click can create one. |
-| <img src="help/toc_icon.png" width="30" alt="table of contents icon"> | Shows the table of contents for the book.                                                                            |
-| <img src="help/bookmarks_icon.png" width="30" alt="bookmarks icon">   | Shows any bookmarks you've made in the book (only shown if you have some).                                           |
-| <img src="help/back_icon.png" width="30" alt="back icon">             | Returns to the previous screen.                                                                                      |
-| <img src="help/search_icon.png" width="30" alt="search icon">         | Opens a screen to search for text inside the PDF.                                                                    |
+| Icon                                                                  | Action                                                                     |
+|-----------------------------------------------------------------------|----------------------------------------------------------------------------|
+| <img src="help/expand_icon.png" width="30" alt="expand icon">         | Shows/hides the top and bottom navigation bars.                            |
+| <img src="help/link_icon.png" width="30" alt="link icon">             | Toggles links and popups (see [Links and popups](#links-and-popups)).      |
+| <img src="help/toc_icon.png" width="30" alt="table of contents icon"> | Shows the table of contents for the book.                                  |
+| <img src="help/bookmarks_icon.png" width="30" alt="bookmarks icon">   | Shows any bookmarks you've made in the book (only shown if you have some). |
+| <img src="help/back_icon.png" width="30" alt="back icon">             | Returns to the previous screen.                                            |
+| <img src="help/search_icon.png" width="30" alt="search icon">         | Opens a screen to search for text inside the PDF.                          |
+
+#### Links and popups
+
+| Icon                                                                       | Action                                                                                              |
+|----------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------|
+| <img src="help/link_icon.png" width="30" alt="link icon">                  | Normal working, links, notes etc are active!                                                        |
+| <img src="help/link_icon_off.png" width="30" alt="link icon off">          | All links are off - prevents unwanted popups.                                                       |
+| <img src="help/toc_icon_bookmark.png" width="30" alt="link icon bookmark"> | Short click on page allows user to add custom bookmark.                                             |
+| <img src="help/toc_icon_star.png" width="30" alt="link icon note">         | Short click on page allows user to add custom note. If already a note user can update or delete it. |
 
 ## Preparing PDFs (optional)
 
